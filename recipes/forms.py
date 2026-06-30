@@ -115,13 +115,13 @@ class RecipeSelectorForm(forms.Form):
     include_ingredients = forms.ModelMultipleChoiceField(
         queryset=Ingredient.objects.all(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'size': 6}),
+        widget=forms.CheckboxSelectMultiple(),
         label='Must include ingredients',
     )
     exclude_ingredients = forms.ModelMultipleChoiceField(
         queryset=Ingredient.objects.all(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'size': 6}),
+        widget=forms.CheckboxSelectMultiple(),
         label='Exclude ingredients',
     )
     tags = forms.ModelMultipleChoiceField(

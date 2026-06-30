@@ -45,13 +45,14 @@
       {% for sa_form in season_formset %}
         {% for hidden in sa_form.hidden_fields %}{{ hidden }}{% endfor %}
         {% with month_num=sa_form.month.value %}
-          <div class="border border-gray-200 rounded-lg p-3">
-            <div class="text-sm font-medium text-gray-700 mb-1">
+          <div class="month-card border border-gray-200 rounded-lg p-3 cursor-pointer select-none">
+            <div class="text-sm font-medium text-gray-700 mb-2">
               {% for m, name in months %}{% if m == month_num %}{{ name }}{% endif %}{% endfor %}
             </div>
             {{ sa_form.status.errors }}
             <select name="{{ sa_form.status.html_name }}"
-                    class="w-full border border-gray-200 rounded px-2 py-1 text-xs">
+                    class="w-full border border-gray-200 rounded px-2 py-1 text-xs"
+                    onclick="event.stopPropagation()">
               {% for value, label in sa_form.fields.status.choices %}
                 <option value="{{ value }}" {% if sa_form.status.value == value %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
@@ -105,6 +106,28 @@
 </form>
 
 <script>
+  // Month card click-to-toggle in/out season
+  function applyMonthCardStyle(card) {
+    const sel = card.querySelector('select');
+    const isIn = sel && sel.value === 'in';
+    card.style.background   = isIn ? '#ecfdf5' : '#ffffff';
+    card.style.borderColor  = isIn ? '#6ee7b7' : '#e5e7eb';
+  }
+
+  document.querySelectorAll('.month-card').forEach(card => {
+    applyMonthCardStyle(card);
+
+    card.addEventListener('click', e => {
+      if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+      const sel = card.querySelector('select');
+      if (!sel) return;
+      sel.value = sel.value === 'in' ? 'out' : 'in';
+      applyMonthCardStyle(card);
+    });
+
+    card.querySelector('select')?.addEventListener('change', () => applyMonthCardStyle(card));
+  });
+
   document.getElementById('add-shop').addEventListener('click', () => {
     const container = document.getElementById('shop-forms');
     const rows = container.querySelectorAll('.shop-row');
