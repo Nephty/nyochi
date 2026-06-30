@@ -9,11 +9,11 @@ from django.urls import reverse_lazy
 from .forms import (
     GrocerySelectForm, IngredientForm, RecipeForm,
     RecipeIngredientFormSet, RecipeSelectorForm,
-    SeasonalAvailabilityFormSet, ShopLinkFormSet,
+    SeasonalAvailabilityFormSet, ShopLinkFormSet, TagForm,
 )
 from .models import (
     Ingredient, IngredientCategory, Recipe, RecipeIngredient,
-    SeasonalAvailability, Unit,
+    SeasonalAvailability, Tag, Unit,
 )
 
 MONTHS = [
@@ -240,6 +240,34 @@ class IngredientDeleteView(DeleteView):
     success_url = reverse_lazy('ingredient-list')
 
 
+# ── Tags ─────────────────────────────────────────────────────────────────────
+
+class TagListView(View):
+    template_name = 'recipes/tags.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'tags': Tag.objects.all(),
+            'form': TagForm(),
+        })
+
+    def post(self, request):
+        form = TagForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('tag-list')
+        return render(request, self.template_name, {
+            'tags': Tag.objects.all(),
+            'form': form,
+        })
+
+
+class TagDeleteView(View):
+    def post(self, request, pk):
+        Tag.objects.filter(pk=pk).delete()
+        return redirect('tag-list')
+
+
 # ── Grocery list ──────────────────────────────────────────────────────────────
 
 class GroceryListView(View):
@@ -260,7 +288,6 @@ class GroceryListView(View):
             .filter(recipe__in=selected_recipes)
             .values('ingredient', 'unit')
             .annotate(total=Sum('quantity'))
-            .select_related('ingredient', 'unit')
             .order_by('ingredient__category', 'ingredient__name')
         )
 

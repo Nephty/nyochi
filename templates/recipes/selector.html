@@ -25,6 +25,8 @@
             {{ cb.tag }}
             <span class="px-2 py-0.5 bg-gray-100 rounded-full text-xs">{{ cb.choice_label }}</span>
           </label>
+        {% empty %}
+          <p class="text-xs text-gray-400">No tags yet. <a href="{% url 'tag-list' %}" class="text-emerald-600 hover:underline">Add tags</a>.</p>
         {% endfor %}
       </div>
     </div>
@@ -83,7 +85,4 @@
   </div>
 </div>
 
-<style>
-  select { border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px; font-size: 0.875rem; width: 100%; }
-</style>
 {% endblock %}

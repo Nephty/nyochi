@@ -49,6 +49,8 @@
               {{ checkbox.tag }}
               <span class="px-2 py-0.5 bg-gray-100 rounded-full">{{ checkbox.choice_label }}</span>
             </label>
+          {% empty %}
+            <p class="text-sm text-gray-400">No tags exist yet. <a href="{% url 'tag-list' %}" class="text-emerald-600 hover:underline">Create some tags</a> first.</p>
           {% endfor %}
         </div>
       </div>
@@ -101,10 +103,6 @@
     {% endif %}
   </div>
 </form>
-
-<style>
-  select, input[type=text], input[type=number] { border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px; font-size: 0.875rem; width: 100%; }
-</style>
 
 <script>
   // Clone last form row to add a new ingredient line

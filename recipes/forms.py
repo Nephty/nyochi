@@ -71,10 +71,24 @@ class RecipeForm(forms.ModelForm):
         }
 
 
+_INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
+
+
+class RecipeIngredientForm(forms.ModelForm):
+    class Meta:
+        model = RecipeIngredient
+        fields = ['ingredient', 'quantity', 'unit', 'is_main']
+        widgets = {
+            'ingredient': forms.Select(attrs={'class': _INPUT_CLASS}),
+            'quantity': forms.NumberInput(attrs={'class': _INPUT_CLASS, 'step': '0.01', 'min': '0'}),
+            'unit': forms.Select(attrs={'class': _INPUT_CLASS}),
+        }
+
+
 RecipeIngredientFormSet = inlineformset_factory(
     Recipe,
     RecipeIngredient,
-    fields=['ingredient', 'quantity', 'unit', 'is_main'],
+    form=RecipeIngredientForm,
     extra=1,
     can_delete=True,
 )

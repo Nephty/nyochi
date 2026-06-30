@@ -6,6 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Recipe Book{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    input[type=text], input[type=number], input[type=url], textarea, select {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px;
+      font-size: 0.875rem; width: 100%; box-sizing: border-box;
+    }
+    input[type=text]:focus, input[type=number]:focus, input[type=url]:focus,
+    textarea:focus, select:focus {
+      outline: none; border-color: #34d399;
+    }
+  </style>
 </head>
 <body class="min-h-full bg-gray-50 text-gray-900">
 
@@ -21,6 +31,7 @@
           <a href="{% url 'ingredient-list' %}" class="hover:text-emerald-700 {% if 'ingredient' in request.resolver_match.url_name %}text-emerald-700{% endif %}">Ingredients</a>
           <a href="{% url 'grocery-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'grocery-list' %}text-emerald-700{% endif %}">Grocery List</a>
           <a href="{% url 'recipe-selector' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-selector' %}text-emerald-700{% endif %}">Find Recipes</a>
+          <a href="{% url 'tag-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'tag-list' %}text-emerald-700{% endif %}">Tags</a>
         </div>
 
         <!-- Mobile hamburger -->
@@ -37,6 +48,7 @@
         <a href="{% url 'ingredient-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Ingredients</a>
         <a href="{% url 'grocery-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Grocery List</a>
         <a href="{% url 'recipe-selector' %}" class="px-2 py-1 rounded hover:bg-gray-50">Find Recipes</a>
+        <a href="{% url 'tag-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Tags</a>
       </div>
     </div>
   </nav>
