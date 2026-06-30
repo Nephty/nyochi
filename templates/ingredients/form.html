@@ -108,18 +108,32 @@
 <script>
   // Month card click-to-toggle in/out season
   const SEASON_STYLE = {
-    in:    { background: '#ecfdf5', borderColor: '#6ee7b7' },  /* emerald */
-    early: { background: '#fffbeb', borderColor: '#fcd34d' },  /* amber   */
-    late:  { background: '#fff7ed', borderColor: '#fdba74' },  /* orange  */
-    out:   { background: '#ffffff', borderColor: '#e5e7eb' },  /* gray    */
+    light: {
+      in:    { background: '#ecfdf5', borderColor: '#6ee7b7' },
+      early: { background: '#fffbeb', borderColor: '#fcd34d' },
+      late:  { background: '#fff7ed', borderColor: '#fdba74' },
+      out:   { background: '#ffffff', borderColor: '#e5e7eb' },
+    },
+    dark: {
+      in:    { background: '#064e3b', borderColor: '#059669' },
+      early: { background: '#78350f', borderColor: '#d97706' },
+      late:  { background: '#7c2d12', borderColor: '#ea580c' },
+      out:   { background: '#1f2937', borderColor: '#374151' },
+    },
   };
 
   function applyMonthCardStyle(card) {
+    const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     const sel = card.querySelector('select');
-    const style = SEASON_STYLE[sel?.value] ?? SEASON_STYLE.out;
+    const style = SEASON_STYLE[mode][sel?.value] ?? SEASON_STYLE[mode].out;
     card.style.background  = style.background;
     card.style.borderColor = style.borderColor;
   }
+
+  // Re-apply all cards when theme switches
+  new MutationObserver(() =>
+    document.querySelectorAll('.month-card').forEach(applyMonthCardStyle)
+  ).observe(document.documentElement, { attributeFilter: ['class'] });
 
   document.querySelectorAll('.month-card').forEach(card => {
     applyMonthCardStyle(card);

@@ -5,6 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Recipe Book{% endblock %}</title>
+  <script>
+    if (localStorage.getItem('theme') === 'dark' ||
+        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches))
+      document.documentElement.classList.add('dark');
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Checkboxes */
@@ -17,6 +22,34 @@
       width: 100%; box-sizing: border-box;
     }
     input[type=number]:focus { outline: none; border-color: #34d399; }
+
+    /* Dark mode
+       html.dark has specificity 0,1,1 vs Tailwind's class selectors 0,1,0
+       so no !important needed — our selectors naturally win. */
+    html.dark body { background-color: #111827; color: #f9fafb; }
+    html.dark nav { background-color: #1f2937 !important; }
+    html.dark .bg-white  { background-color: #1f2937; }
+    html.dark .bg-gray-50  { background-color: #111827; }
+    html.dark .bg-gray-100 { background-color: #374151; }
+    html.dark .border-gray-200 { border-color: #374151; }
+    html.dark .border-gray-300 { border-color: #4b5563; }
+    html.dark .border-gray-100 { border-color: #4b5563; }
+    html.dark .text-gray-900 { color: #f9fafb; }
+    html.dark .text-gray-700 { color: #d1d5db; }
+    html.dark .text-gray-600 { color: #9ca3af; }
+    html.dark .text-gray-500 { color: #9ca3af; }
+    html.dark .text-gray-400 { color: #6b7280; }
+    html.dark .hover\:bg-gray-50:hover  { background-color: #374151; }
+    html.dark .hover\:bg-gray-100:hover { background-color: #4b5563; }
+    html.dark .divide-gray-100 > * { border-color: #4b5563; }
+    html.dark input:not([type=checkbox]):not([type=radio]),
+    html.dark select,
+    html.dark textarea { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
+    html.dark .bg-emerald-50  { background-color: #064e3b; }
+    html.dark .text-emerald-700 { color: #34d399; }
+    html.dark .text-emerald-800 { color: #6ee7b7; }
+    html.dark .border-emerald-200 { border-color: #065f46; }
+    html.dark .tag-pill { background: #374151; color: #d1d5db; border-color: #4b5563; }
 
     /* Clickable tag pill toggle */
     .tag-pill-label { position: relative; }
@@ -40,21 +73,30 @@
       <div class="flex items-center justify-between h-14">
         <a href="{% url 'recipe-list' %}" class="font-semibold text-lg text-emerald-700">Recipe Book</a>
 
-        <!-- Desktop links -->
-        <div class="hidden sm:flex gap-6 text-sm font-medium">
-          <a href="{% url 'recipe-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-list' %}text-emerald-700{% endif %}">Recipes</a>
-          <a href="{% url 'ingredient-list' %}" class="hover:text-emerald-700 {% if 'ingredient' in request.resolver_match.url_name %}text-emerald-700{% endif %}">Ingredients</a>
-          <a href="{% url 'grocery-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'grocery-list' %}text-emerald-700{% endif %}">Grocery List</a>
-          <a href="{% url 'recipe-selector' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-selector' %}text-emerald-700{% endif %}">Find Recipes</a>
-          <a href="{% url 'tag-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'tag-list' %}text-emerald-700{% endif %}">Tags</a>
-        </div>
+        <div class="flex items-center gap-4">
+          <!-- Desktop links -->
+          <div class="hidden sm:flex gap-6 text-sm font-medium">
+            <a href="{% url 'recipe-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-list' %}text-emerald-700{% endif %}">Recipes</a>
+            <a href="{% url 'ingredient-list' %}" class="hover:text-emerald-700 {% if 'ingredient' in request.resolver_match.url_name %}text-emerald-700{% endif %}">Ingredients</a>
+            <a href="{% url 'grocery-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'grocery-list' %}text-emerald-700{% endif %}">Grocery List</a>
+            <a href="{% url 'recipe-selector' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-selector' %}text-emerald-700{% endif %}">Find Recipes</a>
+            <a href="{% url 'tag-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'tag-list' %}text-emerald-700{% endif %}">Tags</a>
+          </div>
 
-        <!-- Mobile hamburger -->
-        <button id="nav-toggle" class="sm:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-        </button>
+          <!-- Dark mode toggle switch -->
+          <button id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"
+                  style="position:relative;width:2.5rem;height:1.25rem;border-radius:9999px;border:none;cursor:pointer;flex-shrink:0;transition:background 0.2s;background:#d1d5db;">
+            <span id="theme-dot"
+                  style="position:absolute;top:2px;left:2px;width:1rem;height:1rem;border-radius:50%;background:white;transition:transform 0.2s;display:block;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span>
+          </button>
+
+          <!-- Mobile hamburger -->
+          <button id="nav-toggle" class="sm:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Mobile menu -->
@@ -82,6 +124,30 @@
     document.getElementById('nav-toggle').addEventListener('click', () => {
       document.getElementById('nav-menu').classList.toggle('hidden');
     });
+
+    // Dark mode toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeDot    = document.getElementById('theme-dot');
+
+    function applyTheme(dark) {
+      if (dark) {
+        document.documentElement.classList.add('dark');
+        themeToggle.style.background = '#10b981';
+        themeDot.style.transform = 'translateX(1.25rem)';
+      } else {
+        document.documentElement.classList.remove('dark');
+        themeToggle.style.background = '#d1d5db';
+        themeDot.style.transform = 'translateX(0)';
+      }
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+
+    // Initialise toggle visual to match the class already set by the FOUC script
+    applyTheme(document.documentElement.classList.contains('dark'));
+
+    themeToggle.addEventListener('click', () =>
+      applyTheme(!document.documentElement.classList.contains('dark'))
+    );
   </script>
 </body>
 </html>
