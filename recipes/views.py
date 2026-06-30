@@ -9,7 +9,8 @@ from django.urls import reverse_lazy
 from .forms import (
     GrocerySelectForm, IngredientForm, RecipeForm,
     RecipeIngredientFormSet, RecipeSelectorForm,
-    SeasonalAvailabilityFormSet, ShopLinkFormSet, TagForm,
+    SeasonalAvailabilityCreateFormSet, SeasonalAvailabilityFormSet,
+    ShopLinkFormSet, TagForm,
 )
 from .models import (
     Ingredient, IngredientCategory, Recipe, RecipeIngredient,
@@ -151,7 +152,7 @@ class IngredientCreateView(View):
         ingredient = Ingredient()
         return render(request, self.template_name, {
             'form': IngredientForm(),
-            'season_formset': SeasonalAvailabilityFormSet(
+            'season_formset': SeasonalAvailabilityCreateFormSet(
                 instance=ingredient,
                 initial=self._make_season_initial(),
             ),

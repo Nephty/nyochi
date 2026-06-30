@@ -52,6 +52,15 @@ SeasonalAvailabilityFormSet = inlineformset_factory(
     can_delete=False,
 )
 
+# Used only on the create view: extra=12 so the 12 initial month forms are rendered
+SeasonalAvailabilityCreateFormSet = inlineformset_factory(
+    Ingredient,
+    SeasonalAvailability,
+    form=SeasonalAvailabilityForm,
+    extra=12,
+    can_delete=False,
+)
+
 ShopLinkFormSet = inlineformset_factory(
     Ingredient,
     ShopLink,
