@@ -7,6 +7,17 @@
   <title>{% block title %}Recipe Book{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Checkboxes */
+    input[type=checkbox] { accent-color: #10b981; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
+
+    /* Number inputs — values match Tailwind border-gray-300 / rounded / px-2 py-1 / text-sm */
+    input[type=number] {
+      border: 1px solid #d1d5db; border-radius: 0.375rem;
+      padding: 0.25rem 0.5rem; font-size: 0.875rem;
+      width: 100%; box-sizing: border-box;
+    }
+    input[type=number]:focus { outline: none; border-color: #34d399; }
+
     /* Clickable tag pill toggle */
     .tag-pill-label { position: relative; }
     .tag-pill-label input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
