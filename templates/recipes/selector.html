@@ -12,18 +12,22 @@
     <div>
       <label class="block font-medium text-gray-700 mb-1">{{ form.include_ingredients.label }}</label>
       {{ form.include_ingredients }}
+      <button type="button" class="text-xs text-gray-400 hover:text-gray-600 mt-1"
+              onclick="Array.from(this.previousElementSibling.options).forEach(o => o.selected = false)">Clear selection</button>
     </div>
     <div>
       <label class="block font-medium text-gray-700 mb-1">{{ form.exclude_ingredients.label }}</label>
       {{ form.exclude_ingredients }}
+      <button type="button" class="text-xs text-gray-400 hover:text-gray-600 mt-1"
+              onclick="Array.from(this.previousElementSibling.options).forEach(o => o.selected = false)">Clear selection</button>
     </div>
     <div>
       <label class="block font-medium text-gray-700 mb-2">{{ form.tags.label }}</label>
       <div class="flex flex-wrap gap-2">
         {% for cb in form.tags %}
-          <label class="flex items-center gap-1 cursor-pointer">
+          <label class="tag-pill-label">
             {{ cb.tag }}
-            <span class="px-2 py-0.5 bg-gray-100 rounded-full text-xs">{{ cb.choice_label }}</span>
+            <span class="tag-pill">{{ cb.choice_label }}</span>
           </label>
         {% empty %}
           <p class="text-xs text-gray-400">No tags yet. <a href="{% url 'tag-list' %}" class="text-emerald-600 hover:underline">Add tags</a>.</p>

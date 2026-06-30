@@ -45,9 +45,9 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
         <div class="flex flex-wrap gap-2">
           {% for checkbox in form.tags %}
-            <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+            <label class="tag-pill-label">
               {{ checkbox.tag }}
-              <span class="px-2 py-0.5 bg-gray-100 rounded-full">{{ checkbox.choice_label }}</span>
+              <span class="tag-pill">{{ checkbox.choice_label }}</span>
             </label>
           {% empty %}
             <p class="text-sm text-gray-400">No tags exist yet. <a href="{% url 'tag-list' %}" class="text-emerald-600 hover:underline">Create some tags</a> first.</p>

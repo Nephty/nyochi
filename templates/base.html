@@ -7,13 +7,17 @@
   <title>{% block title %}Recipe Book{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    input[type=text], input[type=number], input[type=url], textarea, select {
-      border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px;
-      font-size: 0.875rem; width: 100%; box-sizing: border-box;
+    /* Clickable tag pill toggle */
+    .tag-pill-label { position: relative; }
+    .tag-pill-label input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+    .tag-pill {
+      display: inline-block; padding: 2px 12px; border-radius: 9999px;
+      border: 1px solid #d1d5db; background: #f9fafb; color: #4b5563;
+      font-size: 0.75rem; line-height: 1.75; cursor: pointer;
+      transition: background 0.1s, color 0.1s, border-color 0.1s;
     }
-    input[type=text]:focus, input[type=number]:focus, input[type=url]:focus,
-    textarea:focus, select:focus {
-      outline: none; border-color: #34d399;
+    .tag-pill-label input[type=checkbox]:checked ~ .tag-pill {
+      background: #10b981; color: white; border-color: #10b981;
     }
   </style>
 </head>
