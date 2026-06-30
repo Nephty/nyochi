@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load recipe_extras %}
+{% block title %}{{ ingredient.name }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'ingredient-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Ingredients</a>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+  <div class="flex items-start justify-between gap-4 mb-3">
+    <div>
+      <h1 class="text-2xl font-bold">{{ ingredient.name }}</h1>
+      <span class="text-sm text-gray-500">{{ ingredient.get_category_display }}</span>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'ingredient-update' ingredient.pk %}" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Edit</a>
+      <a href="{% url 'ingredient-delete' ingredient.pk %}" class="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50">Delete</a>
+    </div>
+  </div>
+</div>
+
+<!-- Season grid -->
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+  <h2 class="font-semibold mb-4">Seasonal availability</h2>
+  <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
+    {% for month_num, month_name in months %}
+      {% with sa=seasons|get_item:month_num %}
+        {% if sa %}
+          {% season_badge_class sa.status as cls %}
+          {% season_label sa.status as label %}
+          <div class="rounded-lg px-2 py-2 {{ cls }}">
+            <div class="font-semibold">{{ month_name|slice:":3" }}</div>
+            <div class="mt-0.5 opacity-80">{{ sa.get_status_display }}</div>
+          </div>
+        {% else %}
+          <div class="rounded-lg px-2 py-2 bg-gray-50 text-gray-400">
+            <div class="font-semibold">{{ month_name|slice:":3" }}</div>
+            <div class="mt-0.5">—</div>
+          </div>
+        {% endif %}
+      {% endwith %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Shop links -->
+{% if shop_links %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="font-semibold mb-3">Shop links</h2>
+    <ul class="space-y-2 text-sm">
+      {% for link in shop_links %}
+        <li class="flex items-center gap-2">
+          <span class="text-gray-500 w-28 shrink-0">{{ link.shop_name }}</span>
+          <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-emerald-600 hover:underline truncate">{{ link.url }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<!-- Recipes using this ingredient -->
+{% with recipes=ingredient.recipe_set.all %}
+  {% if recipes %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold mb-3">Used in</h2>
+      <ul class="space-y-1 text-sm">
+        {% for recipe in recipes %}
+          <li><a href="{% url 'recipe-detail' recipe.pk %}" class="hover:text-emerald-700">{{ recipe }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endwith %}
+{% endblock %}

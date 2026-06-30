@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete {{ object.name }}{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-xl border border-gray-200 p-6">
+  <h1 class="text-xl font-bold mb-3">Delete "{{ object.name }}"?</h1>
+  <p class="text-gray-600 mb-6 text-sm">This action cannot be undone. Recipes using this ingredient will lose it.</p>
+  <form method="post" class="flex gap-3">
+    {% csrf_token %}
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">Delete</button>
+    <a href="{% url 'ingredient-detail' object.pk %}" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+  </form>
+</div>
+{% endblock %}

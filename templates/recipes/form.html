@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+  {% if recipe %}
+    <a href="{% url 'recipe-detail' recipe.pk %}" class="text-sm text-gray-500 hover:text-gray-700">← {{ recipe.name }}</a>
+  {% else %}
+    <a href="{% url 'recipe-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Recipes</a>
+  {% endif %}
+</div>
+
+<h1 class="text-2xl font-bold mb-6">{{ title }}</h1>
+
+<form method="post">
+  {% csrf_token %}
+
+  <!-- Recipe fields -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="font-semibold mb-4">Details</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+        {{ form.name.errors }}
+        <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Prep time (min)</label>
+        {{ form.prep_time.errors }}
+        <input type="number" name="{{ form.prep_time.html_name }}" value="{{ form.prep_time.value|default:'' }}" min="0"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Cook time (min)</label>
+        {{ form.cook_time.errors }}
+        <input type="number" name="{{ form.cook_time.html_name }}" value="{{ form.cook_time.value|default:'' }}" min="0"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea name="{{ form.description.html_name }}" rows="3"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">{{ form.description.value|default:'' }}</textarea>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+        <div class="flex flex-wrap gap-2">
+          {% for checkbox in form.tags %}
+            <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+              {{ checkbox.tag }}
+              <span class="px-2 py-0.5 bg-gray-100 rounded-full">{{ checkbox.choice_label }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingredients formset -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="font-semibold mb-4">Ingredients</h2>
+    {{ ingredient_formset.management_form }}
+    <div id="ingredient-forms">
+      {% for ing_form in ingredient_formset %}
+        <div class="ingredient-row grid grid-cols-12 gap-2 mb-2 items-center text-sm">
+          <div class="col-span-4">
+            {{ ing_form.ingredient.errors }}
+            {{ ing_form.ingredient }}
+          </div>
+          <div class="col-span-2">
+            {{ ing_form.quantity.errors }}
+            {{ ing_form.quantity }}
+          </div>
+          <div class="col-span-2">
+            {{ ing_form.unit.errors }}
+            {{ ing_form.unit }}
+          </div>
+          <div class="col-span-2 flex items-center gap-1">
+            {{ ing_form.is_main }}
+            <label class="text-xs text-gray-600">Main</label>
+          </div>
+          <div class="col-span-1 flex items-center gap-1">
+            {% if ing_form.DELETE %}
+              {{ ing_form.DELETE }}
+              <label class="text-xs text-red-400">Del</label>
+            {% endif %}
+          </div>
+          {% for hidden in ing_form.hidden_fields %}{{ hidden }}{% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+    <button type="button" id="add-ingredient"
+            class="mt-2 text-sm text-emerald-600 hover:text-emerald-800">+ Add ingredient row</button>
+  </div>
+
+  <div class="flex gap-3">
+    <button type="submit" class="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Save</button>
+    {% if recipe %}
+      <a href="{% url 'recipe-detail' recipe.pk %}" class="px-6 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+    {% else %}
+      <a href="{% url 'recipe-list' %}" class="px-6 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+    {% endif %}
+  </div>
+</form>
+
+<style>
+  select, input[type=text], input[type=number] { border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px; font-size: 0.875rem; width: 100%; }
+</style>
+
+<script>
+  // Clone last form row to add a new ingredient line
+  document.getElementById('add-ingredient').addEventListener('click', () => {
+    const container = document.getElementById('ingredient-forms');
+    const rows = container.querySelectorAll('.ingredient-row');
+    const totalForms = document.querySelector('[name$=TOTAL_FORMS]');
+    const idx = parseInt(totalForms.value);
+    const last = rows[rows.length - 1];
+    const clone = last.cloneNode(true);
+    clone.querySelectorAll('input, select').forEach(el => {
+      el.name = el.name.replace(/-\d+-/, `-${idx}-`);
+      el.id = el.id ? el.id.replace(/-\d+-/, `-${idx}-`) : '';
+      if (el.type !== 'checkbox') el.value = '';
+      else el.checked = false;
+    });
+    clone.querySelectorAll('label').forEach(el => {
+      if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/-\d+-/, `-${idx}-`);
+    });
+    container.appendChild(clone);
+    totalForms.value = idx + 1;
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load recipe_extras %}
+{% block title %}{{ recipe.name }}{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'recipe-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Recipes</a>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+  <div class="flex items-start justify-between gap-4 mb-4">
+    <h1 class="text-2xl font-bold">{{ recipe.name }}</h1>
+    <div class="flex gap-2 shrink-0">
+      <a href="{% url 'recipe-update' recipe.pk %}" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Edit</a>
+      <a href="{% url 'recipe-delete' recipe.pk %}" class="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50">Delete</a>
+    </div>
+  </div>
+
+  <!-- Durations -->
+  <div class="flex gap-4 text-sm text-gray-600 mb-4">
+    <span>🔪 Prep: <strong>{{ recipe.prep_time }} min</strong></span>
+    <span>🍳 Cook: <strong>{{ recipe.cook_time }} min</strong></span>
+    <span>⏱ Total: <strong>{{ recipe.total_time }} min</strong></span>
+  </div>
+
+  <!-- Tags -->
+  {% if recipe.tags.all %}
+    <div class="flex flex-wrap gap-1 mb-4">
+      {% for tag in recipe.tags.all %}
+        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-sm">{{ tag }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Description -->
+  {% if recipe.description %}
+    <p class="text-gray-700 whitespace-pre-line">{{ recipe.description }}</p>
+  {% endif %}
+</div>
+
+<!-- Ingredients -->
+<div class="bg-white rounded-xl border border-gray-200 p-6">
+  <h2 class="font-semibold text-lg mb-4">Ingredients</h2>
+  {% if recipe_ingredients %}
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-gray-500 border-b border-gray-100">
+          <th class="pb-2 font-medium">Ingredient</th>
+          <th class="pb-2 font-medium">Quantity</th>
+          <th class="pb-2 font-medium hidden sm:table-cell">Season</th>
+          <th class="pb-2 font-medium hidden sm:table-cell">Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ri in recipe_ingredients %}
+          {% with status=ri.ingredient.current_season_status %}
+          {% season_badge_class status as cls %}
+          {% season_label status as label %}
+          <tr class="border-b border-gray-50 hover:bg-gray-50 {% if ri.is_main %}font-medium{% endif %}">
+            <td class="py-2">
+              <a href="{% url 'ingredient-detail' ri.ingredient.pk %}" class="hover:text-emerald-700">
+                {{ ri.ingredient }}{% if ri.is_main %} ★{% endif %}
+              </a>
+            </td>
+            <td class="py-2 text-gray-600">{{ ri.quantity }} {{ ri.unit.abbreviation }}</td>
+            <td class="py-2 hidden sm:table-cell">
+              <span class="px-2 py-0.5 rounded-full text-xs {{ cls }}">{{ label }}</span>
+            </td>
+            <td class="py-2 text-gray-500 hidden sm:table-cell">{{ ri.ingredient.get_category_display }}</td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-gray-500 text-sm">No ingredients yet. <a href="{% url 'recipe-update' recipe.pk %}" class="text-emerald-600 underline">Edit recipe to add some.</a></p>
+  {% endif %}
+</div>
+{% endblock %}
