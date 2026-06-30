@@ -111,20 +111,17 @@ class GrocerySelectForm(forms.Form):
     )
 
 
-_MULTI_SELECT_CLASS = 'w-full border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-emerald-400'
-
-
 class RecipeSelectorForm(forms.Form):
     include_ingredients = forms.ModelMultipleChoiceField(
         queryset=Ingredient.objects.all(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'size': 6, 'class': _MULTI_SELECT_CLASS}),
+        widget=forms.SelectMultiple(attrs={'size': 6}),
         label='Must include ingredients',
     )
     exclude_ingredients = forms.ModelMultipleChoiceField(
         queryset=Ingredient.objects.all(),
         required=False,
-        widget=forms.SelectMultiple(attrs={'size': 6, 'class': _MULTI_SELECT_CLASS}),
+        widget=forms.SelectMultiple(attrs={'size': 6}),
         label='Exclude ingredients',
     )
     tags = forms.ModelMultipleChoiceField(
