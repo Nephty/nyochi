@@ -1,0 +1,31 @@
+{% load recipe_extras %}
+{% if grocery_grouped %}
+  <p class="text-xs text-gray-500 mb-4">
+    {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
+    · <strong>{{ location }}</strong>
+  </p>
+  {% for category, items in grocery_grouped.items %}
+    <div class="mb-4">
+      <h3 class="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-1">
+        {{ category }}
+        {% with aisle_name=aisle_label|get_item:category %}
+          {% if aisle_name %}
+            <span class="normal-case font-normal text-gray-400 ml-1">· {{ aisle_name }}</span>
+          {% endif %}
+        {% endwith %}
+      </h3>
+      <ul class="space-y-1 text-sm">
+        {% for item in items %}
+          <li class="flex justify-between gap-2">
+            <a href="{% url 'ingredient-detail' item.ingredient.pk %}" class="hover:text-emerald-700 truncate">{{ item.ingredient }}</a>
+            <span class="text-gray-600 font-medium shrink-0">{{ item.total|floatformat:"-2" }} {{ item.unit.abbreviation }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+{% elif selected_pks and not location %}
+  <p class="text-sm text-amber-600">Select a shop location above to generate the grocery list.</p>
+{% else %}
+  <p class="text-sm text-gray-400">Select recipes and a shop location to generate the list.</p>
+{% endif %}

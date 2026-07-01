@@ -1,0 +1,18 @@
+<div class="shop-card relative bg-white rounded-xl border border-gray-200 p-5 hover:border-emerald-300 transition-colors cursor-pointer">
+  <a href="{% url 'shop-detail' shop.pk %}" class="absolute inset-0 rounded-xl"></a>
+  <div class="flex items-start justify-between gap-2 mb-1">
+    <span class="font-semibold">{{ shop.name }}</span>
+    <form hx-post="{% url 'shop-delete' shop.pk %}"
+          hx-target="closest .shop-card"
+          hx-swap="outerHTML"
+          hx-confirm="Delete {{ shop.name }}?"
+          class="relative z-10">
+      {% csrf_token %}
+      <button type="submit" class="text-xs text-red-400 hover:text-red-600 transition-colors">Delete</button>
+    </form>
+  </div>
+  <p class="text-xs text-gray-400">
+    {{ shop.aisles.count }} aisle{{ shop.aisles.count|pluralize }} ·
+    {{ shop.locations.count }} location{{ shop.locations.count|pluralize }}
+  </p>
+</div>

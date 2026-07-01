@@ -1,0 +1,10 @@
+<li class="aisle-item flex items-center justify-between py-2 text-sm">
+  <span>{{ aisle.name }}</span>
+  <form hx-post="{% url 'aisle-delete' aisle.pk %}"
+        hx-target="closest .aisle-item"
+        hx-swap="outerHTML"
+        hx-confirm='Delete aisle "{{ aisle.name }}"?'>
+    {% csrf_token %}
+    <button type="submit" class="text-xs text-red-400 hover:text-red-600 transition-colors">Delete</button>
+  </form>
+</li>

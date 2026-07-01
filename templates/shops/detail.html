@@ -11,25 +11,21 @@
 <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
   <h2 class="font-semibold mb-4">Aisles</h2>
 
-  {% if aisles %}
-    <ul class="divide-y divide-gray-100 mb-4">
-      {% for aisle in aisles %}
-        <li class="flex items-center justify-between py-2 text-sm">
-          <span>{{ aisle.name }}</span>
-          <form method="post" action="{% url 'aisle-delete' aisle.pk %}"
-                data-confirm='Delete aisle "{{ aisle.name }}"?'>
-            {% csrf_token %}
-            <button type="submit"
-                    class="text-xs text-red-400 hover:text-red-600 transition-colors">Delete</button>
-          </form>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-sm text-gray-400 mb-4">No aisles yet — add one below.</p>
+  {% if not aisles %}
+    <p class="text-sm text-gray-400 mb-4" id="no-aisles-msg">No aisles yet — add one below.</p>
   {% endif %}
+  <ul class="divide-y divide-gray-100 mb-4" id="aisle-list">
+    {% for aisle in aisles %}
+      {% include "partials/aisle_item.html" %}
+    {% endfor %}
+  </ul>
 
-  <form method="post" class="flex gap-2">
+  <form method="post"
+        hx-post="{% url 'shop-detail' shop.pk %}"
+        hx-target="#aisle-list"
+        hx-swap="beforeend"
+        hx-on::after-request="this.reset()"
+        class="flex gap-2">
     {% csrf_token %}
     <input type="hidden" name="action" value="add_aisle">
     {{ aisle_form.shop }}
@@ -52,123 +48,23 @@
 <!-- ── Locations ──────────────────────────────────────────────────────────── -->
 <h2 class="font-semibold text-lg mb-4">Locations</h2>
 
-{% for item in loc_data %}
-  <div class="bg-white rounded-xl border border-gray-200 mb-4 overflow-hidden">
-
-    <!-- Location header -->
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-      <h3 class="font-semibold">{{ item.location.name }}</h3>
-      <form method="post" action="{% url 'shoplocation-delete' item.location.pk %}"
-            data-confirm='Delete location "{{ item.location.name }}"?'>
-        {% csrf_token %}
-        <button type="submit"
-                class="text-xs text-red-400 hover:text-red-600 transition-colors">Delete</button>
-      </form>
-    </div>
-
-    {% if aisles %}
-      <div class="grid sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-
-        <!-- Aisle order -->
-        <div class="p-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-1">Aisle order</h4>
-          <p class="text-xs text-gray-400 mb-3">
-            Lower number = walk there earlier. Leave blank to skip sorting.
-          </p>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="save_orders">
-            <input type="hidden" name="location_pk" value="{{ item.location.pk }}">
-            <div class="space-y-2 mb-4">
-              {% for row in item.aisle_rows %}
-                <div class="flex items-center gap-3">
-                  <span class="text-sm flex-1 text-gray-700">{{ row.aisle.name }}</span>
-                  <input type="number" name="order_{{ row.aisle.pk }}"
-                         value="{{ row.order }}" min="0" placeholder="—"
-                         style="width:5rem"
-                         class="shrink-0 border border-gray-300 rounded-lg px-2 py-1
-                                text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                </div>
-              {% endfor %}
-            </div>
-            <button type="submit"
-                    class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-sm
-                           font-medium hover:bg-emerald-700 transition-colors">
-              Save order
-            </button>
-          </form>
-        </div>
-
-        <!-- Category → aisle mapping -->
-        <div class="p-6">
-          <h4 class="text-sm font-semibold text-gray-700 mb-1">Category → Aisle</h4>
-          <p class="text-xs text-gray-400 mb-3">
-            Map each ingredient category to its aisle so the grocery list sorts correctly.
-          </p>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="save_mappings">
-            <input type="hidden" name="location_pk" value="{{ item.location.pk }}">
-            <div class="space-y-2 mb-4">
-              {% for row in item.category_rows %}
-                <div class="flex items-center gap-3">
-                  <span class="text-sm flex-1 text-gray-700">{{ row.label }}</span>
-                  <select name="aisle_{{ row.value }}"
-                          class="border border-gray-300 rounded-lg px-2 py-1 text-sm
-                                 focus:outline-none focus:ring-2 focus:ring-emerald-400
-                                 bg-white">
-                    <option value=""></option>
-                    {% for aisle in aisles %}
-                      <option value="{{ aisle.pk }}"
-                              {% if row.aisle_id == aisle.pk %}selected{% endif %}>
-                        {{ aisle.name }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-              {% endfor %}
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-              <button type="submit"
-                      class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-sm
-                             font-medium hover:bg-emerald-700 transition-colors">
-                Save mappings
-              </button>
-              {% if location_count > 1 %}
-                <button type="submit" form="copy-{{ item.location.pk }}"
-                        class="text-sm text-emerald-600 hover:text-emerald-800 hover:underline transition-colors">
-                  Copy to all locations →
-                </button>
-              {% endif %}
-            </div>
-          </form>
-
-          {% if location_count > 1 %}
-            <form id="copy-{{ item.location.pk }}" method="post"
-                  data-confirm="Copy mappings to all other {{ shop.name }} locations?">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="copy_mappings">
-              <input type="hidden" name="location_pk" value="{{ item.location.pk }}">
-            </form>
-          {% endif %}
-        </div>
-
-      </div>
-    {% else %}
-      <p class="px-6 py-4 text-sm text-gray-400">
-        Add aisles to this shop first to configure ordering and mappings.
-      </p>
-    {% endif %}
-
-  </div>
-{% empty %}
-  <p class="text-sm text-gray-400 mb-4">No locations yet — add one below.</p>
-{% endfor %}
+<div id="location-list">
+  {% for item in loc_data %}
+    {% include "partials/location_card.html" %}
+  {% empty %}
+    <p class="text-sm text-gray-400 mb-4">No locations yet — add one below.</p>
+  {% endfor %}
+</div>
 
 <!-- Add location -->
 <div class="bg-white rounded-xl border border-gray-200 p-6">
   <h3 class="font-semibold mb-4">Add location</h3>
-  <form method="post" class="flex gap-2">
+  <form method="post"
+        hx-post="{% url 'shop-detail' shop.pk %}"
+        hx-target="#location-list"
+        hx-swap="beforeend"
+        hx-on::after-request="this.reset()"
+        class="flex gap-2">
     {% csrf_token %}
     <input type="hidden" name="action" value="add_location">
     {{ location_form.shop }}

@@ -1,4 +1,5 @@
 from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import (
@@ -8,7 +9,7 @@ from django.urls import reverse_lazy
 
 from .forms import (
     AisleForm, GrocerySelectForm, IngredientForm, RecipeForm,
-    RecipeIngredientFormSet, RecipeSelectorForm,
+    RecipeIngredientForm, RecipeIngredientFormSet, RecipeSelectorForm,
     SeasonalAvailabilityCreateFormSet, SeasonalAvailabilityFormSet,
     ShopForm, ShopLinkFormSet, ShopLocationForm, TagForm,
 )
@@ -23,6 +24,10 @@ MONTHS = [
     (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
     (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December'),
 ]
+
+
+def is_htmx(request):
+    return request.headers.get('HX-Request') == 'true'
 
 
 # ── Recipes ──────────────────────────────────────────────────────────────────
@@ -256,7 +261,9 @@ class ShopListView(View):
     def post(self, request):
         form = ShopForm(request.POST)
         if form.is_valid():
-            form.save()
+            shop = form.save()
+            if is_htmx(request):
+                return render(request, 'partials/shop_card.html', {'shop': shop})
             return redirect('shop-list')
         return render(request, self.template_name, {
             'shops': Shop.objects.prefetch_related('aisles', 'locations'),
@@ -267,6 +274,8 @@ class ShopListView(View):
 class ShopDeleteView(View):
     def post(self, request, pk):
         Shop.objects.filter(pk=pk).delete()
+        if is_htmx(request):
+            return HttpResponse('')
         return redirect('shop-list')
 
 
@@ -315,7 +324,9 @@ class ShopDetailView(View):
             data['shop'] = shop.pk
             form = AisleForm(data)
             if form.is_valid():
-                form.save()
+                aisle = form.save()
+                if is_htmx(request):
+                    return render(request, 'partials/aisle_item.html', {'aisle': aisle, 'shop': shop})
                 return redirect('shop-detail', pk=shop.pk)
             return render(request, self.template_name, self._ctx(shop, aisle_form=form))
 
@@ -324,7 +335,23 @@ class ShopDetailView(View):
             data['shop'] = shop.pk
             form = ShopLocationForm(data)
             if form.is_valid():
-                form.save()
+                loc = form.save()
+                if is_htmx(request):
+                    aisles = list(shop.aisles.all())
+                    item = {
+                        'location': loc,
+                        'aisle_rows': [{'aisle': a, 'order': ''} for a in aisles],
+                        'category_rows': [
+                            {'value': v, 'label': l, 'aisle_id': None}
+                            for v, l in IngredientCategory.choices
+                        ],
+                    }
+                    return render(request, 'partials/location_card.html', {
+                        'item': item,
+                        'aisles': aisles,
+                        'location_count': shop.locations.count(),
+                        'shop': shop,
+                    })
                 return redirect('shop-detail', pk=shop.pk)
             return render(request, self.template_name, self._ctx(shop, location_form=form))
 
@@ -345,6 +372,8 @@ class ShopDetailView(View):
                             pass
                     else:
                         AisleOrder.objects.filter(aisle=aisle, location=location).delete()
+                if is_htmx(request):
+                    return HttpResponse('Saved ✓')
 
             elif action == 'save_mappings':
                 for cat_value, _ in IngredientCategory.choices:
@@ -362,6 +391,8 @@ class ShopDetailView(View):
                         CategoryAisleMapping.objects.filter(
                             location=location, category=cat_value
                         ).delete()
+                if is_htmx(request):
+                    return HttpResponse('Saved ✓')
 
             elif action == 'copy_mappings':
                 mappings = list(location.category_mappings.all())
@@ -371,6 +402,8 @@ class ShopDetailView(View):
                             location=other, category=m.category,
                             defaults={'aisle': m.aisle},
                         )
+                if is_htmx(request):
+                    return HttpResponse('Copied ✓')
 
         return redirect('shop-detail', pk=shop.pk)
 
@@ -380,6 +413,8 @@ class AisleDeleteView(View):
         aisle = get_object_or_404(Aisle, pk=pk)
         shop_pk = aisle.shop_id
         aisle.delete()
+        if is_htmx(request):
+            return HttpResponse('')
         return redirect('shop-detail', pk=shop_pk)
 
 
@@ -388,6 +423,8 @@ class ShopLocationDeleteView(View):
         location = get_object_or_404(ShopLocation, pk=pk)
         shop_pk = location.shop_id
         location.delete()
+        if is_htmx(request):
+            return HttpResponse('')
         return redirect('shop-detail', pk=shop_pk)
 
 
@@ -405,7 +442,9 @@ class TagListView(View):
     def post(self, request):
         form = TagForm(request.POST)
         if form.is_valid():
-            form.save()
+            tag = form.save()
+            if is_htmx(request):
+                return render(request, 'partials/tag_row.html', {'tag': tag})
             return redirect('tag-list')
         return render(request, self.template_name, {
             'tags': Tag.objects.all(),
@@ -416,6 +455,8 @@ class TagListView(View):
 class TagDeleteView(View):
     def post(self, request, pk):
         Tag.objects.filter(pk=pk).delete()
+        if is_htmx(request):
+            return HttpResponse('')
         return redirect('tag-list')
 
 
@@ -571,3 +612,56 @@ class RecipeSelectorView(View):
             scored.append((score, recipe))
         scored.sort(key=lambda x: (-x[0], x[1].name))
         return [{'recipe': r, 'score': s} for s, r in scored]
+
+
+class SelectorSectionView(View):
+    def post(self, request, meal_type):
+        form = RecipeSelectorForm(request.POST, prefix=meal_type)
+        results = RecipeSelectorView()._filter(form.cleaned_data, meal_type) if form.is_valid() else []
+        selected_pks = set(request.POST.getlist('selected_recipe_pks'))
+        return render(request, 'partials/selector_results.html', {
+            'results': results,
+            'selected_pks': selected_pks,
+        })
+
+
+class SelectorGroceryView(View):
+    def post(self, request):
+        selected_pks = request.POST.getlist('selected_recipe_pks')
+        shop_location_id = request.POST.get('shop_location', '')
+        location = ShopLocation.objects.filter(pk=shop_location_id).first() if shop_location_id else None
+        grocery_grouped, aisle_label, selected_recipes = None, {}, []
+        if selected_pks and location:
+            selected_recipes = list(Recipe.objects.filter(pk__in=selected_pks))
+            grocery_grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
+        return render(request, 'partials/selector_grocery.html', {
+            'grocery_grouped': grocery_grouped,
+            'aisle_label': aisle_label,
+            'location': location,
+            'selected_pks': set(selected_pks),
+            'selected_recipes': selected_recipes,
+        })
+
+
+class GroceryResultsView(View):
+    def post(self, request):
+        form = GrocerySelectForm(request.POST)
+        if not form.is_valid():
+            return HttpResponse('')
+        selected_recipes = form.cleaned_data['recipes']
+        location = form.cleaned_data.get('shop_location')
+        grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
+        return render(request, 'partials/grocery_results.html', {
+            'grouped': grouped,
+            'aisle_label': aisle_label,
+            'selected_recipes': selected_recipes,
+            'location': location,
+        })
+
+
+class IngredientRowView(View):
+    def get(self, request):
+        total = request.GET.get('form-TOTAL_FORMS') or request.GET.get('idx', '0')
+        idx = int(total)
+        form = RecipeIngredientForm(prefix=f'form-{idx}')
+        return render(request, 'partials/ingredient_row.html', {'ing_form': form, 'idx': idx})

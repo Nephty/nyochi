@@ -11,6 +11,7 @@
       document.documentElement.classList.add('dark');
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
   <style>
     /* Confirm modal */
     dialog {
@@ -119,7 +120,7 @@
     html.dark .text-sky-700 { color: #38bdf8; }
   </style>
 </head>
-<body class="min-h-full bg-gray-50 text-gray-900">
+<body class="min-h-full bg-gray-50 text-gray-900" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
   <!-- Nav -->
   <nav class="bg-white border-b border-gray-200">
@@ -255,6 +256,15 @@
     // Click backdrop to dismiss
     confirmModal.addEventListener('click', e => {
       if (e.target === confirmModal) confirmModal.close();
+    });
+
+    // Hook HTMX confirm into our custom modal
+    document.addEventListener('htmx:confirm', e => {
+      e.preventDefault();
+      confirmMessage.textContent = e.detail.question;
+      confirmModal.showModal();
+      confirmOk.onclick = () => { confirmModal.close(); e.detail.issueRequest(true); };
+      confirmCancel.onclick = () => { confirmModal.close(); };
     });
   </script>
 </body>

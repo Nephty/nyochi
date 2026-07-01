@@ -1,0 +1,15 @@
+<div class="ingredient-row grid grid-cols-12 gap-2 mb-2 items-center text-sm">
+  <div class="col-span-4">{{ ing_form.ingredient }}</div>
+  <div class="col-span-2">{{ ing_form.quantity }}</div>
+  <div class="col-span-2">{{ ing_form.unit }}</div>
+  <div class="col-span-2 flex items-center gap-1">
+    {{ ing_form.is_main }}
+    <label class="text-xs text-gray-600">Main</label>
+  </div>
+  <div class="col-span-1 flex items-center gap-1">
+    <input type="checkbox" name="{{ ing_form.prefix }}-DELETE" id="id_{{ ing_form.prefix }}-DELETE">
+    <label for="id_{{ ing_form.prefix }}-DELETE" class="text-xs text-red-400">Del</label>
+  </div>
+  {% for hidden in ing_form.hidden_fields %}{{ hidden }}{% endfor %}
+</div>
+<input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="{{ idx|add:1 }}" hx-swap-oob="true">

@@ -137,7 +137,11 @@
         </div>
       {% endfor %}
     </div>
-    <button type="button" id="add-ingredient"
+    <button type="button"
+            hx-get="{% url 'recipe-ingredient-row' %}"
+            hx-include="[name='form-TOTAL_FORMS']"
+            hx-target="#ingredient-forms"
+            hx-swap="beforeend"
             class="mt-2 text-sm text-emerald-600 hover:text-emerald-800">+ Add ingredient row</button>
   </div>
 
@@ -151,26 +155,4 @@
   </div>
 </form>
 
-<script>
-  // Clone last form row to add a new ingredient line
-  document.getElementById('add-ingredient').addEventListener('click', () => {
-    const container = document.getElementById('ingredient-forms');
-    const rows = container.querySelectorAll('.ingredient-row');
-    const totalForms = document.querySelector('[name$=TOTAL_FORMS]');
-    const idx = parseInt(totalForms.value);
-    const last = rows[rows.length - 1];
-    const clone = last.cloneNode(true);
-    clone.querySelectorAll('input, select').forEach(el => {
-      el.name = el.name.replace(/-\d+-/, `-${idx}-`);
-      el.id = el.id ? el.id.replace(/-\d+-/, `-${idx}-`) : '';
-      if (el.type !== 'checkbox') el.value = '';
-      else el.checked = false;
-    });
-    clone.querySelectorAll('label').forEach(el => {
-      if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/-\d+-/, `-${idx}-`);
-    });
-    container.appendChild(clone);
-    totalForms.value = idx + 1;
-  });
-</script>
 {% endblock %}

@@ -1,0 +1,31 @@
+{% load recipe_extras %}
+{% if grouped %}
+  <div class="mb-3 text-sm text-gray-500">
+    From: {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
+    {% if location %} · sorted by <strong>{{ location }}</strong>{% endif %}
+  </div>
+  {% for category, items in grouped.items %}
+    <div class="bg-white rounded-xl border border-gray-200 p-4 mb-3">
+      <h3 class="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">
+        {{ category }}
+        {% with aisle_name=aisle_label|get_item:category %}
+          {% if aisle_name %}
+            <span class="normal-case font-normal text-gray-400 ml-1">· {{ aisle_name }}</span>
+          {% endif %}
+        {% endwith %}
+      </h3>
+      <ul class="space-y-1 text-sm">
+        {% for item in items %}
+          <li class="flex justify-between">
+            <a href="{% url 'ingredient-detail' item.ingredient.pk %}" class="hover:text-emerald-700">{{ item.ingredient }}</a>
+            <span class="text-gray-600 font-medium">{{ item.total|floatformat:"-2" }} {{ item.unit.abbreviation }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6 text-gray-500 text-sm">
+    No ingredients found for the selected recipes.
+  </div>
+{% endif %}

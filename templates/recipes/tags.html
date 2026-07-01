@@ -8,18 +8,13 @@
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h2 class="font-semibold mb-4">All tags</h2>
     {% if tags %}
-      <ul class="space-y-2">
+      <ul class="space-y-2" id="tag-list">
         {% for tag in tags %}
-          <li class="flex items-center justify-between">
-            <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm">{{ tag.name }}</span>
-            <form method="post" action="{% url 'tag-delete' tag.pk %}" data-confirm='Delete tag "{{ tag.name }}"?'>
-              {% csrf_token %}
-              <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
-            </form>
-          </li>
+          {% include "partials/tag_row.html" %}
         {% endfor %}
       </ul>
     {% else %}
+      <ul class="space-y-2" id="tag-list"></ul>
       <p class="text-sm text-gray-400">No tags yet.</p>
     {% endif %}
   </div>
@@ -27,7 +22,12 @@
   <!-- Create new tag -->
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h2 class="font-semibold mb-4">Add a tag</h2>
-    <form method="post" class="flex gap-2">
+    <form method="post"
+          hx-post="{% url 'tag-list' %}"
+          hx-target="#tag-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()"
+          class="flex gap-2">
       {% csrf_token %}
       {{ form.name.errors }}
       <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"

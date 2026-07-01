@@ -4,7 +4,7 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Find Recipes</h1>
 
-<form method="post">
+<form method="post" id="selector-form">
   {% csrf_token %}
 
   <div class="grid xl:grid-cols-3 gap-6 items-start">
@@ -42,7 +42,7 @@
             </div>
 
             <!-- Filters -->
-            <div class="p-4 border-b border-gray-100 space-y-3 text-xs">
+            <div class="p-4 border-b border-gray-100 space-y-3 text-xs" id="{{ section.value }}-filters">
 
               <!-- Include + Exclude side by side -->
               <div class="grid grid-cols-2 gap-3">
@@ -114,92 +114,53 @@
                          value="{{ section.form.max_cook_time.value|default:'' }}" min="0">
                 </div>
               </div>
+
+              <!-- Per-section search button -->
+              <button type="button"
+                      hx-post="{% url 'selector-section' section.value %}"
+                      hx-include="#{{ section.value }}-filters, [name=selected_recipe_pks]"
+                      hx-target="#{{ section.value }}-results"
+                      hx-swap="innerHTML"
+                      class="w-full py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors">
+                Search {{ section.label }}
+              </button>
             </div>
 
             <!-- Results -->
-            <div class="p-4">
-              {% if section.results is None %}
-                <p class="text-xs text-gray-400 italic">Submit to see {{ section.label|lower }} recipes.</p>
-              {% elif not section.results %}
-                <p class="text-xs text-gray-400">No {{ section.label|lower }} recipes match.</p>
-              {% else %}
-                <p class="text-xs text-gray-400 mb-2">{{ section.results|length }} recipe{{ section.results|length|pluralize }}</p>
-                <div class="space-y-2">
-                  {% for item in section.results %}
-                    <label class="flex items-start gap-2 border border-gray-200 rounded-lg p-3 cursor-pointer
-                                  hover:border-emerald-400 transition-colors">
-                      <input type="checkbox" name="selected_recipe_pks" value="{{ item.recipe.pk }}"
-                             {% if item.recipe.pk|stringformat:"s" in selected_pks %}checked{% endif %}
-                             class="mt-0.5 shrink-0">
-                      <div class="min-w-0">
-                        <div class="font-medium text-sm">{{ item.recipe.name }}</div>
-                        <div class="flex items-center gap-2 mt-0.5">
-                          <span class="text-xs text-gray-500">🔪 {{ item.recipe.prep_time }}m &nbsp;🍳 {{ item.recipe.cook_time }}m</span>
-                          <span class="text-xs">{% difficulty_stars item.recipe.difficulty %}</span>
-                        </div>
-                        {% if item.recipe.tags.all %}
-                          <div class="flex flex-wrap gap-1 mt-1">
-                            {% for tag in item.recipe.tags.all %}
-                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs">{{ tag }}</span>
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                      </div>
-                    </label>
-                  {% endfor %}
-                </div>
-              {% endif %}
+            <div class="p-4" id="{{ section.value }}-results">
+              {% with results=section.results %}
+                {% include "partials/selector_results.html" %}
+              {% endwith %}
             </div>
 
           </div>
         {% endfor %}
       </div>
 
-      <!-- Submit -->
+      <!-- Fallback submit -->
       <button type="submit"
               class="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
-        Search
+        Search all
       </button>
     </div>
 
-    <!-- Right: grocery list panel (sticky) -->
+    <!-- Right: grocery list panel (sticky, HTMX-updated) -->
     <div class="xl:col-span-1">
       <div class="bg-white rounded-xl border border-gray-200 p-5 sticky top-4">
         <h2 class="font-semibold mb-3">Grocery List</h2>
-        {% if grocery_grouped %}
-          <p class="text-xs text-gray-500 mb-4">
-            {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
-            · <strong>{{ location }}</strong>
-          </p>
-          {% for category, items in grocery_grouped.items %}
-            <div class="mb-4">
-              <h3 class="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-1">
-                {{ category }}
-                {% with aisle_name=aisle_label|get_item:category %}
-                  {% if aisle_name %}
-                    <span class="normal-case font-normal text-gray-400 ml-1">· {{ aisle_name }}</span>
-                  {% endif %}
-                {% endwith %}
-              </h3>
-              <ul class="space-y-1 text-sm">
-                {% for item in items %}
-                  <li class="flex justify-between gap-2">
-                    <a href="{% url 'ingredient-detail' item.ingredient.pk %}" class="hover:text-emerald-700 truncate">
-                      {{ item.ingredient }}
-                    </a>
-                    <span class="text-gray-600 font-medium shrink-0">
-                      {{ item.total|floatformat:"-2" }} {{ item.unit.abbreviation }}
-                    </span>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-          {% endfor %}
-        {% elif selected_pks and not location %}
-          <p class="text-sm text-amber-600">Select a shop location above to generate the grocery list.</p>
-        {% else %}
-          <p class="text-sm text-gray-400">Select recipes and a shop location, then search.</p>
-        {% endif %}
+        <div id="grocery-content"
+             hx-post="{% url 'selector-grocery' %}"
+             hx-trigger="change from:body delay:200ms"
+             hx-include="[name=selected_recipe_pks], [name=shop_location]"
+             hx-swap="innerHTML">
+          {% if grocery_grouped %}
+            {% include "partials/selector_grocery.html" %}
+          {% elif selected_pks and not location %}
+            <p class="text-sm text-amber-600">Select a shop location above to generate the grocery list.</p>
+          {% else %}
+            <p class="text-sm text-gray-400">Select recipes and a shop location to generate the list.</p>
+          {% endif %}
+        </div>
       </div>
     </div>
 
