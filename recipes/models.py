@@ -83,27 +83,122 @@ class SeasonalAvailability(models.Model):
         return f'{self.ingredient} — month {self.month}: {self.get_status_display()}'
 
 
+class Shop(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class ShopLocation(models.Model):
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='locations')
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['shop', 'name']
+        unique_together = ('shop', 'name')
+
+    def __str__(self):
+        return f'{self.shop.name} — {self.name}'
+
+
+class Aisle(models.Model):
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='aisles')
+    name = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['shop', 'name']
+        unique_together = ('shop', 'name')
+
+    def __str__(self):
+        return self.name
+
+
+class AisleOrder(models.Model):
+    aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='location_orders')
+    location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='aisle_orders')
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ['location', 'order']
+        unique_together = ('aisle', 'location')
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.aisle_id and self.location_id:
+            if self.aisle.shop_id != self.location.shop_id:
+                raise ValidationError('Aisle must belong to the same shop as the location.')
+
+    def __str__(self):
+        return f'{self.location} — {self.aisle} (#{self.order})'
+
+
+class CategoryAisleMapping(models.Model):
+    location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='category_mappings')
+    category = models.CharField(max_length=20, choices=IngredientCategory.choices)
+    aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='category_mappings')
+
+    class Meta:
+        unique_together = ('location', 'category')
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.aisle_id and self.location_id:
+            if self.aisle.shop_id != self.location.shop_id:
+                raise ValidationError('Aisle must belong to the same shop as the location.')
+
+    def __str__(self):
+        return f'{self.location} — {self.get_category_display()} → {self.aisle}'
+
+
 class ShopLink(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
         related_name='shop_links',
     )
-    shop_name = models.CharField(max_length=100)
+    shop = models.ForeignKey(Shop, on_delete=models.PROTECT)
+    name = models.CharField(max_length=200, blank=True)
     url = models.URLField()
 
     class Meta:
-        ordering = ['shop_name']
+        ordering = ['shop__name']
+        unique_together = ('ingredient', 'shop')
 
     def __str__(self):
-        return f'{self.shop_name} — {self.ingredient}'
+        return f'{self.shop.name} — {self.ingredient}'
 
 
 class Recipe(models.Model):
+    class Difficulty(models.TextChoices):
+        EASY         = 'easy',         'Easy'
+        INTERMEDIATE = 'intermediate', 'Intermediate'
+        DIFFICULT    = 'difficult',    'Difficult'
+        PRO          = 'pro',          'Pro'
+
+    class MealType(models.TextChoices):
+        BREAKFAST  = 'breakfast',  'Breakfast'
+        FULL_MEAL  = 'full_meal',  'Full meal'
+        SNACK      = 'snack',      'Snack'
+        DESERT     = 'desert',     'Desert'
+
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     prep_time = models.PositiveIntegerField(help_text='Minutes')
     cook_time = models.PositiveIntegerField(help_text='Minutes')
+    difficulty = models.CharField(
+        max_length=15,
+        choices=Difficulty.choices,
+        default=Difficulty.EASY,
+    )
+    meal_type = models.CharField(
+        max_length=15,
+        choices=MealType.choices,
+        default=MealType.FULL_MEAL,
+    )
     tags = models.ManyToManyField(Tag, blank=True)
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient', blank=True)
 

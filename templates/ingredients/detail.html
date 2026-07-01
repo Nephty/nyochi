@@ -50,8 +50,10 @@
     <ul class="space-y-2 text-sm">
       {% for link in shop_links %}
         <li class="flex items-center gap-2">
-          <span class="text-gray-500 w-28 shrink-0">{{ link.shop_name }}</span>
-          <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-emerald-600 hover:underline truncate">{{ link.url }}</a>
+          <a href="{% url 'shop-detail' link.shop_id %}"
+             class="text-gray-600 font-medium w-28 shrink-0 hover:text-emerald-700">{{ link.shop.name }}</a>
+          <a href="{{ link.url }}" target="_blank" rel="noopener"
+             class="text-emerald-600 hover:underline truncate">{{ link.name|default:link.url }}</a>
         </li>
       {% endfor %}
     </ul>

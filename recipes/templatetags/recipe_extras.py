@@ -1,4 +1,5 @@
 from django import template
+from django.utils.html import mark_safe
 
 register = template.Library()
 
@@ -32,3 +33,14 @@ def season_badge_class(status):
 @register.simple_tag
 def season_label(status):
     return SEASON_LABELS.get(status, status)
+
+
+_DIFFICULTY_COUNTS = {'easy': 1, 'intermediate': 2, 'difficult': 3, 'pro': 4}
+
+
+@register.simple_tag
+def difficulty_stars(difficulty):
+    count = _DIFFICULTY_COUNTS.get(difficulty, 0)
+    filled = f'<span class="text-amber-400">{"★" * count}</span>'
+    empty = f'<span class="text-gray-300">{"☆" * (4 - count)}</span>' if count < 4 else ''
+    return mark_safe(filled + empty)

@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
+    Aisle, AisleOrder, CategoryAisleMapping,
     Ingredient, Recipe, RecipeIngredient,
-    SeasonalAvailability, ShopLink, Tag, Unit,
+    SeasonalAvailability, Shop, ShopLink, ShopLocation, Tag, Unit,
 )
 
 
@@ -13,6 +14,7 @@ class SeasonalAvailabilityInline(admin.TabularInline):
 class ShopLinkInline(admin.TabularInline):
     model = ShopLink
     extra = 1
+    fields = ['shop', 'url']
 
 
 @admin.register(Ingredient)
@@ -40,6 +42,46 @@ class RecipeAdmin(admin.ModelAdmin):
     @admin.display(description='Total time')
     def total_time(self, obj):
         return f'{obj.total_time} min'
+
+
+class AisleInline(admin.TabularInline):
+    model = Aisle
+    extra = 1
+
+
+class ShopLocationInline(admin.TabularInline):
+    model = ShopLocation
+    extra = 1
+
+
+@admin.register(Shop)
+class ShopAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
+    inlines = [AisleInline, ShopLocationInline]
+
+
+class AisleOrderInline(admin.TabularInline):
+    model = AisleOrder
+    extra = 0
+
+
+class CategoryAisleMappingInline(admin.TabularInline):
+    model = CategoryAisleMapping
+    extra = 0
+
+
+@admin.register(ShopLocation)
+class ShopLocationAdmin(admin.ModelAdmin):
+    list_display = ['name', 'shop']
+    list_filter = ['shop']
+    inlines = [AisleOrderInline, CategoryAisleMappingInline]
+
+
+@admin.register(Aisle)
+class AisleAdmin(admin.ModelAdmin):
+    list_display = ['name', 'shop']
+    list_filter = ['shop']
 
 
 @admin.register(Tag)

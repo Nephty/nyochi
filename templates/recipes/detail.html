@@ -15,11 +15,13 @@
     </div>
   </div>
 
-  <!-- Durations -->
-  <div class="flex gap-4 text-sm text-gray-600 mb-4">
+  <!-- Durations + difficulty + meal type -->
+  <div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
     <span>🔪 Prep: <strong>{{ recipe.prep_time }} min</strong></span>
     <span>🍳 Cook: <strong>{{ recipe.cook_time }} min</strong></span>
     <span>⏱ Total: <strong>{{ recipe.total_time }} min</strong></span>
+    <span class="flex items-center gap-1">{% difficulty_stars recipe.difficulty %} <strong>{{ recipe.get_difficulty_display }}</strong></span>
+    <span class="px-2 py-0.5 bg-sky-50 text-sky-700 rounded-full text-xs font-medium self-center">{{ recipe.get_meal_type_display }}</span>
   </div>
 
   <!-- Tags -->

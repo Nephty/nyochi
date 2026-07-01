@@ -16,6 +16,13 @@ urlpatterns = [
     path('ingredients/<int:pk>/edit/', views.IngredientUpdateView.as_view(), name='ingredient-update'),
     path('ingredients/<int:pk>/delete/', views.IngredientDeleteView.as_view(), name='ingredient-delete'),
 
+    # Shops
+    path('shops/', views.ShopListView.as_view(), name='shop-list'),
+    path('shops/<int:pk>/', views.ShopDetailView.as_view(), name='shop-detail'),
+    path('shops/<int:pk>/delete/', views.ShopDeleteView.as_view(), name='shop-delete'),
+    path('shops/locations/<int:pk>/delete/', views.ShopLocationDeleteView.as_view(), name='shoplocation-delete'),
+    path('shops/aisles/<int:pk>/delete/', views.AisleDeleteView.as_view(), name='aisle-delete'),
+
     # Tags
     path('tags/', views.TagListView.as_view(), name='tag-list'),
     path('tags/<int:pk>/delete/', views.TagDeleteView.as_view(), name='tag-delete'),

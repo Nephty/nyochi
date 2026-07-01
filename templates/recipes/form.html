@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load recipe_extras %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="mb-4">
@@ -23,6 +24,52 @@
         {{ form.name.errors }}
         <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"
                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+        {% with d=form.difficulty.value %}
+        <div class="flex flex-wrap gap-2">
+          <label class="diff-pill-label">
+            <input type="radio" name="{{ form.difficulty.html_name }}" value="easy" {% if d == 'easy' %}checked{% endif %}>
+            <span class="diff-pill">★☆☆☆ Easy</span>
+          </label>
+          <label class="diff-pill-label">
+            <input type="radio" name="{{ form.difficulty.html_name }}" value="intermediate" {% if d == 'intermediate' %}checked{% endif %}>
+            <span class="diff-pill">★★☆☆ Intermediate</span>
+          </label>
+          <label class="diff-pill-label">
+            <input type="radio" name="{{ form.difficulty.html_name }}" value="difficult" {% if d == 'difficult' %}checked{% endif %}>
+            <span class="diff-pill">★★★☆ Difficult</span>
+          </label>
+          <label class="diff-pill-label">
+            <input type="radio" name="{{ form.difficulty.html_name }}" value="pro" {% if d == 'pro' %}checked{% endif %}>
+            <span class="diff-pill">★★★★ Pro</span>
+          </label>
+        </div>
+        {% endwith %}
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Meal type</label>
+        {% with m=form.meal_type.value %}
+        <div class="flex flex-wrap gap-2">
+          <label class="meal-pill-label">
+            <input type="radio" name="{{ form.meal_type.html_name }}" value="breakfast" {% if m == 'breakfast' %}checked{% endif %}>
+            <span class="meal-pill">🌅 Breakfast</span>
+          </label>
+          <label class="meal-pill-label">
+            <input type="radio" name="{{ form.meal_type.html_name }}" value="full_meal" {% if m == 'full_meal' %}checked{% endif %}>
+            <span class="meal-pill">🍽️ Full meal</span>
+          </label>
+          <label class="meal-pill-label">
+            <input type="radio" name="{{ form.meal_type.html_name }}" value="snack" {% if m == 'snack' %}checked{% endif %}>
+            <span class="meal-pill">🍎 Snack</span>
+          </label>
+          <label class="meal-pill-label">
+            <input type="radio" name="{{ form.meal_type.html_name }}" value="desert" {% if m == 'desert' %}checked{% endif %}>
+            <span class="meal-pill">🍰 Desert</span>
+          </label>
+        </div>
+        {% endwith %}
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Prep time (min)</label>

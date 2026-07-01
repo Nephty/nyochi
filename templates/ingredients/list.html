@@ -9,24 +9,26 @@
 
 {% if ingredients %}
   {% regroup ingredients by get_category_display as by_category %}
-  {% for group in by_category %}
-    <div class="mb-6">
-      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{{ group.grouper }}</h2>
-      <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-        {% for ingredient in group.list %}
-          {% with status=ingredient.current_season_status %}
-          {% season_badge_class status as cls %}
-          {% season_label status as label %}
-          <a href="{% url 'ingredient-detail' ingredient.pk %}"
-             class="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
-            <span class="font-medium text-sm">{{ ingredient.name }}</span>
-            <span class="px-2 py-0.5 rounded-full text-xs {{ cls }}">{{ label }}</span>
-          </a>
-          {% endwith %}
-        {% endfor %}
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-start">
+    {% for group in by_category %}
+      <div>
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{{ group.grouper }}</h2>
+        <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          {% for ingredient in group.list %}
+            {% with status=ingredient.current_season_status %}
+            {% season_badge_class status as cls %}
+            {% season_label status as label %}
+            <a href="{% url 'ingredient-detail' ingredient.pk %}"
+               class="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+              <span class="font-medium text-sm">{{ ingredient.name }}</span>
+              <span class="px-2 py-0.5 rounded-full text-xs {{ cls }}">{{ label }}</span>
+            </a>
+            {% endwith %}
+          {% endfor %}
+        </div>
       </div>
-    </div>
-  {% endfor %}
+    {% endfor %}
+  </div>
 {% else %}
   <p class="text-gray-500">No ingredients yet. <a href="{% url 'ingredient-create' %}" class="text-emerald-600 underline">Create one.</a></p>
 {% endif %}

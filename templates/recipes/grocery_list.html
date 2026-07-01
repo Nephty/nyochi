@@ -1,16 +1,18 @@
 {% extends "base.html" %}
+{% load recipe_extras %}
 {% block title %}Grocery List{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Grocery List</h1>
 
 <div class="grid sm:grid-cols-2 gap-6">
-  <!-- Select recipes -->
+  <!-- Select recipes + location -->
   <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">Select recipes</h2>
     <form method="post">
       {% csrf_token %}
       {{ form.errors }}
-      <div class="space-y-2 text-sm mb-4 max-h-80 overflow-y-auto">
+
+      <h2 class="font-semibold mb-3">Select recipes</h2>
+      <div class="space-y-2 text-sm mb-5 max-h-64 overflow-y-auto">
         {% for checkbox in form.recipes %}
           <label class="flex items-center gap-2 cursor-pointer hover:text-emerald-700">
             {{ checkbox.tag }}
@@ -18,6 +20,23 @@
           </label>
         {% endfor %}
       </div>
+
+      <h2 class="font-semibold mb-2">Sort by location <span class="text-gray-400 font-normal text-xs">(optional)</span></h2>
+      <div class="mb-5">
+        <select name="{{ form.shop_location.html_name }}"
+                class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          <option value=""></option>
+          {% for pk, label in form.fields.shop_location.choices %}
+            {% if pk %}
+              <option value="{{ pk }}"
+                      {% if form.shop_location.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+
       <button type="submit" class="w-full py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">
         Generate list
       </button>
@@ -29,10 +48,18 @@
     {% if grouped %}
       <div class="mb-3 text-sm text-gray-500">
         From: {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
+        {% if location %} · sorted by <strong>{{ location }}</strong>{% endif %}
       </div>
       {% for category, items in grouped.items %}
         <div class="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-          <h3 class="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">{{ category }}</h3>
+          <h3 class="font-semibold text-sm text-gray-500 uppercase tracking-wide mb-2">
+            {{ category }}
+            {% with aisle_name=aisle_label|get_item:category %}
+              {% if aisle_name %}
+                <span class="normal-case font-normal text-gray-400 ml-1">· {{ aisle_name }}</span>
+              {% endif %}
+            {% endwith %}
+          </h3>
           <ul class="space-y-1 text-sm">
             {% for item in items %}
               <li class="flex justify-between">

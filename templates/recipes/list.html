@@ -11,12 +11,19 @@
   <div class="grid gap-4 sm:grid-cols-2">
     {% for recipe in recipes %}
       <a href="{% url 'recipe-detail' recipe.pk %}" class="block bg-white rounded-xl border border-gray-200 p-4 hover:border-emerald-400 hover:shadow-sm transition">
-        <div class="flex items-start justify-between gap-2 mb-2">
+        <div class="flex items-start justify-between gap-2 mb-1">
           <h2 class="font-semibold text-lg leading-tight">{{ recipe.name }}</h2>
           <div class="flex gap-2 text-xs text-gray-500 shrink-0 mt-1">
             <span title="Prep time">🔪 {{ recipe.prep_time }}min</span>
             <span title="Cook time">🍳 {{ recipe.cook_time }}min</span>
           </div>
+        </div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="flex items-center gap-1 text-sm">
+            {% difficulty_stars recipe.difficulty %}
+            <span class="text-xs text-gray-500 ml-1">{{ recipe.get_difficulty_display }}</span>
+          </span>
+          <span class="px-2 py-0.5 bg-sky-50 text-sky-700 rounded-full text-xs">{{ recipe.get_meal_type_display }}</span>
         </div>
 
         <!-- Tags -->

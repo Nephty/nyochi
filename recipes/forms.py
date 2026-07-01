@@ -2,8 +2,9 @@ from django import forms
 from django.forms import inlineformset_factory
 
 from .models import (
-    Ingredient, IngredientCategory, Recipe, RecipeIngredient,
-    SeasonalAvailability, ShopLink, Tag, Unit,
+    Aisle, CategoryAisleMapping, Ingredient, IngredientCategory,
+    Recipe, RecipeIngredient, SeasonalAvailability, Shop, ShopLink,
+    ShopLocation, Tag, Unit,
 )
 
 MONTHS = [
@@ -11,6 +12,8 @@ MONTHS = [
     (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
     (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December'),
 ]
+
+_INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
 
 class TagForm(forms.ModelForm):
@@ -61,10 +64,42 @@ SeasonalAvailabilityCreateFormSet = inlineformset_factory(
     can_delete=False,
 )
 
+
+class ShopForm(forms.ModelForm):
+    class Meta:
+        model = Shop
+        fields = ['name']
+
+
+class ShopLocationForm(forms.ModelForm):
+    class Meta:
+        model = ShopLocation
+        fields = ['shop', 'name']
+        widgets = {'shop': forms.HiddenInput()}
+
+
+class AisleForm(forms.ModelForm):
+    class Meta:
+        model = Aisle
+        fields = ['shop', 'name']
+        widgets = {'shop': forms.HiddenInput()}
+
+
+class ShopLinkForm(forms.ModelForm):
+    class Meta:
+        model = ShopLink
+        fields = ['shop', 'name', 'url']
+        widgets = {
+            'shop': forms.Select(attrs={'class': _INPUT_CLASS}),
+            'name': forms.TextInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'Label (optional)'}),
+            'url': forms.URLInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'https://…'}),
+        }
+
+
 ShopLinkFormSet = inlineformset_factory(
     Ingredient,
     ShopLink,
-    fields=['shop_name', 'url'],
+    form=ShopLinkForm,
     extra=1,
     can_delete=True,
 )
@@ -73,14 +108,11 @@ ShopLinkFormSet = inlineformset_factory(
 class RecipeForm(forms.ModelForm):
     class Meta:
         model = Recipe
-        fields = ['name', 'description', 'prep_time', 'cook_time', 'tags']
+        fields = ['name', 'difficulty', 'meal_type', 'description', 'prep_time', 'cook_time', 'tags']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
             'tags': forms.CheckboxSelectMultiple(),
         }
-
-
-_INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
 
 class RecipeIngredientForm(forms.ModelForm):
@@ -92,6 +124,11 @@ class RecipeIngredientForm(forms.ModelForm):
             'quantity': forms.NumberInput(attrs={'class': _INPUT_CLASS, 'step': '0.01', 'min': '0'}),
             'unit': forms.Select(attrs={'class': _INPUT_CLASS}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['ingredient'].empty_label = ''
+        self.fields['unit'].empty_label = ''
 
 
 RecipeIngredientFormSet = inlineformset_factory(
@@ -108,6 +145,12 @@ class GrocerySelectForm(forms.Form):
         queryset=Recipe.objects.all(),
         widget=forms.CheckboxSelectMultiple(),
         label='',
+    )
+    shop_location = forms.ModelChoiceField(
+        queryset=ShopLocation.objects.select_related('shop').order_by('shop__name', 'name'),
+        required=False,
+        empty_label='',
+        label='Sort by shop location',
     )
 
 
@@ -139,10 +182,4 @@ class RecipeSelectorForm(forms.Form):
         required=False,
         min_value=0,
         label='Max cook time (min)',
-    )
-    categories = forms.MultipleChoiceField(
-        choices=IngredientCategory.choices,
-        required=False,
-        widget=forms.CheckboxSelectMultiple(),
-        label='Ingredient categories',
     )

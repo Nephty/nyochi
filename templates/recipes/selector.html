@@ -4,111 +4,205 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Find Recipes</h1>
 
-<div class="grid sm:grid-cols-5 gap-6">
-  <!-- Filters -->
-  <form method="post" class="sm:col-span-2 bg-white rounded-xl border border-gray-200 p-6 space-y-5 text-sm">
-    {% csrf_token %}
+<form method="post">
+  {% csrf_token %}
 
-    <div class="ingredient-filter">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-medium text-gray-700">{{ form.include_ingredients.label }}</span>
-        <button type="button" class="text-xs text-gray-400 hover:text-gray-600"
-                onclick="this.closest('.ingredient-filter').querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false)">Clear</button>
-      </div>
-      <div class="max-h-44 overflow-y-auto border border-gray-300 rounded-lg text-sm">
-        {% for cb in form.include_ingredients %}
-          <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
-            {{ cb.tag }}
-            <span>{{ cb.choice_label }}</span>
-          </label>
-        {% empty %}
-          <p class="px-3 py-2 text-xs text-gray-400 italic">No ingredients yet.</p>
-        {% endfor %}
-      </div>
-    </div>
-    <div class="ingredient-filter">
-      <div class="flex items-center justify-between mb-1">
-        <span class="font-medium text-gray-700">{{ form.exclude_ingredients.label }}</span>
-        <button type="button" class="text-xs text-gray-400 hover:text-gray-600"
-                onclick="this.closest('.ingredient-filter').querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false)">Clear</button>
-      </div>
-      <div class="max-h-44 overflow-y-auto border border-gray-300 rounded-lg text-sm">
-        {% for cb in form.exclude_ingredients %}
-          <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
-            {{ cb.tag }}
-            <span>{{ cb.choice_label }}</span>
-          </label>
-        {% empty %}
-          <p class="px-3 py-2 text-xs text-gray-400 italic">No ingredients yet.</p>
-        {% endfor %}
-      </div>
-    </div>
-    <div>
-      <label class="block font-medium text-gray-700 mb-2">{{ form.tags.label }}</label>
-      <div class="flex flex-wrap gap-2">
-        {% for cb in form.tags %}
-          <label class="tag-pill-label">
-            {{ cb.tag }}
-            <span class="tag-pill">{{ cb.choice_label }}</span>
-          </label>
-        {% empty %}
-          <p class="text-xs text-gray-400">No tags yet. <a href="{% url 'tag-list' %}" class="text-emerald-600 hover:underline">Add tags</a>.</p>
-        {% endfor %}
-      </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="block font-medium text-gray-700 mb-1">{{ form.max_prep_time.label }}</label>
-        <input type="number" name="{{ form.max_prep_time.html_name }}" value="{{ form.max_prep_time.value|default:'' }}" min="0"
-               class="w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-      <div>
-        <label class="block font-medium text-gray-700 mb-1">{{ form.max_cook_time.label }}</label>
-        <input type="number" name="{{ form.max_cook_time.html_name }}" value="{{ form.max_cook_time.value|default:'' }}" min="0"
-               class="w-full border border-gray-300 rounded px-2 py-1">
-      </div>
-    </div>
+  <div class="grid xl:grid-cols-3 gap-6 items-start">
 
-    <button type="submit" class="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700">
-      Search
-    </button>
-  </form>
+    <!-- Left: location selector + 2×2 section grid + submit -->
+    <div class="xl:col-span-2">
 
-  <!-- Results -->
-  <div class="sm:col-span-3">
-    {% if results is not None %}
-      {% if results %}
-        <p class="text-sm text-gray-500 mb-3">{{ results|length }} recipe{{ results|length|pluralize }} found, ranked by match score.</p>
-        <div class="space-y-3">
-          {% for item in results %}
-            <a href="{% url 'recipe-detail' item.recipe.pk %}"
-               class="flex items-start gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-emerald-400 hover:shadow-sm transition">
-              <span class="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-bold text-sm">
-                {{ item.score }}
-              </span>
-              <div class="min-w-0">
-                <div class="font-medium">{{ item.recipe.name }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">
-                  🔪 {{ item.recipe.prep_time }}min &nbsp; 🍳 {{ item.recipe.cook_time }}min
-                </div>
-                {% if item.recipe.tags.all %}
-                  <div class="flex flex-wrap gap-1 mt-1">
-                    {% for tag in item.recipe.tags.all %}
-                      <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs">{{ tag }}</span>
+      <!-- Shop location -->
+      <div class="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex flex-wrap items-center gap-3">
+        <label class="text-sm font-medium text-gray-700 shrink-0">Shop location</label>
+        <select name="shop_location"
+                class="flex-1 min-w-40 border border-gray-300 rounded px-2 py-1.5 text-sm
+                       focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          <option value=""></option>
+          {% for loc in location_choices %}
+            <option value="{{ loc.pk }}"
+                    {% if loc.pk|stringformat:"s" == shop_location_id %}selected{% endif %}>
+              {{ loc }}
+            </option>
+          {% endfor %}
+        </select>
+        {% if not location_choices %}
+          <span class="text-xs text-gray-400">No shop locations defined yet.</span>
+        {% endif %}
+      </div>
+
+      <!-- 2×2 section grid -->
+      <div class="grid md:grid-cols-2 gap-4 mb-5 items-start">
+        {% for section in sections %}
+          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+
+            <!-- Header -->
+            <div class="px-5 py-3 border-b border-gray-100">
+              <h2 class="font-semibold text-sm">{{ section.emoji }} {{ section.label }}</h2>
+            </div>
+
+            <!-- Filters -->
+            <div class="p-4 border-b border-gray-100 space-y-3 text-xs">
+
+              <!-- Include + Exclude side by side -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="filter-box">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-medium text-gray-600">Must include</span>
+                    <button type="button" class="text-gray-400 hover:text-gray-600"
+                            onclick="this.closest('.filter-box').querySelectorAll('[type=checkbox]').forEach(c=>c.checked=false)">
+                      Clear
+                    </button>
+                  </div>
+                  <div class="max-h-28 overflow-y-auto border border-gray-200 rounded">
+                    {% for cb in section.form.include_ingredients %}
+                      <label class="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
+                        {{ cb.tag }}
+                        <span>{{ cb.choice_label }}</span>
+                      </label>
+                    {% empty %}
+                      <p class="px-2 py-1.5 text-gray-400 italic">No ingredients.</p>
                     {% endfor %}
                   </div>
-                {% endif %}
+                </div>
+                <div class="filter-box">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="font-medium text-gray-600">Exclude</span>
+                    <button type="button" class="text-gray-400 hover:text-gray-600"
+                            onclick="this.closest('.filter-box').querySelectorAll('[type=checkbox]').forEach(c=>c.checked=false)">
+                      Clear
+                    </button>
+                  </div>
+                  <div class="max-h-28 overflow-y-auto border border-gray-200 rounded">
+                    {% for cb in section.form.exclude_ingredients %}
+                      <label class="flex items-center gap-1.5 px-2 py-1 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0">
+                        {{ cb.tag }}
+                        <span>{{ cb.choice_label }}</span>
+                      </label>
+                    {% empty %}
+                      <p class="px-2 py-1.5 text-gray-400 italic">No ingredients.</p>
+                    {% endfor %}
+                  </div>
+                </div>
               </div>
-            </a>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="bg-white rounded-xl border border-gray-200 p-6 text-gray-500 text-sm">
-          No recipes match the hard filters (excluded ingredients, time limits).
-        </div>
-      {% endif %}
-    {% endif %}
-  </div>
-</div>
 
+              <!-- Tags -->
+              <div>
+                <span class="font-medium text-gray-600 block mb-1">Tags</span>
+                <div class="flex flex-wrap gap-1">
+                  {% for cb in section.form.tags %}
+                    <label class="tag-pill-label">
+                      {{ cb.tag }}
+                      <span class="tag-pill">{{ cb.choice_label }}</span>
+                    </label>
+                  {% empty %}
+                    <span class="text-gray-400 italic">No tags.</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Time limits -->
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="font-medium text-gray-600 block mb-0.5">Max prep (min)</label>
+                  <input type="number" name="{{ section.form.max_prep_time.html_name }}"
+                         value="{{ section.form.max_prep_time.value|default:'' }}" min="0">
+                </div>
+                <div>
+                  <label class="font-medium text-gray-600 block mb-0.5">Max cook (min)</label>
+                  <input type="number" name="{{ section.form.max_cook_time.html_name }}"
+                         value="{{ section.form.max_cook_time.value|default:'' }}" min="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- Results -->
+            <div class="p-4">
+              {% if section.results is None %}
+                <p class="text-xs text-gray-400 italic">Submit to see {{ section.label|lower }} recipes.</p>
+              {% elif not section.results %}
+                <p class="text-xs text-gray-400">No {{ section.label|lower }} recipes match.</p>
+              {% else %}
+                <p class="text-xs text-gray-400 mb-2">{{ section.results|length }} recipe{{ section.results|length|pluralize }}</p>
+                <div class="space-y-2">
+                  {% for item in section.results %}
+                    <label class="flex items-start gap-2 border border-gray-200 rounded-lg p-3 cursor-pointer
+                                  hover:border-emerald-400 transition-colors">
+                      <input type="checkbox" name="selected_recipe_pks" value="{{ item.recipe.pk }}"
+                             {% if item.recipe.pk|stringformat:"s" in selected_pks %}checked{% endif %}
+                             class="mt-0.5 shrink-0">
+                      <div class="min-w-0">
+                        <div class="font-medium text-sm">{{ item.recipe.name }}</div>
+                        <div class="flex items-center gap-2 mt-0.5">
+                          <span class="text-xs text-gray-500">🔪 {{ item.recipe.prep_time }}m &nbsp;🍳 {{ item.recipe.cook_time }}m</span>
+                          <span class="text-xs">{% difficulty_stars item.recipe.difficulty %}</span>
+                        </div>
+                        {% if item.recipe.tags.all %}
+                          <div class="flex flex-wrap gap-1 mt-1">
+                            {% for tag in item.recipe.tags.all %}
+                              <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs">{{ tag }}</span>
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </label>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Submit -->
+      <button type="submit"
+              class="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
+        Search
+      </button>
+    </div>
+
+    <!-- Right: grocery list panel (sticky) -->
+    <div class="xl:col-span-1">
+      <div class="bg-white rounded-xl border border-gray-200 p-5 sticky top-4">
+        <h2 class="font-semibold mb-3">Grocery List</h2>
+        {% if grocery_grouped %}
+          <p class="text-xs text-gray-500 mb-4">
+            {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
+            · <strong>{{ location }}</strong>
+          </p>
+          {% for category, items in grocery_grouped.items %}
+            <div class="mb-4">
+              <h3 class="font-semibold text-xs text-gray-500 uppercase tracking-wide mb-1">
+                {{ category }}
+                {% with aisle_name=aisle_label|get_item:category %}
+                  {% if aisle_name %}
+                    <span class="normal-case font-normal text-gray-400 ml-1">· {{ aisle_name }}</span>
+                  {% endif %}
+                {% endwith %}
+              </h3>
+              <ul class="space-y-1 text-sm">
+                {% for item in items %}
+                  <li class="flex justify-between gap-2">
+                    <a href="{% url 'ingredient-detail' item.ingredient.pk %}" class="hover:text-emerald-700 truncate">
+                      {{ item.ingredient }}
+                    </a>
+                    <span class="text-gray-600 font-medium shrink-0">
+                      {{ item.total|floatformat:"-2" }} {{ item.unit.abbreviation }}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        {% elif selected_pks and not location %}
+          <p class="text-sm text-amber-600">Select a shop location above to generate the grocery list.</p>
+        {% else %}
+          <p class="text-sm text-gray-400">Select recipes and a shop location, then search.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</form>
 {% endblock %}

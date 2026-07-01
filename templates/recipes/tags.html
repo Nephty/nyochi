@@ -12,7 +12,7 @@
         {% for tag in tags %}
           <li class="flex items-center justify-between">
             <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm">{{ tag.name }}</span>
-            <form method="post" action="{% url 'tag-delete' tag.pk %}" onsubmit="return confirm('Delete tag "{{ tag.name }}"?')">
+            <form method="post" action="{% url 'tag-delete' tag.pk %}" data-confirm='Delete tag "{{ tag.name }}"?'>
               {% csrf_token %}
               <button type="submit" class="text-xs text-red-400 hover:text-red-600">Delete</button>
             </form>
