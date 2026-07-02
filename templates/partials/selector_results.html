@@ -1,21 +1,17 @@
 {% load recipe_extras %}
-{% if results is None %}
-  <p class="text-xs text-gray-400 italic">Click Search to see recipes.</p>
-{% elif not results %}
+{% if not results %}
   <p class="text-xs text-gray-400">No recipes match.</p>
 {% else %}
   <p class="text-xs text-gray-400 mb-2">{{ results|length }} recipe{{ results|length|pluralize }}</p>
-  <div class="space-y-2">
+  <div class="space-y-2 results-scroll">
     {% for item in results %}
       <label class="flex items-start gap-2 border border-gray-200 rounded-lg p-3 cursor-pointer hover:border-emerald-400 transition-colors">
         <input type="checkbox" name="selected_recipe_pks" value="{{ item.recipe.pk }}"
                {% if item.recipe.pk|stringformat:"s" in selected_pks %}checked{% endif %}
                class="mt-0.5 shrink-0">
         <div class="min-w-0">
-          <div class="font-medium text-sm">{{ item.recipe.name }}</div>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-xs text-gray-500">🔪 {{ item.recipe.prep_time }}m &nbsp;🍳 {{ item.recipe.cook_time }}m</span>
-            <span class="text-xs">{% difficulty_stars item.recipe.difficulty %}</span>
+          <div class="text-sm leading-snug">
+            <span class="font-medium">{{ item.recipe.name }}</span><span class="text-gray-400">&thinsp;</span><span class="text-xs text-gray-500 whitespace-nowrap">🔪 {{ item.recipe.prep_time }}m 🍳 {{ item.recipe.cook_time }}m</span> <span class="text-xs whitespace-nowrap">{% difficulty_stars item.recipe.difficulty %}</span>
           </div>
           {% if item.recipe.tags.all %}
             <div class="flex flex-wrap gap-1 mt-1">

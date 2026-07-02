@@ -1,0 +1,9 @@
+{% if all_done %}
+<form method="post" action="{% url 'archive-grocery-list' saved.pk %}">
+  {% csrf_token %}
+  <button type="submit"
+          class="w-full mt-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+    Archive list ✓
+  </button>
+</form>
+{% endif %}

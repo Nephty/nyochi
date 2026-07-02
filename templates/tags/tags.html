@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Tags{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Tags</h1>
+
+<div class="grid sm:grid-cols-2 gap-6">
+  <!-- Existing tags -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold mb-4">All tags</h2>
+    {% if tags %}
+      <ul class="space-y-2" id="tag-list">
+        {% for tag in tags %}
+          {% include "partials/tag_row.html" %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <ul class="space-y-2" id="tag-list"></ul>
+      <p class="text-sm text-gray-400">No tags yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Create new tag -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="font-semibold mb-4">Add a tag</h2>
+    <form method="post"
+          hx-post="{% url 'tag-list' %}"
+          hx-target="#tag-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()"
+          class="flex gap-2">
+      {% csrf_token %}
+      {{ form.name.errors }}
+      <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"
+             placeholder="Tag name"
+             class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+      <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Add</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

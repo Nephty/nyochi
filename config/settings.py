@@ -17,6 +17,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'recipes',
+    'ingredients',
+    'shops',
+    'tags',
+    'grocery',
+    'find_recipes',
 ]
 
 MIDDLEWARE = [

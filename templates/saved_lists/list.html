@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Saved Grocery Lists{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Saved Grocery Lists</h1>
+  <a href="{% url 'grocery-list' %}" class="text-sm text-gray-500 hover:text-emerald-700 transition-colors">← Grocery list</a>
+</div>
+
+{% if saved_lists %}
+  <div class="space-y-4 max-w-2xl">
+    {% for saved in saved_lists %}
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h2 class="font-semibold text-base">{{ saved.name }}</h2>
+            <p class="text-xs text-gray-400 mt-0.5">{{ saved.created_at|date:"F j, Y · H:i" }}</p>
+            {% if saved.recipes.all %}
+              <p class="text-sm text-gray-500 mt-1">
+                {% for r in saved.recipes.all %}{{ r.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              </p>
+            {% endif %}
+            <p class="text-xs text-gray-400 mt-1">{{ saved.items.count }} item{{ saved.items.count|pluralize }}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'saved-grocery-detail' saved.pk %}"
+               class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+              Start shopping
+            </a>
+            <form method="post" action="{% url 'saved-grocery-delete' saved.pk %}"
+                  data-confirm="Delete "{{ saved.name }}"?">
+              {% csrf_token %}
+              <button type="submit"
+                      class="px-3 py-2 border border-gray-200 text-gray-400 rounded-lg text-sm hover:border-red-300 hover:text-red-500 transition-colors">
+                Delete
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border border-gray-200 p-10 text-center max-w-md">
+    <p class="text-gray-400 text-sm mb-1">No saved lists yet.</p>
+    <p class="text-xs text-gray-400">Generate a grocery list and click "Save grocery list" to save it here.</p>
+  </div>
+{% endif %}
+{% endblock %}

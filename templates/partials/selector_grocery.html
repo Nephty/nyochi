@@ -2,7 +2,7 @@
 {% if grocery_grouped %}
   <p class="text-xs text-gray-500 mb-4">
     {% for r in selected_recipes %}<em>{{ r }}</em>{% if not forloop.last %}, {% endif %}{% endfor %}
-    · <strong>{{ location }}</strong>
+    {% if location %} · <strong>{{ location }}</strong>{% endif %}
   </p>
   {% for category, items in grocery_grouped.items %}
     <div class="mb-4">
@@ -24,8 +24,8 @@
       </ul>
     </div>
   {% endfor %}
-{% elif selected_pks and not location %}
-  <p class="text-sm text-amber-600">Select a shop location above to generate the grocery list.</p>
+{% elif selected_pks %}
+  <p class="text-sm text-gray-400">No ingredients found for the selected recipes.</p>
 {% else %}
-  <p class="text-sm text-gray-400">Select recipes and a shop location to generate the list.</p>
+  <p class="text-sm text-gray-400">Select recipes to generate the grocery list.</p>
 {% endif %}

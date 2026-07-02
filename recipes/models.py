@@ -224,6 +224,37 @@ class Recipe(models.Model):
         return result
 
 
+class SavedGroceryList(models.Model):
+    name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    recipes = models.ManyToManyField('Recipe', blank=True)
+    archived = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class SavedGroceryItem(models.Model):
+    grocery_list = models.ForeignKey(
+        SavedGroceryList,
+        on_delete=models.CASCADE,
+        related_name='items',
+    )
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=8, decimal_places=2)
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
+    in_cart = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['ingredient__category', 'ingredient__name']
+
+    def __str__(self):
+        return f'{self.ingredient} ({self.grocery_list})'
+
+
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
