@@ -73,4 +73,11 @@
     </div>
   {% endif %}
 {% endwith %}
+
+{% if request.user == ingredient.owner %}
+<div class="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+  <h2 class="font-semibold mb-3">Sharing</h2>
+  {% include "partials/share_panel.html" with obj=ingredient model_type="ingredient" %}
+</div>
+{% endif %}
 {% endblock %}

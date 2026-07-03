@@ -1,0 +1,42 @@
+<div id="share-panel">
+  {% with shared_users=obj.shared_with.all %}
+  {% if shared_users %}
+    <div class="flex flex-wrap gap-2 mb-3">
+      {% for u in shared_users %}
+        <form method="post" action="{% url 'share-object' model_type obj.pk %}"
+              hx-post="{% url 'share-object' model_type obj.pk %}"
+              hx-target="#share-panel" hx-swap="outerHTML">
+          {% csrf_token %}
+          <input type="hidden" name="remove_user_pk" value="{{ u.pk }}">
+          <button type="submit"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 hover:bg-red-50 rounded-full text-sm transition-colors group">
+            <span>{{ u.username }}</span>
+            <span class="text-gray-400 group-hover:text-red-500 text-base leading-none">×</span>
+          </button>
+        </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-400 mb-3">Not shared with anyone yet.</p>
+  {% endif %}
+  {% endwith %}
+
+  {% if error %}
+    <p class="text-xs text-red-500 mb-2">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="{% url 'share-object' model_type obj.pk %}"
+        hx-post="{% url 'share-object' model_type obj.pk %}"
+        hx-target="#share-panel" hx-swap="outerHTML"
+        class="flex gap-2">
+    {% csrf_token %}
+    <input type="text" name="add_username" placeholder="Add by username…"
+           class="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-emerald-400"
+           autocomplete="off" required>
+    <button type="submit"
+            class="px-3 py-1.5 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 transition-colors">
+      Add
+    </button>
+  </form>
+</div>

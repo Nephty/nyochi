@@ -125,6 +125,12 @@
       <div id="archive-btn-area">
         {% include "partials/archive_btn.html" %}
       </div>
+
+      {% if request.user == saved.owner %}
+        <hr class="my-4 border-gray-100">
+        <h2 class="font-semibold text-sm mb-3">Sharing</h2>
+        {% include "partials/share_panel.html" with obj=saved model_type="grocerylist" %}
+      {% endif %}
     </div>
   </div>
 

@@ -1,11 +1,13 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import DeleteView, DetailView, ListView, UpdateView
 
 from .forms import RecipeForm, RecipeIngredientForm, RecipeIngredientFormSet
-from .models import Recipe, RecipeIngredient
+from .models import Ingredient, Recipe, RecipeIngredient, SavedGroceryList, Shop
 from .utils import accessible_qs
 
 
@@ -118,6 +120,47 @@ class RecipeDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         return accessible_qs(Recipe, self.request.user)
+
+
+class ShareView(LoginRequiredMixin, View):
+    _model_map = {
+        'recipe': Recipe,
+        'ingredient': Ingredient,
+        'shop': Shop,
+        'grocerylist': SavedGroceryList,
+    }
+
+    def _get_obj(self, request, model_type, pk):
+        model = self._model_map.get(model_type)
+        if not model:
+            raise Http404
+        return get_object_or_404(model, pk=pk, owner=request.user)
+
+    def post(self, request, model_type, pk):
+        obj = self._get_obj(request, model_type, pk)
+        User = get_user_model()
+        error = None
+
+        if 'add_username' in request.POST:
+            username = request.POST.get('add_username', '').strip()
+            try:
+                user = User.objects.get(username=username)
+                if user == request.user:
+                    error = "You can't share with yourself."
+                elif obj.shared_with.filter(pk=user.pk).exists():
+                    error = f'"{username}" already has access.'
+                else:
+                    obj.shared_with.add(user)
+            except User.DoesNotExist:
+                error = f'User "{username}" not found.'
+        elif 'remove_user_pk' in request.POST:
+            obj.shared_with.remove(request.POST.get('remove_user_pk'))
+
+        return render(request, 'partials/share_panel.html', {
+            'obj': obj,
+            'model_type': model_type,
+            'error': error,
+        })
 
 
 class IngredientRowView(LoginRequiredMixin, View):
