@@ -72,6 +72,7 @@
           export RECIPE_BOOK_STATIC_ROOT=''${RECIPE_BOOK_STATIC_ROOT:-${appHome}/staticfiles}
           export RECIPE_BOOK_STATE_DIR=''${RECIPE_BOOK_STATE_DIR:-$PWD}
           export RECIPE_BOOK_DB_PATH=''${RECIPE_BOOK_DB_PATH:-$RECIPE_BOOK_STATE_DIR/db.sqlite3}
+          export ALLOWED_HOSTS=''${ALLOWED_HOSTS:-*}
         '';
 
         manageBin = pkgs.writeShellApplication {
