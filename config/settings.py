@@ -31,6 +31,7 @@ LOGOUT_REDIRECT_URL = 'login'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,7 +62,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db' / 'db.sqlite3',
+        'NAME': Path(os.environ.get('RECIPE_BOOK_DB_PATH', str(BASE_DIR / 'db' / 'db.sqlite3'))),
     }
 }
 
@@ -78,4 +79,5 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = Path(os.environ.get('RECIPE_BOOK_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
