@@ -11,7 +11,7 @@
                class="mt-0.5 shrink-0">
         <div class="min-w-0">
           <div class="text-sm leading-snug">
-            <span class="font-medium">{{ item.recipe.name }}</span><span class="text-gray-400">&thinsp;</span><span class="text-xs text-gray-500 whitespace-nowrap">🔪 {{ item.recipe.prep_time }}m 🍳 {{ item.recipe.cook_time }}m</span> <span class="text-xs whitespace-nowrap">{% difficulty_stars item.recipe.difficulty %}</span>
+            <span class="font-medium {% if has_filter and item.score == 0 %}text-gray-400{% endif %}">{{ item.recipe.name }}</span><span class="text-gray-400">&thinsp;</span><span class="text-xs text-gray-500 whitespace-nowrap">🔪 {{ item.recipe.prep_time }}m 🍳 {{ item.recipe.cook_time }}m</span> <span class="text-xs whitespace-nowrap">{% difficulty_stars item.recipe.difficulty %}</span>
           </div>
           {% if item.recipe.tags.all %}
             <div class="flex flex-wrap gap-1 mt-1">

@@ -2,6 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 
 from .models import Ingredient, Recipe, RecipeIngredient, Unit
+from .utils import accessible_qs
 
 _INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
@@ -33,9 +34,12 @@ class RecipeIngredientForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['ingredient'].empty_label = ''
         self.fields['unit'].empty_label = ''
+        if user is not None:
+            self.fields['ingredient'].queryset = accessible_qs(Ingredient, user)
 
 
 RecipeIngredientFormSet = inlineformset_factory(

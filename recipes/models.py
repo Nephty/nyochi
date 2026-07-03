@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -42,6 +43,13 @@ class Ingredient(models.Model):
         choices=IngredientCategory.choices,
         default=IngredientCategory.OTHER,
     )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_ingredients',
+    )
 
     class Meta:
         ordering = ['name']
@@ -85,6 +93,13 @@ class SeasonalAvailability(models.Model):
 
 class Shop(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_shops',
+    )
 
     class Meta:
         ordering = ['name']
@@ -96,6 +111,13 @@ class Shop(models.Model):
 class ShopLocation(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='locations')
     name = models.CharField(max_length=100)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_shop_locations',
+    )
 
     class Meta:
         ordering = ['shop', 'name']
@@ -108,6 +130,13 @@ class ShopLocation(models.Model):
 class Aisle(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='aisles')
     name = models.CharField(max_length=100)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_aisles',
+    )
 
     class Meta:
         ordering = ['shop', 'name']
@@ -121,6 +150,13 @@ class AisleOrder(models.Model):
     aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='location_orders')
     location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='aisle_orders')
     order = models.PositiveIntegerField()
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_aisle_orders',
+    )
 
     class Meta:
         ordering = ['location', 'order']
@@ -140,6 +176,13 @@ class CategoryAisleMapping(models.Model):
     location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='category_mappings')
     category = models.CharField(max_length=20, choices=IngredientCategory.choices)
     aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='category_mappings')
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_category_mappings',
+    )
 
     class Meta:
         unique_together = ('location', 'category')
@@ -163,6 +206,13 @@ class ShopLink(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.PROTECT)
     name = models.CharField(max_length=200, blank=True)
     url = models.URLField()
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_shop_links',
+    )
 
     class Meta:
         ordering = ['shop__name']
@@ -201,6 +251,13 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(Tag, blank=True)
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient', blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_recipes',
+    )
 
     class Meta:
         ordering = ['name']
@@ -229,6 +286,13 @@ class SavedGroceryList(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     recipes = models.ManyToManyField('Recipe', blank=True)
     archived = models.BooleanField(default=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_grocery_lists',
+    )
 
     class Meta:
         ordering = ['-created_at']
@@ -247,6 +311,13 @@ class SavedGroceryItem(models.Model):
     quantity = models.DecimalField(max_digits=8, decimal_places=2)
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
     in_cart = models.BooleanField(default=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_grocery_items',
+    )
 
     class Meta:
         ordering = ['ingredient__category', 'ingredient__name']
@@ -261,6 +332,13 @@ class RecipeIngredient(models.Model):
     quantity = models.DecimalField(max_digits=8, decimal_places=2)
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
     is_main = models.BooleanField(default=False)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name='shared_recipe_ingredients',
+    )
 
     class Meta:
         unique_together = ('recipe', 'ingredient')

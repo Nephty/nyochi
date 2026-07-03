@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from .models import (
@@ -6,6 +6,12 @@ from .models import (
     Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList,
     ShopLocation, Unit,
 )
+
+
+def accessible_qs(model, user):
+    return model.objects.filter(
+        Q(owner=None) | Q(owner=user) | Q(shared_with=user)
+    ).distinct()
 
 MONTHS = [
     (1, 'January'), (2, 'February'), (3, 'March'), (4, 'April'),
@@ -18,7 +24,8 @@ def is_htmx(request):
     return request.headers.get('HX-Request') == 'true'
 
 
-_LOCATION_QS = lambda: ShopLocation.objects.select_related('shop').order_by('shop__name', 'name')
+def _location_qs(user):
+    return accessible_qs(ShopLocation, user).select_related('shop').order_by('shop__name', 'name')
 
 
 def _compute_grocery_list(recipes, location):
@@ -66,9 +73,10 @@ def _compute_grocery_list(recipes, location):
     return grouped, aisle_label
 
 
-def _save_grocery_list(recipe_pks):
+def _save_grocery_list(recipe_pks, user=None):
     """Create a SavedGroceryList from a list of recipe PKs and return it."""
-    recipes = list(Recipe.objects.filter(pk__in=recipe_pks))
+    base_qs = accessible_qs(Recipe, user) if user is not None else Recipe.objects
+    recipes = list(base_qs.filter(pk__in=recipe_pks))
     if not recipes:
         return None
 
@@ -80,7 +88,7 @@ def _save_grocery_list(recipe_pks):
     )
 
     name = f'Shopping list — {timezone.localdate().strftime("%B %-d, %Y")}'
-    saved = SavedGroceryList.objects.create(name=name)
+    saved = SavedGroceryList.objects.create(name=name, owner=user)
     saved.recipes.set(recipes)
 
     ingredient_ids = [r['ingredient'] for r in rows]
@@ -94,6 +102,7 @@ def _save_grocery_list(recipe_pks):
             ingredient=ingredients_map[r['ingredient']],
             quantity=r['total'],
             unit=units_map[r['unit']],
+            owner=user,
         )
         for r in rows
     ])

@@ -1,43 +1,46 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from recipes.models import Aisle, AisleOrder, CategoryAisleMapping, IngredientCategory, Shop, ShopLocation
-from recipes.utils import is_htmx
+from recipes.utils import accessible_qs, is_htmx
 from .forms import AisleForm, ShopForm, ShopLocationForm
 
 
-class ShopListView(View):
+class ShopListView(LoginRequiredMixin, View):
     template_name = 'shops/list.html'
 
     def get(self, request):
         return render(request, self.template_name, {
-            'shops': Shop.objects.prefetch_related('aisles', 'locations'),
+            'shops': accessible_qs(Shop, request.user).prefetch_related('aisles', 'locations'),
             'form': ShopForm(),
         })
 
     def post(self, request):
         form = ShopForm(request.POST)
         if form.is_valid():
-            shop = form.save()
+            shop = form.save(commit=False)
+            shop.owner = request.user
+            shop.save()
             if is_htmx(request):
                 return render(request, 'partials/shop_card.html', {'shop': shop})
             return redirect('shop-list')
         return render(request, self.template_name, {
-            'shops': Shop.objects.prefetch_related('aisles', 'locations'),
+            'shops': accessible_qs(Shop, request.user).prefetch_related('aisles', 'locations'),
             'form': form,
         })
 
 
-class ShopDeleteView(View):
+class ShopDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        Shop.objects.filter(pk=pk).delete()
+        accessible_qs(Shop, request.user).filter(pk=pk).delete()
         if is_htmx(request):
             return HttpResponse('')
         return redirect('shop-list')
 
 
-class ShopDetailView(View):
+class ShopDetailView(LoginRequiredMixin, View):
     template_name = 'shops/detail.html'
 
     def _build_loc_data(self, shop, aisles):
@@ -70,11 +73,11 @@ class ShopDetailView(View):
         }
 
     def get(self, request, pk):
-        shop = get_object_or_404(Shop, pk=pk)
+        shop = get_object_or_404(accessible_qs(Shop, request.user), pk=pk)
         return render(request, self.template_name, self._ctx(shop))
 
     def post(self, request, pk):
-        shop = get_object_or_404(Shop, pk=pk)
+        shop = get_object_or_404(accessible_qs(Shop, request.user), pk=pk)
         action = request.POST.get('action')
 
         if action == 'add_aisle':
@@ -82,7 +85,9 @@ class ShopDetailView(View):
             data['shop'] = shop.pk
             form = AisleForm(data)
             if form.is_valid():
-                aisle = form.save()
+                aisle = form.save(commit=False)
+                aisle.owner = request.user
+                aisle.save()
                 if is_htmx(request):
                     return render(request, 'partials/aisle_item.html', {'aisle': aisle, 'shop': shop})
                 return redirect('shop-detail', pk=shop.pk)
@@ -93,7 +98,9 @@ class ShopDetailView(View):
             data['shop'] = shop.pk
             form = ShopLocationForm(data)
             if form.is_valid():
-                loc = form.save()
+                loc = form.save(commit=False)
+                loc.owner = request.user
+                loc.save()
                 if is_htmx(request):
                     aisles = list(shop.aisles.all())
                     item = {
@@ -124,7 +131,7 @@ class ShopDetailView(View):
                         try:
                             AisleOrder.objects.update_or_create(
                                 aisle=aisle, location=location,
-                                defaults={'order': int(val)},
+                                defaults={'order': int(val), 'owner': request.user},
                             )
                         except (ValueError, TypeError):
                             pass
@@ -141,7 +148,7 @@ class ShopDetailView(View):
                             aisle = Aisle.objects.get(pk=aisle_pk_val, shop=shop)
                             CategoryAisleMapping.objects.update_or_create(
                                 location=location, category=cat_value,
-                                defaults={'aisle': aisle},
+                                defaults={'aisle': aisle, 'owner': request.user},
                             )
                         except (Aisle.DoesNotExist, ValueError):
                             pass
@@ -158,7 +165,7 @@ class ShopDetailView(View):
                     for m in mappings:
                         CategoryAisleMapping.objects.update_or_create(
                             location=other, category=m.category,
-                            defaults={'aisle': m.aisle},
+                            defaults={'aisle': m.aisle, 'owner': request.user},
                         )
                 if is_htmx(request):
                     return HttpResponse('Copied ✓')
@@ -166,9 +173,9 @@ class ShopDetailView(View):
         return redirect('shop-detail', pk=shop.pk)
 
 
-class AisleDeleteView(View):
+class AisleDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        aisle = get_object_or_404(Aisle, pk=pk)
+        aisle = get_object_or_404(accessible_qs(Aisle, request.user), pk=pk)
         shop_pk = aisle.shop_id
         aisle.delete()
         if is_htmx(request):
@@ -176,9 +183,9 @@ class AisleDeleteView(View):
         return redirect('shop-detail', pk=shop_pk)
 
 
-class ShopLocationDeleteView(View):
+class ShopLocationDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        location = get_object_or_404(ShopLocation, pk=pk)
+        location = get_object_or_404(accessible_qs(ShopLocation, request.user), pk=pk)
         shop_pk = location.shop_id
         location.delete()
         if is_htmx(request):

@@ -1,14 +1,30 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.views import View
 
-from recipes.models import SavedGroceryItem, SavedGroceryList, ShopLocation
+from recipes.models import RecipeIngredient, SavedGroceryItem, SavedGroceryList, ShopLocation
 from recipes.utils import (
-    _compute_grocery_list, _LOCATION_QS, _save_grocery_list,
+    accessible_qs, _compute_grocery_list, _location_qs, _save_grocery_list,
     _sorted_grocery_items, is_htmx,
 )
 from .forms import GrocerySelectForm
+
+
+def _ingredient_recipes_map(saved):
+    result = {}
+    for ri in RecipeIngredient.objects.filter(recipe__in=saved.recipes.all()).select_related('recipe'):
+        result.setdefault(ri.ingredient_id, []).append(ri.recipe.name)
+    return result
+
+
+def _recipe_summaries(saved):
+    summaries = []
+    for r in saved.recipes.prefetch_related('recipeingredient_set__ingredient'):
+        main_ings = [ri.ingredient.name for ri in r.recipeingredient_set.all() if ri.is_main]
+        summaries.append({'recipe': r, 'main_ingredients': main_ings})
+    return summaries
 
 _SAVE_SUCCESS_HTML = (
     '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 py-1">'
@@ -18,24 +34,28 @@ _SAVE_SUCCESS_HTML = (
 )
 
 
-class GroceryListView(View):
+class GroceryListView(LoginRequiredMixin, View):
     template_name = 'grocery/grocery_list.html'
 
-    def _saved_lists(self):
-        return SavedGroceryList.objects.filter(archived=False).prefetch_related('recipes', 'items')
+    def _saved_lists(self, user):
+        return (
+            accessible_qs(SavedGroceryList, user)
+            .filter(archived=False)
+            .prefetch_related('recipes', 'items')
+        )
 
     def get(self, request):
         return render(request, self.template_name, {
-            'form': GrocerySelectForm(),
-            'saved_lists': self._saved_lists(),
+            'form': GrocerySelectForm(user=request.user),
+            'saved_lists': self._saved_lists(request.user),
         })
 
     def post(self, request):
-        form = GrocerySelectForm(request.POST)
+        form = GrocerySelectForm(request.POST, user=request.user)
         if not form.is_valid():
             return render(request, self.template_name, {
                 'form': form,
-                'saved_lists': self._saved_lists(),
+                'saved_lists': self._saved_lists(request.user),
             })
 
         selected_recipes = form.cleaned_data['recipes']
@@ -48,13 +68,13 @@ class GroceryListView(View):
             'aisle_label': aisle_label,
             'selected_recipes': selected_recipes,
             'location': location,
-            'saved_lists': self._saved_lists(),
+            'saved_lists': self._saved_lists(request.user),
         })
 
 
-class GroceryResultsView(View):
+class GroceryResultsView(LoginRequiredMixin, View):
     def post(self, request):
-        form = GrocerySelectForm(request.POST)
+        form = GrocerySelectForm(request.POST, user=request.user)
         if not form.is_valid():
             return HttpResponse('')
         selected_recipes = form.cleaned_data['recipes']
@@ -68,14 +88,18 @@ class GroceryResultsView(View):
         })
 
 
-class SaveGroceryListView(View):
+class SaveGroceryListView(LoginRequiredMixin, View):
     def post(self, request):
         pks = request.POST.getlist('recipe_pks') or request.POST.getlist('selected_recipe_pks')
-        saved = _save_grocery_list(pks)
+        saved = _save_grocery_list(pks, user=request.user)
         if is_htmx(request):
             if not saved:
                 return HttpResponse('<span class="text-xs text-red-500">No recipes selected.</span>')
-            saved_lists = SavedGroceryList.objects.filter(archived=False).prefetch_related('recipes', 'items')
+            saved_lists = (
+                accessible_qs(SavedGroceryList, request.user)
+                .filter(archived=False)
+                .prefetch_related('recipes', 'items')
+            )
             oob = render_to_string(
                 'partials/saved_lists_section.html',
                 {'saved_lists': saved_lists},
@@ -88,21 +112,28 @@ class SaveGroceryListView(View):
         return redirect('saved-grocery-detail', pk=saved.pk) if saved else redirect('grocery-list')
 
 
-class SavedGroceryListsView(View):
+class SavedGroceryListsView(LoginRequiredMixin, View):
     template_name = 'saved_lists/list.html'
 
     def get(self, request):
-        saved_lists = SavedGroceryList.objects.filter(archived=False).prefetch_related('recipes', 'items')
+        saved_lists = (
+            accessible_qs(SavedGroceryList, request.user)
+            .filter(archived=False)
+            .prefetch_related('recipes', 'items')
+        )
         return render(request, self.template_name, {'saved_lists': saved_lists})
 
 
-class SavedGroceryDetailView(View):
+class SavedGroceryDetailView(LoginRequiredMixin, View):
     template_name = 'saved_lists/detail.html'
 
     def get(self, request, pk):
-        saved = get_object_or_404(SavedGroceryList, pk=pk)
+        saved = get_object_or_404(accessible_qs(SavedGroceryList, request.user), pk=pk)
         location_id = request.GET.get('location', '')
-        location = ShopLocation.objects.filter(pk=location_id).first() if location_id else None
+        location = (
+            accessible_qs(ShopLocation, request.user).filter(pk=location_id).first()
+            if location_id else None
+        )
         grouped, aisle_label = _sorted_grocery_items(saved, location)
         total   = saved.items.count()
         in_cart = saved.items.filter(in_cart=True).count()
@@ -111,33 +142,35 @@ class SavedGroceryDetailView(View):
             'saved': saved,
             'grouped': grouped,
             'aisle_label': aisle_label,
-            'location_choices': _LOCATION_QS(),
+            'location_choices': _location_qs(request.user),
             'location': location,
             'location_id': location_id,
             'total': total,
             'in_cart': in_cart,
             'all_done': all_done,
+            'ingredient_recipes': _ingredient_recipes_map(saved),
+            'recipe_summaries': _recipe_summaries(saved),
         })
 
 
-class SavedGroceryDeleteView(View):
+class SavedGroceryDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        SavedGroceryList.objects.filter(pk=pk).delete()
+        accessible_qs(SavedGroceryList, request.user).filter(pk=pk).delete()
         next_url = request.POST.get('next', '')
         return redirect(next_url if next_url else 'saved-grocery-list')
 
 
-class ArchiveGroceryListView(View):
+class ArchiveGroceryListView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        saved = get_object_or_404(SavedGroceryList, pk=pk)
+        saved = get_object_or_404(accessible_qs(SavedGroceryList, request.user), pk=pk)
         saved.archived = True
         saved.save(update_fields=['archived'])
         return redirect('grocery-list')
 
 
-class ToggleCartItemView(View):
+class ToggleCartItemView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        item = get_object_or_404(SavedGroceryItem, pk=pk)
+        item = get_object_or_404(accessible_qs(SavedGroceryItem, request.user), pk=pk)
         item.in_cart = not item.in_cart
         item.save(update_fields=['in_cart'])
         saved = item.grocery_list
@@ -145,7 +178,11 @@ class ToggleCartItemView(View):
         in_cart  = saved.items.filter(in_cart=True).count()
         pct      = f'calc({in_cart} / {total} * 100%)' if total else '0%'
         all_done = total > 0 and in_cart == total
-        item_html = render_to_string('partials/cart_item.html', {'item': item}, request=request)
+        item_html = render_to_string(
+            'partials/cart_item.html',
+            {'item': item, 'ingredient_recipes': _ingredient_recipes_map(saved)},
+            request=request,
+        )
         archive_html = render_to_string(
             'partials/archive_btn.html',
             {'saved': saved, 'all_done': all_done},

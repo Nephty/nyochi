@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views import View
@@ -7,7 +8,7 @@ from recipes.utils import is_htmx
 from .forms import TagForm
 
 
-class TagListView(View):
+class TagListView(LoginRequiredMixin, View):
     template_name = 'tags/tags.html'
 
     def get(self, request):
@@ -29,7 +30,7 @@ class TagListView(View):
         })
 
 
-class TagDeleteView(View):
+class TagDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
         Tag.objects.filter(pk=pk).delete()
         if is_htmx(request):

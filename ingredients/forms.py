@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
-from recipes.models import Ingredient, SeasonalAvailability, ShopLink
+from recipes.models import Ingredient, SeasonalAvailability, Shop, ShopLink
+from recipes.utils import accessible_qs
 
 _INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
@@ -51,6 +52,12 @@ class ShopLinkForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'Label (optional)'}),
             'url': forms.URLInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'https://…'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields['shop'].queryset = accessible_qs(Shop, user)
 
 
 ShopLinkFormSet = inlineformset_factory(

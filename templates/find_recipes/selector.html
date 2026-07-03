@@ -207,7 +207,7 @@
 
             <!-- Results — flex-1 so the card fills height and results have room to breathe -->
             <div class="p-4 flex-1 min-h-48" id="{{ section.value }}-results">
-              {% with results=section.results %}
+              {% with results=section.results has_filter=section.has_filter %}
                 {% include "partials/selector_results.html" %}
               {% endwith %}
             </div>

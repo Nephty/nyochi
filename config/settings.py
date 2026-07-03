@@ -22,7 +22,12 @@ INSTALLED_APPS = [
     'tags',
     'grocery',
     'find_recipes',
+    'accounts',
 ]
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'recipe-list'
+LOGOUT_REDIRECT_URL = 'login'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

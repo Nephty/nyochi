@@ -1,3 +1,4 @@
+{% load recipe_extras %}
 <li id="cart-item-{{ item.pk }}"
     class="flex items-center gap-3 px-5 py-3 {% if item.in_cart %}cart-item-checked{% endif %}">
   <button type="button"
@@ -12,9 +13,9 @@
       </svg>
     {% endif %}
   </button>
-  <span class="flex-1 text-sm {% if item.in_cart %}line-through text-gray-400{% endif %}">
-    {{ item.ingredient.name }}
-  </span>
+  <div class="flex-1 min-w-0 leading-relaxed">
+    <span class="text-sm align-middle {% if item.in_cart %}line-through text-gray-400{% endif %}">{{ item.ingredient.name }}</span>{% with names=ingredient_recipes|get_item:item.ingredient_id %}{% for name in names %}<span class="inline-block align-middle text-xs px-1.5 py-0.5 ml-1 bg-gray-100 text-gray-500 rounded-full {% if item.in_cart %}opacity-50{% endif %}">{{ name }}</span>{% endfor %}{% endwith %}
+  </div>
   <span class="text-sm font-medium shrink-0 {% if item.in_cart %}text-gray-300{% else %}text-gray-600{% endif %}">
     {{ item.quantity|floatformat:"-2" }} {{ item.unit.abbreviation }}
   </span>
