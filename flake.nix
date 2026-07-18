@@ -184,6 +184,11 @@
               default = null;
               description = "Path to a file containing the Django SECRET_KEY.";
             };
+            urlPrefix = lib.mkOption {
+              type = lib.types.str;
+              default = "";
+              description = "URL path prefix this app is reverse-proxied under (e.g. \"/nyochi\"). Empty means served at the domain root.";
+            };
           };
 
           config = lib.mkIf cfg.enable {
@@ -198,6 +203,7 @@
                 RECIPE_BOOK_WORKERS = toString cfg.workers;
                 RECIPE_BOOK_STATE_DIR = "/var/lib/recipe-book";
                 RECIPE_BOOK_DB_PATH = "/var/lib/recipe-book/db.sqlite3";
+                DJANGO_FORCE_SCRIPT_NAME = cfg.urlPrefix;
               };
               serviceConfig = {
                 ExecStart = pkgs.writeShellScript "recipe-book-start" ''

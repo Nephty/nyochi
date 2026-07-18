@@ -78,6 +78,11 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+FORCE_SCRIPT_NAME = os.environ.get('DJANGO_FORCE_SCRIPT_NAME') or None
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+STATIC_URL = f"{os.environ.get('DJANGO_FORCE_SCRIPT_NAME', '')}/static/"
 STATIC_ROOT = Path(os.environ.get('RECIPE_BOOK_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
