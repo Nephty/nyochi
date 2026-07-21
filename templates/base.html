@@ -143,50 +143,102 @@
     }
     html.dark .bg-sky-50   { background-color: #0c4a6e; }
     html.dark .text-sky-700 { color: #38bdf8; }
+
+    /* Top nav — sticky header, brand mark, and icon-only theme toggle
+       (structural pattern shared with Paperclip's header) */
+    nav.site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+    html.dark nav.site-nav { background: rgba(31, 41, 55, 0.92); }
+
+    .brand-mark {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2rem; height: 2rem; border-radius: 0.5rem;
+      background: #059669; font-size: 1.05rem; line-height: 1;
+    }
+    html.dark .brand-mark { background: #10b981; }
+
+    .nav-divider { width: 1px; height: 1.4rem; background: #e5e7eb; }
+    html.dark .nav-divider { background: #374151; }
+
+    .user-chip {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.75rem 0.35rem 0.5rem; border-radius: 9999px;
+      background: #f9fafb; color: #6b7280; font-size: 0.85rem;
+    }
+    html.dark .user-chip { background: #111827; color: #9ca3af; }
+
+    .user-chip-avatar {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.5rem; height: 1.5rem; border-radius: 9999px;
+      background: #059669; color: #fff; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase;
+    }
+    html.dark .user-chip-avatar { background: #10b981; }
+
+    .theme-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2.1rem; height: 2.1rem; padding: 0; background: none; border: none;
+      border-radius: 9999px; font-size: 1.05rem; line-height: 1; cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .theme-toggle:hover { background: #f3f4f6; }
+    html.dark .theme-toggle:hover { background: #374151; }
+    .theme-toggle:focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
   </style>
 </head>
 <body class="min-h-full bg-gray-50 text-gray-900" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
   <!-- Nav -->
-  <nav class="bg-white border-b border-gray-200">
-    <div class="max-w-screen-2xl mx-auto px-4">
-      <div class="flex items-center justify-between h-14">
-        <a href="{% url 'recipe-list' %}" class="font-semibold text-lg text-emerald-700">Recipe Book</a>
+  <nav class="site-nav border-b border-gray-200">
+    <div class="px-4 sm:px-6">
+      <div class="flex items-center justify-between h-14 gap-4">
+        <a href="{% url 'recipe-list' %}" class="inline-flex items-center gap-2 font-semibold text-lg tracking-tight">
+          <span class="brand-mark">🍳</span>
+          Recipe Book
+        </a>
 
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1">
           <!-- Desktop links -->
           {% if user.is_authenticated %}
-          <div class="hidden sm:flex gap-6 text-sm font-medium">
-            <a href="{% url 'recipe-selector' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-selector' %}text-emerald-700{% endif %}">Find Recipes</a>
-            <a href="{% url 'grocery-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'grocery-list' %}text-emerald-700{% endif %}">Grocery List</a>
-            <a href="{% url 'recipe-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'recipe-list' %}text-emerald-700{% endif %}">Recipes</a>
-            <a href="{% url 'ingredient-list' %}" class="hover:text-emerald-700 {% if 'ingredient' in request.resolver_match.url_name %}text-emerald-700{% endif %}">Ingredients</a>
-            <a href="{% url 'shop-list' %}" class="hover:text-emerald-700 {% if 'shop' in request.resolver_match.url_name %}text-emerald-700{% endif %}">Shops</a>
-            <a href="{% url 'tag-list' %}" class="hover:text-emerald-700 {% if request.resolver_match.url_name == 'tag-list' %}text-emerald-700{% endif %}">Tags</a>
+          <div class="hidden sm:flex items-center gap-1 text-sm font-medium">
+            <a href="{% url 'recipe-selector' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'recipe-selector' %}bg-emerald-50 text-emerald-700{% endif %}">Find Recipes</a>
+            <a href="{% url 'grocery-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'grocery-list' %}bg-emerald-50 text-emerald-700{% endif %}">Grocery List</a>
+            <a href="{% url 'recipe-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'recipe-list' %}bg-emerald-50 text-emerald-700{% endif %}">Recipes</a>
+            <a href="{% url 'ingredient-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if 'ingredient' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700{% endif %}">Ingredients</a>
+            <a href="{% url 'shop-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if 'shop' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700{% endif %}">Shops</a>
+            <a href="{% url 'tag-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'tag-list' %}bg-emerald-50 text-emerald-700{% endif %}">Tags</a>
           </div>
-          <div class="hidden sm:flex items-center gap-3 text-sm">
-            <span class="text-gray-500">{{ user.username }}</span>
+          <span class="nav-divider hidden sm:inline-block mx-1"></span>
+          <div class="hidden sm:flex items-center gap-2 text-sm">
+            <span class="user-chip">
+              <span class="user-chip-avatar">{{ user.username|slice:":1" }}</span>
+              {{ user.username }}
+            </span>
             <form method="post" action="{% url 'logout' %}">
               {% csrf_token %}
-              <button type="submit" class="text-gray-500 hover:text-emerald-700 transition-colors">Log out</button>
+              <button type="submit" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-500">Log out</button>
             </form>
           </div>
           {% else %}
-          <div class="hidden sm:flex gap-4 text-sm font-medium">
-            <a href="{% url 'login' %}" class="hover:text-emerald-700">Log in</a>
-            <a href="{% url 'register' %}" class="px-3 py-1 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Register</a>
+          <div class="hidden sm:flex items-center gap-1 text-sm font-medium">
+            <a href="{% url 'login' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors">Log in</a>
+            <a href="{% url 'register' %}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors">Register</a>
           </div>
           {% endif %}
 
-          <!-- Dark mode toggle switch -->
-          <button id="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"
-                  style="position:relative;width:2.5rem;height:1.25rem;border-radius:9999px;border:none;cursor:pointer;flex-shrink:0;transition:background 0.2s;background:#d1d5db;">
-            <span id="theme-dot"
-                  style="position:absolute;top:2px;left:2px;width:1rem;height:1rem;border-radius:50%;background:white;transition:transform 0.2s;display:block;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span>
-          </button>
+          <span class="nav-divider hidden sm:inline-block mx-1"></span>
+
+          <!-- Dark mode toggle -->
+          <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
 
           <!-- Mobile hamburger -->
-          <button id="nav-toggle" class="sm:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
+          <button id="nav-toggle" class="sm:hidden theme-toggle text-gray-600">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -251,18 +303,10 @@
 
     // Dark mode toggle
     const themeToggle = document.getElementById('theme-toggle');
-    const themeDot    = document.getElementById('theme-dot');
 
     function applyTheme(dark) {
-      if (dark) {
-        document.documentElement.classList.add('dark');
-        themeToggle.style.background = '#10b981';
-        themeDot.style.transform = 'translateX(1.25rem)';
-      } else {
-        document.documentElement.classList.remove('dark');
-        themeToggle.style.background = '#d1d5db';
-        themeDot.style.transform = 'translateX(0)';
-      }
+      document.documentElement.classList.toggle('dark', dark);
+      themeToggle.textContent = dark ? '🌙' : '☀️';
       localStorage.setItem('theme', dark ? 'dark' : 'light');
     }
 
