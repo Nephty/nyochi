@@ -13,6 +13,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@2.0.3"></script>
   <style>
+    /* Declared explicitly (not left as the ambiguous "light dark") so
+       native controls (checkboxes, date pickers, scrollbars) always
+       follow this site's own light/dark class rather than the OS
+       preference — otherwise a system set to dark can render them dark
+       even while html.dark is absent and every other color is light. */
+    :root { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+
     /* Confirm modal */
     dialog {
       padding: 0; border: none; border-radius: 0.75rem;
@@ -86,7 +94,6 @@
     html.dark .hover\:border-emerald-300:hover { border-color: #34d399; }
     html.dark .hover\:border-emerald-400:hover { border-color: #6ee7b7; }
     html.dark .tag-pill { background: #374151; color: #d1d5db; border-color: #4b5563; }
-    html.dark input[type=checkbox] { color-scheme: dark; }
     html.dark .bg-emerald-100 { background-color: #064e3b; }
     html.dark .hover\:bg-emerald-50:hover { background-color: #064e3b; }
     html.dark .bg-red-100 { background-color: #450a0a; }
