@@ -4,7 +4,10 @@ from django.forms import inlineformset_factory
 from .models import Ingredient, Recipe, RecipeIngredient, Unit
 from .utils import accessible_qs
 
-_INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
+_INPUT_CLASS = (
+    'w-full border border-gray-300 rounded px-2 py-1 text-sm '
+    'focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors'
+)
 
 
 class UnitForm(forms.ModelForm):

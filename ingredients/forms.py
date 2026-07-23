@@ -3,7 +3,10 @@ from django.forms import inlineformset_factory
 from recipes.models import Ingredient, SeasonalAvailability, Shop, ShopLink
 from recipes.utils import accessible_qs
 
-_INPUT_CLASS = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
+_INPUT_CLASS = (
+    'w-full border border-gray-300 rounded px-2 py-1 text-sm '
+    'focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors'
+)
 
 
 class IngredientForm(forms.ModelForm):
@@ -11,7 +14,7 @@ class IngredientForm(forms.ModelForm):
         model = Ingredient
         fields = ['name', 'category']
         widgets = {
-            'category': forms.Select(attrs={'class': 'w-full'}),
+            'category': forms.Select(attrs={'class': _INPUT_CLASS}),
         }
 
 
@@ -21,7 +24,7 @@ class SeasonalAvailabilityForm(forms.ModelForm):
         fields = ['month', 'status']
         widgets = {
             'month': forms.HiddenInput(),
-            'status': forms.Select(),
+            'status': forms.Select(attrs={'class': _INPUT_CLASS}),
         }
 
 

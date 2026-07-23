@@ -51,7 +51,7 @@
             </div>
             {{ sa_form.status.errors }}
             <select name="{{ sa_form.status.html_name }}"
-                    class="w-full border border-gray-200 rounded px-2 py-1 text-xs"
+                    class="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     onclick="event.stopPropagation()">
               {% for value, label in sa_form.fields.status.choices %}
                 <option value="{{ value }}" {% if sa_form.status.value == value %}selected{% endif %}>{{ label }}</option>
@@ -80,7 +80,7 @@
           <div class="col-span-3">
             {{ shop_form.shop.errors }}
             <select name="{{ shop_form.shop.html_name }}"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value=""></option>
               {% for pk, label in shop_form.fields.shop.choices %}
                 {% if pk %}
@@ -96,13 +96,13 @@
             {{ shop_form.name.errors }}
             <input type="text" name="{{ shop_form.name.html_name }}" value="{{ shop_form.name.value|default:'' }}"
                    placeholder="Label (optional)"
-                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
           <div class="col-span-4">
             {{ shop_form.url.errors }}
             <input type="url" name="{{ shop_form.url.html_name }}" value="{{ shop_form.url.value|default:'' }}"
                    placeholder="https://…"
-                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
           </div>
           {% if shop_form.DELETE %}
             <div class="col-span-2 flex items-center gap-1">
