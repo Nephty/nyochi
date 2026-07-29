@@ -144,13 +144,18 @@ class ShareView(LoginRequiredMixin, View):
         if 'add_username' in request.POST:
             username = request.POST.get('add_username', '').strip()
             try:
-                user = User.objects.get(username=username)
+                user = User.objects.using('hub').get(username=username)
                 if user == request.user:
                     error = "You can't share with yourself."
-                elif obj.shared_with.filter(pk=user.pk).exists():
-                    error = f'"{username}" already has access.'
                 else:
-                    obj.shared_with.add(user)
+                    # Check via through table (avoids cross-DB JOIN to hub auth_user)
+                    through = obj.shared_with.through
+                    src_col = obj._meta.model_name + '_id'
+                    already = through.objects.filter(**{src_col: obj.pk, 'user_id': user.pk}).exists()
+                    if already:
+                        error = f'"{username}" already has access.'
+                    else:
+                        obj.shared_with.add(user)
             except User.DoesNotExist:
                 error = f'User "{username}" not found.'
         elif 'remove_user_pk' in request.POST:

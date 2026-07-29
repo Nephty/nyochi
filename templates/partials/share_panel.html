@@ -1,5 +1,6 @@
 <div id="share-panel">
-  {% with shared_users=obj.shared_with.all %}
+  {% load share_tags %}
+  {% get_shared_users obj as shared_users %}
   {% if shared_users %}
     <div class="flex flex-wrap gap-2 mb-3">
       {% for u in shared_users %}
@@ -19,7 +20,6 @@
   {% else %}
     <p class="text-sm text-gray-400 mb-3">Not shared with anyone yet.</p>
   {% endif %}
-  {% endwith %}
 
   {% if error %}
     <p class="text-xs text-red-500 mb-2">{{ error }}</p>

@@ -25,9 +25,15 @@ INSTALLED_APPS = [
     'accounts',
 ]
 
-LOGIN_URL = 'login'
+SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN') or None
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = not DEBUG
+
+CSRF_TRUSTED_ORIGINS = ['https://*.nephty.top', 'https://nephty.top']
+
+LOGIN_URL = os.environ.get('LOGIN_URL', 'https://nephty.top/login')
 LOGIN_REDIRECT_URL = 'recipe-list'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'https://nephty.top/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -36,6 +42,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'config.middleware.AppAccessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -63,8 +70,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': Path(os.environ.get('RECIPE_BOOK_DB_PATH', str(BASE_DIR / 'db' / 'db.sqlite3'))),
-    }
+    },
+    'hub': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.environ.get('HUB_DB_PATH', str(BASE_DIR / 'db' / 'hub.sqlite3')),
+    },
 }
+
+DATABASE_ROUTERS = ['config.routers.HubRouter']
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
