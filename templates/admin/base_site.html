@@ -1,0 +1,109 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | Nephty Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}">
+    <span style="display:inline-flex;align-items:center;justify-content:center;width:1.45rem;height:1.45rem;border-radius:5px;background:rgba(255,255,255,0.18);margin-right:.4rem;vertical-align:middle;font-size:.9rem;line-height:1">🧪</span>{% trans 'Nephty Admin' %}
+  </a>
+</h1>
+{% endblock %}
+
+{% block extrahead %}{{ block.super }}
+<script>
+(function(){
+  function hexRgb(h){var r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[0,0,0];}
+  function rgbHex(r,g,b){return'#'+[r,g,b].map(function(v){return Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0');}).join('');}
+  function shade(h,d){var c=hexRgb(h);return rgbHex(c[0]+d,c[1]+d,c[2]+d);}
+  function mix(a,b,t){var p=hexRgb(a),q=hexRgb(b);return rgbHex(p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t);}
+  function ac(h){var c=hexRgb(h).map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return(.2126*c[0]+.7152*c[1]+.0722*c[2])>.179?'#1a1a1a':'#ffffff';}
+  function apply(lt,dk,a,dark){
+    var el=document.documentElement,da=shade(a,0x22),
+        bg=dark?dk:lt,panel=dark?shade(dk,10):shade(lt,11),
+        fg=dark?lt:dk,muted=dark?mix(lt,dk,.45):mix(dk,lt,.35),
+        border=dark?shade(dk,30):mix(lt,dk,.12),
+        accent=dark?da:a,afg=ac(accent),adark=shade(accent,-24);
+    var v={'--primary':accent,'--secondary':adark,'--primary-fg':afg,
+           '--body-bg':bg,'--body-fg':fg,'--body-quiet-color':muted,'--body-loud-color':dark?'#f5f0ea':'#0d0d0d',
+           '--header-bg':accent,'--header-color':afg,'--header-link-color':afg,'--header-branding-color':afg,
+           '--breadcrumbs-bg':adark,'--breadcrumbs-fg':mix(afg,accent,.3),'--breadcrumbs-link-fg':afg,
+           '--link-fg':accent,'--link-hover-color':adark,'--link-selected-fg':accent,
+           '--border-color':border,'--hairline-color':mix(border,bg,.5),
+           '--darkened-bg':panel,'--selected-bg':mix(accent,bg,.08),'--selected-row':mix(accent,bg,.04),
+           '--button-fg':afg,'--button-bg':accent,'--button-hover-bg':adark,
+           '--default-button-bg':adark,'--default-button-hover-bg':shade(adark,-16)};
+    for(var k in v)el.style.setProperty(k,v[k]);
+  }
+  window.__nap=apply;
+  try{
+    var m=document.cookie.match(/(?:^|;)\s*nephty-palette=([^;]+)/);
+    if(m){var p=JSON.parse(decodeURIComponent(m[1]));window.__np=p;
+      var t=localStorage.getItem('django-admin-theme');
+      var dark=t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+      apply(p.light,p.dark,p.accent,dark);
+    }
+  }catch(e){}
+})();
+</script>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+/* ── Light mode ─────────────────────────────────────────────────────── */
+:root, html[data-theme="light"] {
+  --primary: #b3541e; --secondary: #8a3a16; --primary-fg: #ffffff;
+  --body-bg: #f6f6f4; --body-fg: #1a1a1a; --body-quiet-color: #6b6b6b; --body-loud-color: #0d0d0d;
+  --header-bg: #b3541e; --header-color: #ffffff; --header-link-color: #ffffff; --header-branding-color: #ffffff;
+  --breadcrumbs-bg: #8a3a16; --breadcrumbs-fg: #f0d8c8; --breadcrumbs-link-fg: #ffffff;
+  --link-fg: #b3541e; --link-hover-color: #7a3010; --link-selected-fg: #b3541e;
+  --hairline-color: #e8e3db; --border-color: #ddd8d0;
+  --message-success-bg: #d4edda; --message-warning-bg: #fff3cd; --message-error-bg: #f8d7da;
+  --darkened-bg: #edeae5; --selected-bg: #fdf0e9; --selected-row: #fef9f5;
+  --button-fg: #ffffff; --button-bg: #b3541e; --button-hover-bg: #8a3a16;
+  --default-button-bg: #8a3a16; --default-button-hover-bg: #6a2e12;
+  --close-button-bg: #9a9388; --close-button-hover-bg: #7a7470;
+  --delete-button-bg: #a8362a; --delete-button-hover-bg: #842920;
+  --object-tools-fg: #ffffff; --object-tools-bg: #9a9388; --object-tools-hover-bg: #7a7470;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --primary: #d97b3f; --secondary: #b35e26; --primary-fg: #1c1b19;
+    --body-bg: #1c1b19; --body-fg: #ece7e0; --body-quiet-color: #9a9388; --body-loud-color: #f5f0ea;
+    --header-bg: #d97b3f; --header-color: #1c1b19; --header-link-color: #1c1b19; --header-branding-color: #1c1b19;
+    --breadcrumbs-bg: #b35e26; --breadcrumbs-fg: #2e2a24; --breadcrumbs-link-fg: #1c1b19;
+    --link-fg: #d97b3f; --link-hover-color: #f0a060; --link-selected-fg: #d97b3f;
+    --hairline-color: #302d28; --border-color: #3a3733;
+    --darkened-bg: #262421; --selected-bg: #2e2420; --selected-row: #241e1b;
+    --button-fg: #1c1b19; --button-bg: #d97b3f; --button-hover-bg: #b35e26;
+    --default-button-bg: #b35e26; --default-button-hover-bg: #9a4e1e;
+    --close-button-bg: #4a4845; --close-button-hover-bg: #6a6865;
+    --delete-button-bg: #a8362a; --delete-button-hover-bg: #c0453a;
+    --object-tools-fg: #ece7e0; --object-tools-bg: #4a4845; --object-tools-hover-bg: #6a6865;
+  }
+}
+html[data-theme="dark"] {
+  --primary: #d97b3f; --secondary: #b35e26; --primary-fg: #1c1b19;
+  --body-bg: #1c1b19; --body-fg: #ece7e0; --body-quiet-color: #9a9388; --body-loud-color: #f5f0ea;
+  --header-bg: #d97b3f; --header-color: #1c1b19; --header-link-color: #1c1b19; --header-branding-color: #1c1b19;
+  --breadcrumbs-bg: #b35e26; --breadcrumbs-fg: #2e2a24; --breadcrumbs-link-fg: #1c1b19;
+  --link-fg: #d97b3f; --link-hover-color: #f0a060; --link-selected-fg: #d97b3f;
+  --hairline-color: #302d28; --border-color: #3a3733;
+  --darkened-bg: #262421; --selected-bg: #2e2420; --selected-row: #241e1b;
+  --button-fg: #1c1b19; --button-bg: #d97b3f; --button-hover-bg: #b35e26;
+  --default-button-bg: #b35e26; --default-button-hover-bg: #9a4e1e;
+  --close-button-bg: #4a4845; --close-button-hover-bg: #6a6865;
+  --delete-button-bg: #a8362a; --delete-button-hover-bg: #c0453a;
+  --object-tools-fg: #ece7e0; --object-tools-bg: #4a4845; --object-tools-hover-bg: #6a6865;
+}
+
+/* ── Visual polish ──────────────────────────────────────────────────── */
+#header { border-bottom: none; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.module { border-radius: 8px; border: 1px solid var(--border-color); box-shadow: none; overflow: hidden; }
+.module h2, .module caption { border-radius: 0; }
+#nav-sidebar .module { border-radius: 0; border: none; }
+</style>
+{% endblock %}
