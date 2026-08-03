@@ -1,4 +1,4 @@
-HUB_LABELS = {"auth", "sessions", "contenttypes"}
+HUB_LABELS = {"auth", "sessions", "contenttypes", "admin"}
 
 
 class HubRouter:

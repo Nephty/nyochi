@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     Aisle, AisleOrder, CategoryAisleMapping,
     Ingredient, Recipe, RecipeIngredient,
+    SavedGroceryItem, SavedGroceryList,
     SeasonalAvailability, Shop, ShopLink, ShopLocation, Tag, Unit,
 )
 
@@ -92,3 +93,25 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
     list_display = ['name', 'abbreviation']
+
+
+@admin.register(RecipeIngredient)
+class RecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ['recipe', 'ingredient', 'quantity', 'unit', 'is_main']
+    list_filter = ['is_main']
+    search_fields = ['recipe__name', 'ingredient__name']
+    autocomplete_fields = ['recipe', 'ingredient']
+
+
+class SavedGroceryItemInline(admin.TabularInline):
+    model = SavedGroceryItem
+    extra = 0
+    autocomplete_fields = ['ingredient', 'unit']
+
+
+@admin.register(SavedGroceryList)
+class SavedGroceryListAdmin(admin.ModelAdmin):
+    list_display = ['name', 'created_at', 'archived']
+    list_filter = ['archived']
+    search_fields = ['name']
+    inlines = [SavedGroceryItemInline]
