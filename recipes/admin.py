@@ -93,6 +93,7 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
     list_display = ['name', 'abbreviation']
+    search_fields = ['name', 'abbreviation']
 
 
 @admin.register(RecipeIngredient)
