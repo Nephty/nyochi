@@ -248,7 +248,7 @@
           <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
 
           <!-- Mobile hamburger -->
-          <button id="nav-toggle" class="sm:hidden theme-toggle text-gray-600">
+          <button id="nav-toggle" class="sm:hidden theme-toggle text-gray-600" aria-expanded="false" aria-controls="nav-menu">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -283,7 +283,13 @@
   <main class="max-w-screen-2xl mx-auto px-4 py-6">
     {% if messages %}
       {% for msg in messages %}
-        <div class="mb-4 px-4 py-2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">{{ msg }}</div>
+        {% if msg.tags == 'error' or msg.level >= 40 %}
+          <div class="mb-4 px-4 py-2 rounded bg-red-50 text-red-800 border border-red-200">{{ msg }}</div>
+        {% elif msg.tags == 'warning' or msg.level >= 30 %}
+          <div class="mb-4 px-4 py-2 rounded bg-amber-50 text-amber-800 border border-amber-200">{{ msg }}</div>
+        {% else %}
+          <div class="mb-4 px-4 py-2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">{{ msg }}</div>
+        {% endif %}
       {% endfor %}
     {% endif %}
     {% block content %}{% endblock %}
@@ -308,7 +314,11 @@
 
   <script>
     document.getElementById('nav-toggle').addEventListener('click', () => {
-      document.getElementById('nav-menu').classList.toggle('hidden');
+      const menu = document.getElementById('nav-menu');
+      const toggle = document.getElementById('nav-toggle');
+      const expanded = !menu.classList.contains('hidden');
+      menu.classList.toggle('hidden');
+      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
     });
 
     // Dark mode toggle
