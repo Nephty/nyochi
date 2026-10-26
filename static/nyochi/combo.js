@@ -46,10 +46,11 @@ export function enhanceCombo(box, { allowCreate = true } = {}) {
     const q = input.value.trim().toLowerCase();
     shown = registry.filter((i) => !q || i.name.toLowerCase().includes(q)).slice(0, 40);
     const exact = registry.some((i) => i.name.toLowerCase() === q);
-    list.replaceChildren(
+    // Node.replaceChildren turns a null argument into the text "null": only pass real nodes.
+    list.replaceChildren(...[
       ...shown.map((item, idx) => h("div.combo-opt", { role: "option", class: idx === active ? "active" : "", onmousedown: (e) => { e.preventDefault(); pick(item); } }, item.name)),
       allowCreate && q && !exact ? h("div.combo-opt.create", { role: "option", onmousedown: (e) => { e.preventDefault(); create(input.value.trim()); } }, icon("add"), `Create “${input.value.trim()}”`) : null,
-    );
+    ].filter(Boolean));
     if (!shown.length && !(allowCreate && q)) list.replaceChildren(h("div.combo-opt", {}, "No ingredient yet. Type a name to create one."));
     list.classList.remove("hidden");
     input.setAttribute("aria-expanded", "true");
