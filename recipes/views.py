@@ -15,7 +15,7 @@ from .http import ApiError, api, body
 from .models import (
     Ingredient, Recipe, RecipeIngredient, SavedGroceryList, Shop, ShoppingLink, Tag, Unit,
 )
-from .seasons import current_month
+from .seasons import current_month, distribution
 
 
 def _recipes_with_everything(user):
@@ -39,6 +39,7 @@ class RecipeListView(LoginRequiredMixin, View):
             r.card = {
                 'seasons': seasons,
                 'in_season': bool(seasons) and all(s['status'] in ('in', 'early', 'late') for s in seasons),
+                'dist': distribution(ri.ingredient.season_map().get(month, 'unknown') for ri in ris),
                 'ingredient_count': len(ris),
                 'costing': costing,
                 'mine': is_owner(r, request.user),

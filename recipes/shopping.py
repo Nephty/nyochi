@@ -100,6 +100,29 @@ _PACK = re.compile(
 )
 
 
+BARE = 'bare'    # a pack size with no unit ("360"): Shopping's stores mostly give grams or millilitres that way
+_BARE = re.compile(r'^\s*(\d+(?:[.,]\d+)?)\s*$')
+
+
+def pack_from_product(package_size: str, name: str):
+    """(amount, dimension) of a Shopping product's pack. An explicit unit wins; a bare number ("360") takes its unit from
+    the product name when the name says the same amount ("... 360g"), otherwise it stays BARE and is read as grams or
+    millilitres depending on the recipe's own unit (a recipe in pieces never compares with it)."""
+    amount, dimension = parse_pack(package_size)
+    if amount:
+        return amount, dimension
+    bare = _BARE.match(package_size or '')
+    if bare:
+        value = Decimal(bare.group(1).replace(',', '.'))
+        if value <= 0:
+            return None, ''
+        named_amount, named_dimension = parse_pack(name)
+        if named_amount == value:
+            return named_amount, named_dimension
+        return value, BARE
+    return parse_pack(name)
+
+
 def parse_pack(text: str):
     """"6 x 33 cl" -> (Decimal(1980), "volume") in base units (g, ml, pieces); (None, "") if unreadable."""
     match = _PACK.search((text or '').lower())
@@ -150,7 +173,7 @@ def apply_snapshot(link: ShoppingLink, product: dict | None):
     link.name = (product.get('name') or '')[:300]
     link.brand = (product.get('brand') or '')[:120]
     link.package_size = (product.get('package_size') or '')[:80]
-    link.pack_amount, link.pack_dimension = parse_pack(link.package_size or link.name)
+    link.pack_amount, link.pack_dimension = pack_from_product(link.package_size, link.name)
     link.price = _money(product.get('price'))
     link.prev_price = _money(product.get('prev_price'))
     link.price_day = _day(product.get('price_day'))
@@ -242,7 +265,12 @@ def pick_link(links, store: str = ''):
 
 def need_in_pack_units(amount: Decimal, unit, link: ShoppingLink):
     """How much of the pack's dimension a recipe amount is, or None when units don't compare."""
-    if unit is None or not link.pack_amount or not unit.mergeable or unit.dimension != link.pack_dimension:
+    if unit is None or not link.pack_amount or not unit.mergeable:
+        return None
+    if link.pack_dimension == BARE:
+        if unit.dimension not in ('mass', 'volume'):
+            return None
+    elif unit.dimension != link.pack_dimension:
         return None
     return Decimal(amount) * unit.factor
 

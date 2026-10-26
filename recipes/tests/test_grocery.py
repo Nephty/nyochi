@@ -144,3 +144,32 @@ class PricingTests(HubTestCase):
         a = self._link(pasta)
         self._link(pasta, key='delhaize|9', store='delhaize', code='9', price=Decimal('1.50'))
         self.assertEqual(shopping.pick_link(list(pasta.shopping_links.all()), 'colruyt'), a)
+
+
+class PackSizeTests(HubTestCase):
+    def test_bare_pack_sizes_from_shopping(self):
+        # real examples: Shopping often gives "360" with the unit only in the name, or nowhere
+        self.assertEqual(shopping.pack_from_product('360', 'HAK haricots blancs 360g'), (Decimal(360), 'mass'))
+        self.assertEqual(shopping.pack_from_product('1000', 'BOGRAIN haricots blancs 1kg'), (Decimal(1000), 'mass'))
+        self.assertEqual(shopping.pack_from_product('200', 'Delhaize Houmous'), (Decimal(200), shopping.BARE))
+        self.assertEqual(shopping.pack_from_product('6x55g', 'ALMO 6x55g'), (Decimal(330), 'mass'))
+        self.assertEqual(shopping.pack_from_product('1 pc', 'Salade'), (Decimal(1), 'count'))
+        self.assertEqual(shopping.pack_from_product('', 'Laitue iceberg 1pc'), (Decimal(1), 'count'))
+        self.assertEqual(shopping.pack_from_product('', 'Pâtes'), (None, ''))
+
+    def test_a_bare_pack_is_grams_or_millilitres_never_pieces(self):
+        pasta = self.make_ingredient('Houmous')
+        link = ShoppingLink.objects.create(ingredient=pasta, key='delhaize|H', store='delhaize', code='H', price=Decimal('2.20'),
+                                           pack_amount=Decimal(200), pack_dimension=shopping.BARE)
+        self.assertEqual(shopping.cost_for_amount(Decimal(100), self.gram, link), Decimal('1.10'))   # half the pack
+        self.assertEqual(shopping.cost_for_amount(Decimal('0.1'), self.kilo, link), Decimal('1.10'))
+        self.assertIsNone(shopping.cost_for_amount(Decimal(2), self.piece, link))
+
+    def test_season_distribution_sums_to_100(self):
+        from recipes.seasons import distribution
+        d = distribution(['in', 'in', 'in', 'early', 'late', 'out', 'out'])
+        self.assertEqual(sum(x['pct'] for x in d), 100)
+        self.assertEqual([(x['status'], x['count']) for x in d], [('in', 3), ('early', 1), ('late', 1), ('out', 2)])
+        self.assertEqual(distribution([]), [])
+        self.assertEqual([x['pct'] for x in distribution(['in'] * 3)], [100])
+        self.assertEqual(sum(x['pct'] for x in distribution(['in', 'early', 'out'])), 100)

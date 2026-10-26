@@ -721,3 +721,16 @@ body.plan-page .main { min-height: 0; }
 .cat-del summary::-webkit-details-marker { display: none; }
 .cat-del-form { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(18rem, 80vw); display: grid; gap: .6rem; padding: .9rem; background: var(--paper); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow-lg); }
 .cat-row:not(:has(.cat-del)) .cat-order + .cat-name { margin-right: auto; }
+
+/* recipe card: how many of its ingredients are in season this month */
+.rcard .foot { align-items: flex-end; }
+.dist { flex: 1 1 100%; display: grid; gap: .35rem; }
+.dist-bar { display: flex; height: .55rem; border-radius: 999px; overflow: hidden; background: var(--paper-3); gap: 2px; }
+.dist-bar i { display: block; min-width: 4px; height: 100%; }
+.dist-legend { display: flex; flex-wrap: wrap; gap: .1rem .8rem; font-size: .76rem; font-weight: 650; color: var(--ink-2); }
+.dist-legend i { display: inline-block; width: .6rem; height: .6rem; border-radius: 3px; margin-right: .3rem; vertical-align: -.05rem; }
+.d-in { background: var(--save); }
+.d-early { background: var(--early); }
+.d-late { background: var(--late); }
+.d-out { background: var(--line-2); }
+.d-unknown { background: repeating-linear-gradient(45deg, var(--paper-2) 0 3px, var(--paper-3) 3px 5px); }

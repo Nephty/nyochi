@@ -61,7 +61,12 @@
         {% if r.tags.all %}<div class="tags-row">{% for t in r.tags.all %}<span class="tagpill">{{ t.name }}</span>{% endfor %}</div>{% endif %}
       </div>
       <div class="foot">
-        {% for s in r.card.seasons|slice:":3" %}<span class="chip season-{{ s.status }}" title="{{ s.status|season_label }} now">{{ s.ingredient.name|truncatechars:16 }}{% if s.status == "in" %} · in season{% elif s.status == "early" %} · early{% elif s.status == "late" %} · late{% elif s.status == "out" %} · out{% endif %}</span>{% endfor %}
+        {% if r.card.dist %}
+        <div class="dist" title="{% for d in r.card.dist %}{{ d.pct }} % {{ d.label|lower }}{% if not forloop.last %}, {% endif %}{% endfor %} (of {{ r.card.ingredient_count }} ingredient{{ r.card.ingredient_count|pluralize }}, this month)">
+          <span class="dist-bar">{% for d in r.card.dist %}<i class="d-{{ d.status }}" style="width: {{ d.pct }}%"></i>{% endfor %}</span>
+          <span class="dist-legend">{% for d in r.card.dist %}<span><i class="d-{{ d.status }}"></i>{{ d.pct }} % {{ d.short }}</span>{% endfor %}</span>
+        </div>
+        {% endif %}
         {% if r.card.costing.cost %}<span class="tag" title="Estimated from the linked Shopping products: {{ r.card.costing.priced }} of {{ r.card.costing.total }} ingredients priced">≈ {{ r.card.costing.cost|euro }}</span>{% endif %}
         {% if r.card.costing.promos %}<span class="chip good">{{ r.card.costing.promos }} on sale</span>{% endif %}
         {% if not r.card.mine %}<span class="chip mine-no">shared</span>{% endif %}
