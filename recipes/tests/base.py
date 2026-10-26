@@ -2,7 +2,6 @@ import json
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.test import TestCase
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, SeasonalAvailability, Unit
@@ -11,15 +10,12 @@ User = get_user_model()
 
 
 class HubTestCase(TestCase):
-    """Users live in the 'hub' database (auth_user, sessions, access_appaccess); everything else here."""
-    databases = {'default', 'hub'}
+    """Users and sessions live in the 'accounts' database shared with Shopping; everything else in 'default'."""
+    databases = {'default', 'accounts'}
 
     @classmethod
     def setUpTestData(cls):
-        with connections['hub'].cursor() as c:
-            c.execute('CREATE TABLE IF NOT EXISTS access_appaccess '
-                      '(id integer PRIMARY KEY AUTOINCREMENT, user_id integer, app varchar(50))')
-        # ids well above anything the app's own database ever had: a hub user need not exist locally
+        # ids well above anything the app's own database ever had: an account need not exist locally
         cls.alice = User.objects.create_user('alice', password='x', is_superuser=True, pk=41)
         cls.bob = User.objects.create_user('bob', password='x', is_superuser=True, pk=42)
         cls.carol = User.objects.create_user('carol', password='x', is_superuser=True, pk=43)

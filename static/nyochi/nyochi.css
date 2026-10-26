@@ -708,3 +708,4 @@ body.plan-page .main { min-height: 0; }
   .deals .shelf { display: flex; overflow-x: auto; gap: .7rem; margin: 0 -1rem; padding: 0 1rem .5rem; scroll-snap-type: x proximity; scrollbar-width: none; }
   .deals .shelf-item { flex: 0 0 14.5rem; scroll-snap-align: start; }
 }
+.alert { display: flex; gap: .5rem; align-items: center; padding: .7rem .85rem; border-radius: 10px; background: var(--loss-wash); color: var(--loss); font-size: .9rem; }

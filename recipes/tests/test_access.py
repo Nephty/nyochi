@@ -13,7 +13,7 @@ class AccessTests(HubTestCase):
         self.assertFalse(readable(Recipe, self.bob).filter(pk=self.recipe.pk).exists())
         self.assertFalse(readable(Ingredient, self.bob).filter(pk=self.tomato.pk).exists())
 
-    def test_hub_user_with_a_high_id_can_own_and_share(self):
+    def test_account_with_a_high_id_can_own_and_share(self):
         # regression: these used to be real foreign keys to a table that isn't in this database
         self.recipe.shared_with.add(self.carol)
         self.assertTrue(readable(Recipe, self.carol).filter(pk=self.recipe.pk).exists())

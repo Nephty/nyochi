@@ -1,10 +1,10 @@
-from django.conf import settings
 from django.contrib.auth.views import LogoutView
-from django.shortcuts import redirect
 from django.urls import path
 
+from . import views
+
 urlpatterns = [
-    path('accounts/logout/', LogoutView.as_view(), name='logout'),
-    # Accounts live in the hub: its login page is the only one.
-    path('accounts/login/', lambda request: redirect(settings.LOGIN_URL), name='login'),
+    path('login/', views.NyochiLoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('accounts/logout/', LogoutView.as_view()),
 ]

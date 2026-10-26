@@ -2,7 +2,7 @@
 
 A personal cookbook that builds the shopping list for you, in the order you walk the shop, and knows what things cost
 (through the **Shopping** app of the same suite). Django 6 (runs on 5.2 too), vanilla ES modules, plain CSS tokens.
-Accounts, sessions and per-user access live in the hub (see the repo's `CLAUDE.md`); this app only reads them.
+Accounts and sessions are **shared with Shopping** (one login for both apps, not the hub): see "Accounts" below.
 
 Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 under `dev.sh`).
 
@@ -19,7 +19,7 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
 - **Lists**: saved shopping lists with check-off, extra hand-typed items, archive / restore, a chosen location.
 - **Shops**: shops → locations (branches) → aisles. The **layout editor** sets each location's walking route (drag or ↑↓),
   which aisle each ingredient category is in, and exceptions for single ingredients; copy a layout between locations.
-- **Sharing** (recipes, ingredients, shops, lists): by hub username; shared people can read and edit, only the owner
+- **Sharing** (recipes, ingredients, shops, lists): by username (accounts shared with Shopping); shared people can read and edit, only the owner
   deletes or re-shares.
 
 ## The link to Shopping
@@ -44,19 +44,34 @@ API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/
   off and the UI says so. The token file is shared with Shopping's `apiTokenFile`; create it once on the VPS with
   `install -d -m 700 /etc/nephty && head -c 32 /dev/urandom | base64 | tr -d '\n' > /etc/nephty/shopping-api-token && chmod 600 /etc/nephty/shopping-api-token`.
 
+## Accounts (shared with Shopping)
+
+Nyochi and Shopping share **one login that is not the hub's**: the same accounts database (`ACCOUNTS_DB_PATH`, SQLite, alias
+`accounts`, routed by `config/routers.py`), the same `SECRET_KEY` (`/var/lib/lab-auth/secret-key` in production), and the
+same session cookie (`nyoshop_session`, domain `.nephty.top`), so signing in on either counts on both. Each app has its own
+`/login/` page (no redirect between hosts). There is no signup: accounts are created in the Django admin of either app.
+Any account may use Nyochi; Shopping adds per-account flags for its Fetch / Datasets pages (`Profile`).
+
+- **Shopping owns the schema**: its `shopping-accounts` systemd oneshot runs `migrate --database accounts`; Nyochi never
+  migrates the accounts DB (its own `migrate` only touches `default`, plus content types that land in `accounts`).
+- Ownership numbers in this app's rows are account ids. After moving from the hub accounts, run once:
+  `manage.py remap_owners --map OLD_ID=username ... [--dry-run]` (rewrites every `owner` / `shared_with` in one statement
+  per table, so id swaps cannot chain).
+- Hub: the hub card is only a link now (no AppAccess slug).
+
 ## Layout of the code
 
 | Path | What |
 |---|---|
 | `recipes/` | **All models** (`models.py`), `access.py` (who can read / write / delete what), `grocery.py` (merge, layout, receipt), `shopping.py` (API client, snapshots, pricing), `costing.py`, `seasons.py`, `templatetags/nyo.py` (icons, money, ribbon), the recipe views and sharing |
 | `ingredients/`, `shops/`, `tags/`, `grocery/` (saved lists), `find_recipes/` (the Plan page and its receipt API) | views, forms, urls |
-| `config/` | settings, `middleware.py` (hub access check; JSON 403 with a login link for `fetch`), `routers.py` (auth/sessions → hub DB), `storage.py` (hashed static files), `context.py` (messages → toasts) |
+| `config/` | settings, `middleware.py` (login required; JSON 403 with a login link for `fetch`), `routers.py` (auth/sessions/contenttypes/admin → the shared accounts DB), `storage.py` (hashed static files), `context.py` (messages → toasts) |
 | `static/nyochi/` | `nyochi.css` (tokens + components, the Shopping family), ES modules (`ui.js` helpers, `shell.js`, `plan.js`, `receipt.js`, `layout.js`, `ribbon.js`, `picker.js`, `combo.js`, `lists.js`, `filter.js`), self-hosted fonts |
 | `templates/` | server-rendered pages; interactive parts get their data as `json_script` |
 
 ### Data notes
 
-- `auth_user` is in the hub's database: every `owner` / `shared_with` is declared `db_constraint=False`, `shared_with` is
+- `auth_user` is in the shared accounts database: every `owner` / `shared_with` is declared `db_constraint=False`, `shared_with` is
   only ever read through its M2M table (two queries, never a join), and the admin hides it.
 - **Access**: top-level objects (Recipe, Ingredient, Shop, SavedGroceryList, Tag) have owner + shared_with; their children
   (recipe ingredients, locations, aisles, layout rows, list items, links) follow the parent. An ingredient / tag is also
@@ -71,16 +86,16 @@ API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/
 ## Running it
 
 ```bash
-# from the lab root: dev.sh starts hub (8000) and every app, Nyochi on 8002
+# from the lab root: dev.sh starts every app, Nyochi on 8002 (it migrates the shared accounts DB first)
 ./dev.sh
 
 # or alone, with a Python that has Django: tests (68), no server needed
 python manage.py test recipes
 ```
-Tests use two databases (this app's and a stand-in hub: `HubTestCase` in `recipes/tests/base.py`) and need no network
+Tests use two databases (this app's and the accounts DB: `HubTestCase` in `recipes/tests/base.py`) and need no network
 (Shopping is mocked). `nix run .#manage -- <cmd>` is the packaged `manage.py`.
 
-UI checks that need the browser: `?theme=dark|light` forces a theme. Without the hub, an auto-login middleware in a
+UI checks that need the browser: `?theme=dark|light` forces a theme. An auto-login middleware in a
 scratch settings module (not in the repo) is the easiest way to look at pages.
 
 ## Deployment

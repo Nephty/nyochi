@@ -25,6 +25,9 @@ INSTALLED_APPS = [
     'accounts',
 ]
 
+# One login for Nyochi and Shopping (not the hub): the same session cookie name, domain and SECRET_KEY, and the same
+# accounts database (users, sessions), so a sign-in on either app counts on both.
+SESSION_COOKIE_NAME = 'nyoshop_session'
 SESSION_COOKIE_DOMAIN = os.environ.get('SESSION_COOKIE_DOMAIN') or None
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = not DEBUG
@@ -32,9 +35,9 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 CSRF_TRUSTED_ORIGINS = ['https://*.nephty.top', 'https://nephty.top']
 
-LOGIN_URL = os.environ.get('LOGIN_URL', 'https://nephty.top/login')
+LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'recipe-list'
-LOGOUT_REDIRECT_URL = 'https://nephty.top/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -43,7 +46,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'config.middleware.AppAccessMiddleware',
+    'config.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -74,13 +77,15 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': Path(os.environ.get('RECIPE_BOOK_DB_PATH', str(BASE_DIR / 'db' / 'db.sqlite3'))),
     },
-    'hub': {
+    # Users and sessions, shared with Shopping (which owns the schema and runs its migrations).
+    'accounts': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('HUB_DB_PATH', str(BASE_DIR / 'db' / 'hub.sqlite3')),
+        'NAME': os.environ.get('ACCOUNTS_DB_PATH', str(BASE_DIR / 'db' / 'accounts.sqlite3')),
+        'OPTIONS': {'timeout': 20},
     },
 }
 
-DATABASE_ROUTERS = ['config.routers.HubRouter']
+DATABASE_ROUTERS = ['config.routers.AccountsRouter']
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

@@ -152,12 +152,12 @@ SHAREABLE = {'recipe': Recipe, 'ingredient': Ingredient, 'shop': Shop, 'groceryl
 
 
 def _shared_users(obj):
-    """Two queries instead of a join: the M2M table is in this database, auth_user is in the hub's."""
+    """Two queries instead of a join: the M2M table is in this database, auth_user is in the accounts database shared with Shopping."""
     through = obj.shared_with.through
     ids = list(through.objects.filter(**{f'{obj._meta.model_name}_id': obj.pk}).values_list('user_id', flat=True))
     if not ids:
         return []
-    users = get_user_model().objects.using('hub').filter(pk__in=ids).order_by('username')
+    users = get_user_model().objects.using('accounts').filter(pk__in=ids).order_by('username')
     return [{'id': u.pk, 'username': u.username} for u in users]
 
 
@@ -174,7 +174,7 @@ def share(request, model_type, pk):
         User = get_user_model()
         if data.get('add_username'):
             username = str(data['add_username']).strip()
-            user = User.objects.using('hub').filter(username__iexact=username).first()
+            user = User.objects.using('accounts').filter(username__iexact=username).first()
             if user is None:
                 raise ApiError(f'There is no user "{username}".', 404)
             if user.pk == request.user.pk:

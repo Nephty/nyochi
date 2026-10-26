@@ -7,7 +7,7 @@ from .models import (
 
 
 class HideShared:
-    """shared_with is a many-to-many to hub users: Django would join the two databases to show it. Sharing is done
+    """shared_with is a many-to-many to the shared accounts: Django would join the two databases to show it. Sharing is done
     from the app (Share buttons), not here."""
 
     def get_exclude(self, request, obj=None):

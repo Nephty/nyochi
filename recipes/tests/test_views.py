@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.urls import reverse
 
 from recipes.models import (
@@ -124,24 +123,42 @@ class ShareApiTests(HubTestCase):
         self.assertEqual(self.post_json(self.url, {'add_username': 'carol'}).status_code, 404)
 
 
-class MiddlewareTests(HubTestCase):
+class LoginTests(HubTestCase):
     def test_signed_out_json_gets_a_login_link(self):
         r = self.get_json(reverse('plan-receipt'))
         self.assertEqual(r.status_code, 403)
-        self.assertIn('login', r.json())
+        self.assertIn('/login/', r.json()['login'])
 
-    def test_signed_out_page_gets_the_403_page(self):
-        r = self.client.get('/')
-        self.assertEqual(r.status_code, 403)
-        self.assertContains(r, 'Sign in first', status_code=403)
+    def test_signed_out_page_redirects_to_the_login_with_next(self):
+        r = self.client.get('/plan/?recipe=1')
+        self.assertRedirects(r, '/login/?next=/plan/%3Frecipe%3D1', fetch_redirect_response=False)
 
-    def test_access_row_is_needed_for_normal_users(self):
-        user = User.objects.create_user('plain', password='x', pk=70)
-        self.login(user)
-        self.assertEqual(self.client.get('/').status_code, 403)
-        with connections['hub'].cursor() as c:
-            c.execute("INSERT INTO access_appaccess (user_id, app) VALUES (%s, 'recipe-book')", [user.pk])
+    def test_login_page_is_open_and_signs_in_then_out(self):
+        self.assertEqual(self.client.get('/login/').status_code, 200)
+        r = self.client.post('/login/', {'username': 'alice', 'password': 'x', 'next': '/plan/'})
+        self.assertRedirects(r, '/plan/', fetch_redirect_response=False)
         self.assertEqual(self.client.get('/').status_code, 200)
+        self.client.post('/logout/')
+        self.assertEqual(self.client.get('/').status_code, 302)
+
+    def test_wrong_password_and_throttle(self):
+        for _ in range(5):
+            r = self.client.post('/login/', {'username': 'alice', 'password': 'nope'})
+            self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Wrong username or password')
+        r = self.client.post('/login/', {'username': 'alice', 'password': 'x'})
+        self.assertEqual(r.status_code, 429)
+
+    def test_any_account_may_use_the_app(self):
+        user = User.objects.create_user('plain', password='x', pk=70)   # not staff, not superuser
+        self.login(user)
+        self.assertEqual(self.client.get('/').status_code, 200)
+
+    def test_session_cookie_is_the_shared_one(self):
+        from django.conf import settings
+        self.client.post('/login/', {'username': 'alice', 'password': 'x'})
+        self.assertIn(settings.SESSION_COOKIE_NAME, self.client.cookies)
+        self.assertEqual(settings.SESSION_COOKIE_NAME, 'nyoshop_session')
 
 
 class PlanAndListTests(HubTestCase):
@@ -330,7 +347,7 @@ class QuickCreateTests(HubTestCase):
 
 
 class AdminSmokeTests(HubTestCase):
-    """The admin must not join auth_user (hub database) with this database's tables."""
+    """The admin must not join auth_user (accounts database) with this database's tables."""
 
     def test_change_pages_open(self):
         from django.contrib import admin as dj_admin
@@ -351,3 +368,34 @@ class AdminSmokeTests(HubTestCase):
             if model._meta.app_label == 'recipes':
                 url = f'/admin/recipes/{model._meta.model_name}/'
                 self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+class RemapOwnersTests(HubTestCase):
+    def test_remaps_owners_and_shares_in_one_pass_even_when_ids_swap(self):
+        from io import StringIO
+        from django.core.management import call_command
+        from recipes.models import Ingredient
+        a = Ingredient.objects.create(name='A', owner_id=1)
+        b = Ingredient.objects.create(name='B', owner_id=2)
+        c = Ingredient.objects.create(name='C', owner_id=3)       # not in the map: untouched
+        a.shared_with.add(self.bob)
+        out = StringIO()
+        # old 1 -> alice (41), old 2 -> bob (42), old 41 is not mapped
+        call_command('remap_owners', '--map', '1=alice', '--map', '2=bob', stdout=out)
+        for ing, owner in ((a, self.alice.pk), (b, self.bob.pk), (c, 3)):
+            ing.refresh_from_db()
+            self.assertEqual(ing.owner_id, owner, ing.name)
+        self.assertIn('Not in the map', out.getvalue())
+        # bob (id 42) was a shared_with user id; it maps from old id 42, which is not in the map: left as it was
+        self.assertTrue(a.shared_with.through.objects.filter(user_id=self.bob.pk).exists())
+
+    def test_dry_run_changes_nothing_and_unknown_user_fails(self):
+        from django.core.management import CommandError, call_command
+        from io import StringIO
+        from recipes.models import Ingredient
+        a = Ingredient.objects.create(name='A', owner_id=1)
+        call_command('remap_owners', '--map', '1=alice', '--dry-run', stdout=StringIO())
+        a.refresh_from_db()
+        self.assertEqual(a.owner_id, 1)
+        with self.assertRaises(CommandError):
+            call_command('remap_owners', '--map', '1=ghost', stdout=StringIO())
