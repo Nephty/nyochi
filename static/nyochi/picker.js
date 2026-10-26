@@ -61,6 +61,14 @@ if (root && chosen && search && results) {
     }
   }
   search.addEventListener("input", debounce(run, 280));
+  // Nothing linked yet: search Shopping for the ingredient's own name straight away (also when the name is typed).
+  const nameInput = document.querySelector("[data-ingredient-form] [name=name]");
+  const suggest = () => {
+    const name = nameInput?.value.trim() || "";
+    if (items.size === 0 && !search.value.trim() && name.length >= 2) { search.value = name; run(); }
+  };
+  nameInput?.addEventListener("change", suggest);
   search.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
   draw();
+  suggest();
 }
