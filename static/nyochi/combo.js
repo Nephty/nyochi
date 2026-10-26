@@ -42,38 +42,49 @@ export function enhanceCombo(box, { allowCreate = true } = {}) {
       toast(made.existing ? `“${made.name}” already existed: using it.` : `Created the ingredient “${made.name}”. Add its seasons and products later.`);
     } catch (err) { toast(err.message, true); }
   }
-  function render() {
+  // The rows of the list: matching ingredients, then "Create" when what was typed isn't an exact match.
+  // The first row is highlighted as you type, so Enter takes the best match; Create must be chosen on purpose.
+  let options = [];
+  function build() {
     const q = input.value.trim().toLowerCase();
     shown = registry.filter((i) => !q || i.name.toLowerCase().includes(q)).slice(0, 40);
     const exact = registry.some((i) => i.name.toLowerCase() === q);
-    // Node.replaceChildren turns a null argument into the text "null": only pass real nodes.
-    list.replaceChildren(...[
-      ...shown.map((item, idx) => h("div.combo-opt", { role: "option", class: idx === active ? "active" : "", onmousedown: (e) => { e.preventDefault(); pick(item); } }, item.name)),
-      allowCreate && q && !exact ? h("div.combo-opt.create", { role: "option", onmousedown: (e) => { e.preventDefault(); create(input.value.trim()); } }, icon("add"), `Create “${input.value.trim()}”`) : null,
-    ].filter(Boolean));
-    if (!shown.length && !(allowCreate && q)) list.replaceChildren(h("div.combo-opt", {}, "No ingredient yet. Type a name to create one."));
+    options = shown.map((item) => ({ kind: "item", item }));
+    if (allowCreate && q && !exact) options.push({ kind: "create", name: input.value.trim() });
+  }
+  function draw() {
+    const rows = options.map((o, idx) => o.kind === "item"
+      ? h("div.combo-opt", { role: "option", class: idx === active ? "active" : "", onmousedown: (e) => { e.preventDefault(); pick(o.item); } }, o.item.name)
+      : h("div.combo-opt.create", { role: "option", class: idx === active ? "active" : "", onmousedown: (e) => { e.preventDefault(); create(o.name); } }, icon("add"), `Create “${o.name}”`));
+    list.replaceChildren(...(rows.length ? rows : [h("div.combo-opt", {}, "No ingredient yet. Type a name to create one.")]));
     list.classList.remove("hidden");
     input.setAttribute("aria-expanded", "true");
+    list.children[active]?.scrollIntoView({ block: "nearest" });
   }
-  input.addEventListener("focus", () => { input.select(); render(); });
-  input.addEventListener("input", () => { active = -1; render(); });
+  function render(highlightFirst) {
+    build();
+    active = highlightFirst && options.length ? 0 : Math.min(active, options.length - 1);
+    draw();
+  }
+  const choose = (o) => { if (o) (o.kind === "item" ? pick(o.item) : create(o.name)); };
+  input.addEventListener("focus", () => { input.select(); active = -1; render(false); });
+  // Clicking a field that still shows the chosen name selects it, so typing replaces it instead of appending to it;
+  // clicking an already-focused field (focus doesn't fire again) also reopens the list.
+  input.addEventListener("click", () => {
+    if (input.value && input.value === selectedName()) input.select();
+    if (list.classList.contains("hidden")) { active = -1; render(false); }
+  });
+  input.addEventListener("input", () => render(true));
   input.addEventListener("blur", () => setTimeout(() => { close(); input.value = selectedName(); }, 120));
   input.addEventListener("keydown", (e) => {
-    const opts = [...list.children];
+    const open = !list.classList.contains("hidden");
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      if (list.classList.contains("hidden")) render();
-      active = Math.max(0, Math.min(shown.length - 1, active + (e.key === "ArrowDown" ? 1 : -1)));
-      opts.forEach((o, i) => o.classList.toggle("active", i === active));
-      opts[active]?.scrollIntoView({ block: "nearest" });
+      if (!open) { render(false); return; }
+      active = Math.max(0, Math.min(options.length - 1, active + (e.key === "ArrowDown" ? 1 : -1)));
+      draw();
     } else if (e.key === "Enter") {
-      if (!list.classList.contains("hidden")) {
-        e.preventDefault();
-        if (active >= 0 && shown[active]) pick(shown[active]);
-        else if (shown.length === 1) pick(shown[0]);
-        else if (allowCreate && input.value.trim() && !registry.some((i) => i.name.toLowerCase() === input.value.trim().toLowerCase())) create(input.value.trim());
-        else { const exact = registry.find((i) => i.name.toLowerCase() === input.value.trim().toLowerCase()); if (exact) pick(exact); }
-      }
+      if (open) { e.preventDefault(); choose(options[active]); }
     } else if (e.key === "Escape") { close(); input.value = selectedName(); }
   });
   return input;
