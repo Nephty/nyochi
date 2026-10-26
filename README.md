@@ -10,7 +10,7 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
 
 - **Recipes**: index cards with prep/cook time, difficulty, meal type, tags, ingredients (quantity + unit, a star for
   the *main* ones). Client-side search and filters; an estimated cost and "N on sale" from Shopping.
-- **Ingredients**: a category and a **season ribbon** (12 months: out / early / in / late, painted with a brush),
+- **Ingredients**: a category (**Categories** page: each account edits its own list: add, rename, reorder, delete with a move target; the defaults are created on first use) and a **season ribbon** (12 months: out / early / in / late, painted with a brush),
   plus **products in Shopping** (see below).
 - **Plan**: tick recipes (filters: text, meal, tags, must-include / leave-out ingredients, max times, in-season first,
   all in the browser), scale portions (×0.25 – ×20), pick a shop location, and the receipt on the right builds itself:
@@ -76,6 +76,7 @@ Any account may use Nyochi; Shopping adds per-account flags for its Fetch / Data
 - **Access**: top-level objects (Recipe, Ingredient, Shop, SavedGroceryList, Tag) have owner + shared_with; their children
   (recipe ingredients, locations, aisles, layout rows, list items, links) follow the parent. An ingredient / tag is also
   *readable* when a recipe or list you can read uses it. Rows with no owner: everyone reads, superusers change.
+- **Categories** are a per-account list (`Category`: stable `key`, editable `name`, `position`). Ingredients and shop layouts store the *key*, so renaming never touches them; deleting moves the account's ingredients to a chosen category and drops that category's layout mappings. Lists, the ingredient page and the layout editor use the viewer's names and order (`recipes/categories.py`); a key the viewer doesn't have (a shared ingredient) shows prettified.
 - Names are unique **per owner**, ignoring case (a `Lower(name), owner` constraint, also checked in the forms).
 - `Unit.dimension` / `factor` (mass → g, volume → ml, count → piece) let amounts be added; other units (clove, bunch) are
   only added to themselves. Seeded by migration `0014`.

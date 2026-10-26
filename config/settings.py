@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'ingredients',
     'shops',
     'tags',
+    'categories',
     'grocery',
     'find_recipes',
     'accounts',

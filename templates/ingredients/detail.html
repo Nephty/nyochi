@@ -7,7 +7,7 @@
     <a class="back" href="{% url 'ingredient-list' %}">{% icon "chevron_left" %}Ingredients</a>
     <h1>{{ ingredient.name }}</h1>
     <div class="row" style="margin-top:.7rem">
-      <span class="chip">{{ ingredient.get_category_display }}</span>
+      <span class="chip">{{ category_label }}</span>
       {% with now=seasons|get_item:month %}<span class="chip season-{{ now|default:'unknown' }}">{% if now == "in" %}in season now{% elif now == "early" %}early season now{% elif now == "late" %}late season now{% elif now == "out" %}out of season now{% else %}season unknown{% endif %}</span>{% endwith %}
       {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
     </div>

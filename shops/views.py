@@ -7,8 +7,9 @@ from django.views import View
 
 from recipes.access import deletable, is_owner, readable, writable
 from recipes.http import ApiError, api, body, positive_int
+from recipes import categories
 from recipes.models import (
-    Aisle, AisleOrder, CategoryAisleMapping, Ingredient, IngredientAisle, IngredientCategory, Shop, ShopLocation,
+    Aisle, AisleOrder, CategoryAisleMapping, Ingredient, IngredientAisle, Shop, ShopLocation,
 )
 
 from .forms import ShopForm
@@ -75,7 +76,7 @@ class ShopDetailView(LoginRequiredMixin, View):
             'editor': {
                 'canEdit': can_edit,
                 'aisles': [{'id': a.pk, 'name': a.name} for a in aisles],
-                'categories': [{'value': v, 'label': l} for v, l in IngredientCategory.choices],
+                'categories': [{'value': k, 'label': n} for k, n in categories.labels_for(request.user, shop.owner_id).items()],
                 'locations': [{'id': l.pk, 'name': l.name} for l in locations],
                 'layouts': layout_data(shop, locations),
                 'ingredients': [
@@ -204,8 +205,9 @@ def save_layout(request, pk):
         if aid not in route:
             route.append(aid)
     mappings = {}
+    allowed_categories = categories.labels_for(request.user, location.shop.owner_id)
     for cat, raw in (data.get('mappings') or {}).items():
-        if cat not in IngredientCategory.values:
+        if cat not in allowed_categories:
             raise ApiError(f'Unknown category “{cat}”.')
         if raw in (None, ''):
             continue

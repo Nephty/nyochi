@@ -3,13 +3,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
-from . import shopping
-from .models import (
-    AisleOrder, CategoryAisleMapping, IngredientAisle, IngredientCategory, RecipeIngredient, ShoppingLink, Unit,
-)
+from . import categories, shopping
+from .models import AisleOrder, CategoryAisleMapping, IngredientAisle, RecipeIngredient, ShoppingLink, Unit
 from .seasons import current_month
 
-CATEGORY_LABEL = dict(IngredientCategory.choices)
 TWO = Decimal('0.01')
 
 
@@ -22,14 +19,11 @@ class Line:
     sources: list = field(default_factory=list)
     item_id: int | None = None
     checked: bool = False
+    category_label: str = ''             # set by group_lines from the viewer's categories
 
     @property
     def name(self):
         return self.ingredient.name if self.ingredient else self.custom_name
-
-    @property
-    def category_label(self):
-        return CATEGORY_LABEL.get(self.ingredient.category, 'Other') if self.ingredient else 'Extras'
 
 
 # ------------------------------------------------------------------ merging
@@ -132,9 +126,14 @@ class Layout:
         return (1, 0, self.names.get(aisle_id, '').lower())
 
 
-def group_lines(lines, layout: Layout | None):
+def group_lines(lines, layout: Layout | None, labels=None):
     """[{key, title, kind, stop, lines}]: by aisle in walking order when there's a layout, else by category.
-    Stops (1, 2, 3...) number the sections in the order you'll reach them."""
+    Stops (1, 2, 3...) number the sections in the order you'll reach them.
+    `labels` = the viewer's {category key: name}, in their order (default: the built-in categories)."""
+    labels = categories.DEFAULT_LABELS if labels is None else labels
+    position = {k: i for i, k in enumerate(labels)}
+    for line in lines:
+        line.category_label = categories.label_of(line.ingredient.category, labels) if line.ingredient else 'Extras'
     buckets = defaultdict(list)
     for line in lines:
         if not line.ingredient:
@@ -150,14 +149,14 @@ def group_lines(lines, layout: Layout | None):
         if kind == 'aisle':
             return (0, layout.sort_key(ref))
         if kind == 'category':
-            return (0, (0, 0, CATEGORY_LABEL.get(ref, ref)))
+            return (0, (0, position.get(ref, 999), categories.label_of(ref, labels)))
         return ({'elsewhere': 1, 'extras': 2}[kind], (0, 0, ''))
 
     sections = []
     for bucket_key in sorted(buckets, key=rank):
         kind, ref = bucket_key
         title = {
-            'aisle': lambda: layout.names[ref], 'category': lambda: CATEGORY_LABEL.get(ref, ref),
+            'aisle': lambda: layout.names[ref], 'category': lambda: categories.label_of(ref, labels),
             'elsewhere': lambda: 'Elsewhere', 'extras': lambda: 'Extras',
         }[kind]()
         sections.append({
@@ -184,7 +183,8 @@ def _amount(value: Decimal):
 def receipt(lines, location=None, user=None):
     """Everything the list/plan screens draw: sections, lines with the product to buy, totals."""
     layout = Layout(location) if location else None
-    sections = group_lines(lines, layout)
+    sections = group_lines(lines, layout, categories.labels_for(user, location.shop.owner_id) if user and location
+                           else categories.user_labels(user) if user else None)
     ingredient_ids = {l.ingredient.pk for l in lines if l.ingredient}
     links = defaultdict(list)
     all_links = list(ShoppingLink.objects.filter(ingredient_id__in=ingredient_ids))

@@ -37,6 +37,7 @@ class Tag(models.Model):
 
 
 class IngredientCategory(models.TextChoices):
+    """The categories every account starts with (see categories.py); each account can then add, rename, reorder, delete."""
     VEGETABLE = 'vegetable', 'Vegetable'
     FRUIT = 'fruit', 'Fruit'
     STARCH = 'starch', 'Starch'
@@ -47,6 +48,26 @@ class IngredientCategory(models.TextChoices):
     SPICE = 'spice', 'Spice & Herb'
     OIL = 'oil', 'Oil & Fat'
     OTHER = 'other', 'Other'
+
+
+class Category(models.Model):
+    """An ingredient category of one account. `key` is stable (ingredients and shop layouts store it) and `name` is
+    what is shown; renaming never touches ingredients. Accounts get the defaults on first use."""
+    owner = owner_field()
+    key = models.SlugField(max_length=40)
+    name = models.CharField(max_length=60)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position', 'id']
+        verbose_name_plural = 'categories'
+        constraints = [
+            models.UniqueConstraint('owner', 'key', name='category_key_per_owner'),
+            models.UniqueConstraint(Lower('name'), 'owner', name='category_name_per_owner'),
+        ]
+
+    def __str__(self):
+        return self.name
 
 
 class Unit(models.Model):
@@ -80,11 +101,7 @@ class Unit(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=100)
-    category = models.CharField(
-        max_length=20,
-        choices=IngredientCategory.choices,
-        default=IngredientCategory.OTHER,
-    )
+    category = models.CharField(max_length=40, default=IngredientCategory.OTHER)   # a Category.key
     owner = owner_field()
     shared_with = shared_field('shared_ingredients')
 
@@ -200,7 +217,7 @@ class AisleOrder(models.Model):
 
 class CategoryAisleMapping(models.Model):
     location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='category_mappings')
-    category = models.CharField(max_length=20, choices=IngredientCategory.choices)
+    category = models.CharField(max_length=40)   # a Category.key
     aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='category_mappings')
     owner = owner_field()
     shared_with = shared_field('shared_category_mappings')
@@ -214,7 +231,7 @@ class CategoryAisleMapping(models.Model):
                 raise ValidationError('Aisle must belong to the same shop as the location.')
 
     def __str__(self):
-        return f'{self.location} — {self.get_category_display()} → {self.aisle}'
+        return f'{self.location} — {self.category} → {self.aisle}'
 
 
 class IngredientAisle(models.Model):

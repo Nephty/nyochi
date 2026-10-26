@@ -56,7 +56,7 @@
           installPhase = ''
             runHook preInstall
             mkdir -p $out/share/recipe-book
-            cp -r accounts config find_recipes grocery ingredients \
+            cp -r accounts categories config find_recipes grocery ingredients \
                   recipes shops tags static templates manage.py staticfiles \
                   $out/share/recipe-book/
             runHook postInstall

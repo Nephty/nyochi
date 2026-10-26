@@ -8,6 +8,7 @@ urlpatterns = [
     path('', include('ingredients.urls')),
     path('', include('shops.urls')),
     path('', include('tags.urls')),
+    path('', include('categories.urls')),
     path('', include('grocery.urls')),
     path('', include('find_recipes.urls')),
 ]

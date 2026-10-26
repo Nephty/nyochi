@@ -708,3 +708,16 @@ body.plan-page .main { min-height: 0; }
   .deals .shelf-item { flex: 0 0 14.5rem; scroll-snap-align: start; }
 }
 .alert { display: flex; gap: .5rem; align-items: center; padding: .7rem .85rem; border-radius: 10px; background: var(--loss-wash); color: var(--loss); font-size: .9rem; }
+
+/* categories page */
+.cat-list { display: grid; }
+.cat-row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .6rem 0; border-top: 1px solid var(--line); }
+.cat-row:first-child { border-top: 0; }
+.cat-order { display: inline-flex; }
+.cat-name { min-width: 8rem; font-size: 1.02rem; }
+.cat-row .chip { text-decoration: none; }
+.cat-del { margin-left: auto; position: relative; }
+.cat-del summary { list-style: none; cursor: pointer; }
+.cat-del summary::-webkit-details-marker { display: none; }
+.cat-del-form { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(18rem, 80vw); display: grid; gap: .6rem; padding: .9rem; background: var(--paper); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow-lg); }
+.cat-row:not(:has(.cat-del)) .cat-order + .cat-name { margin-right: auto; }

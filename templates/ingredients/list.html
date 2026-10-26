@@ -27,7 +27,7 @@
   {% regroup ingredients by category as groups %}
   {% for group in groups %}
   <section data-group>
-    <div class="group-title"><h2>{{ group.list.0.get_category_display }}</h2><span class="n">{{ group.list|length }}</span></div>
+    <div class="group-title"><h2>{{ group.list.0.category_label }}</h2><span class="n">{{ group.list|length }}</span></div>
     <div class="ing-grid">
       {% for i in group.list %}
       <a class="ing" href="{% url 'ingredient-detail' i.pk %}" data-item data-text="{{ i.name|lower }}" data-cat="{{ i.category }}" data-season="{% if i.status_now == 'in' or i.status_now == 'early' or i.status_now == 'late' %}1{% else %}0{% endif %}">

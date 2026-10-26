@@ -39,6 +39,7 @@
       <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %} title="Lists">{% icon "receipt_long" %}<span>Lists</span></a>
       <div class="nav-sep"></div>
       <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
+      <a href="{% url 'category-list' %}" {% if page == "categories" %}aria-current="page"{% endif %} title="Categories">{% icon "category" %}<span>Categories</span></a>
       <a href="{% url 'tag-list' %}" {% if page == "tags" %}aria-current="page"{% endif %} title="Tags">{% icon "sell" %}<span>Tags</span></a>
     </nav>
     <div class="rail-foot">
@@ -55,12 +56,13 @@
     <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %}>{% icon "eco" %}Ingredients</a>
     <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %}>{% icon "checklist" %}Plan</a>
     <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %}>{% icon "receipt_long" %}Lists</a>
-    <button type="button" data-more {% if page == "shops" or page == "tags" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
+    <button type="button" data-more {% if page == "shops" or page == "tags" or page == "categories" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
   </nav>
 </div>
 <div class="sheet-back" data-sheet-back></div>
 <div class="more-sheet" data-more-sheet>
   <a href="{% url 'shop-list' %}">{% icon "storefront" %}Shops</a>
+  <a href="{% url 'category-list' %}">{% icon "category" %}Categories</a>
   <a href="{% url 'tag-list' %}">{% icon "sell" %}Tags</a>
   <a href="https://nephty.top/">{% icon "home" %}Nephty Lab</a>
   {% if user.is_staff %}<a href="/admin/">{% icon "admin_panel_settings" %}Django admin</a>{% endif %}

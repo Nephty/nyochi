@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Categories · Nyochi{% endblock %}
+{% block phone_title %}Categories{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">How ingredients are grouped</div>
+    <h1>Categories</h1>
+    <div class="sub">They sort your shopping list when a shop has no exact place for an ingredient, and decide where each ingredient goes in a shop’s layout.</div>
+  </div>
+</div>
+
+<div class="stack">
+  <section class="panel form-card"><div class="panel-body">
+    <form method="post" class="row" novalidate>
+      {% csrf_token %}
+      <div class="field" style="flex:1;min-width:14rem"><label class="label" for="new-category">New category</label>
+        <input class="input" id="new-category" name="name" maxlength="60" placeholder="e.g. Frozen, Bakery, Snacks" required></div>
+      <button class="btn btn-primary" type="submit" style="align-self:flex-end">{% icon "add" %}Add category</button>
+    </form>
+  </div></section>
+
+  <section class="panel form-card"><div class="panel-body">
+    <div class="section-h"><h2>Your categories</h2><span class="hint">in this order on lists and in the layout editor</span></div>
+    <div class="cat-list">
+      {% for c in categories %}
+      <div class="cat-row">
+        <span class="cat-order">
+          <form method="post" action="{% url 'category-move' c.pk 'up' %}" class="inline-form">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon" {% if forloop.first %}disabled{% endif %} aria-label="Move {{ c.name }} up">{% icon "arrow_upward" %}</button></form>
+          <form method="post" action="{% url 'category-move' c.pk 'down' %}" class="inline-form">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon" {% if forloop.last %}disabled{% endif %} aria-label="Move {{ c.name }} down">{% icon "arrow_downward" %}</button></form>
+        </span>
+        <b class="cat-name">{{ c.name }}</b>
+        <a class="chip" href="{% url 'ingredient-list' %}" title="Ingredients in this category">{{ c.uses }} ingredient{{ c.uses|pluralize }}</a>
+        <form method="post" action="{% url 'category-rename' c.pk %}" class="inline-form" data-rename="{{ c.name }}" data-rename-title="Rename category">{% csrf_token %}<input type="hidden" name="name" value="{{ c.name }}">
+          <button type="button" class="btn btn-ghost btn-sm" data-rename-btn>{% icon "edit" %}Rename</button></form>
+        {% if categories|length > 1 %}
+        <details class="cat-del">
+          <summary class="btn btn-ghost btn-sm btn-danger">{% icon "delete" %}Delete</summary>
+          <form method="post" action="{% url 'category-delete' c.pk %}" class="cat-del-form">{% csrf_token %}
+            {% if c.uses %}<label class="label" for="mv{{ c.pk }}">Move its {{ c.uses }} ingredient{{ c.uses|pluralize }} to</label>
+            <select class="select" id="mv{{ c.pk }}" name="move_to" required>
+              {% for o in categories %}{% if o.pk != c.pk %}<option value="{{ o.key }}"{% if o.key == "other" %} selected{% endif %}>{{ o.name }}</option>{% endif %}{% endfor %}
+            </select>{% else %}<span class="muted sm">No ingredient uses it.</span>{% endif %}
+            <button class="btn btn-danger solid btn-sm" type="submit">Delete “{{ c.name }}”</button>
+          </form>
+        </details>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% if orphans %}
+    <div class="notice" style="margin-top:1rem">{% icon "info" %}<span>Some of your ingredients use categories that aren’t in this list: {% for k, name, n in orphans %}{{ name }} ({{ n }}){% if not forloop.last %}, {% endif %}{% endfor %}. Add a category with the same name to bring them back, or edit those ingredients.</span></div>
+    {% endif %}
+  </div></section>
+</div>
+{% endblock %}

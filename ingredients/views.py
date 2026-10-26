@@ -8,7 +8,8 @@ from django.views import View
 from recipes import shopping
 from recipes.access import deletable, is_owner, readable, writable
 from recipes.http import ApiError, api, body
-from recipes.models import Ingredient, IngredientCategory, Recipe, ShoppingLink
+from recipes import categories
+from recipes.models import Ingredient, Recipe, ShoppingLink
 from recipes.seasons import current_month
 
 from .forms import IngredientForm
@@ -17,12 +18,14 @@ from .forms import IngredientForm
 class IngredientListView(LoginRequiredMixin, View):
     def get(self, request):
         month = current_month()
-        ingredients = list(
-            readable(Ingredient, request.user)
-            .prefetch_related('seasonal_availability', 'shopping_links')
-            .order_by('name')
+        labels = categories.user_labels(request.user)
+        position = {k: i for i, k in enumerate(labels)}
+        ingredients = sorted(
+            readable(Ingredient, request.user).prefetch_related('seasonal_availability', 'shopping_links'),
+            key=lambda i: (position.get(i.category, 999), categories.label_of(i.category, labels).lower(), i.name.lower()),
         )
         for ing in ingredients:
+            ing.category_label = categories.label_of(ing.category, labels)
             ing.seasons = ing.season_map()
             ing.status_now = ing.seasons.get(month, 'unknown')
             link = shopping.pick_link(list(ing.shopping_links.all()))
@@ -30,7 +33,7 @@ class IngredientListView(LoginRequiredMixin, View):
             ing.promo = bool(link and shopping.promo_active(link))
             ing.mine = is_owner(ing, request.user)
         return render(request, 'ingredients/list.html', {
-            'ingredients': ingredients, 'categories': IngredientCategory.choices, 'page': 'ingredients',
+            'ingredients': ingredients, 'categories': list(labels.items()), 'page': 'ingredients',
             'in_season_count': sum(1 for i in ingredients if i.status_now in ('in', 'early', 'late')),
         })
 
@@ -47,7 +50,8 @@ class IngredientDetailView(LoginRequiredMixin, View):
             .select_related().distinct()
         )
         return render(request, 'ingredients/detail.html', {
-            'ingredient': ingredient, 'seasons': ingredient.season_map(), 'month': month,
+            'ingredient': ingredient,
+            'category_label': categories.label_of(ingredient.category, categories.user_labels(request.user)), 'seasons': ingredient.season_map(), 'month': month,
             'links': [
                 {'link': l, 'promo': shopping.promo_active(l), 'verdict': shopping.verdict(l),
                  'deal': shopping.deal_text(l)} for l in links
@@ -150,8 +154,9 @@ def quick_create(request):
     name = ' '.join(str(data.get('name', '')).split())[:100]
     if not name:
         raise ApiError('Give the ingredient a name.')
-    category = data.get('category') or IngredientCategory.OTHER
-    if category not in IngredientCategory.values:
+    labels = categories.user_labels(request.user)
+    category = data.get('category') or categories.default_key(labels)
+    if category not in labels:
         raise ApiError('Unknown category.')
     existing = readable(Ingredient, request.user).filter(name__iexact=name).first()
     if existing:

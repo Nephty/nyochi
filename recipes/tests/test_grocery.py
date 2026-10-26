@@ -90,7 +90,7 @@ class LayoutTests(HubTestCase):
     def test_without_a_layout_it_groups_by_category(self):
         r = self.make_recipe('R', [(self.tomato, 2, self.piece), (self.milk, 200, self.gram)])
         sections = grocery.group_lines(grocery.merge_recipes([(r, 1)]), None)
-        self.assertEqual([s['title'] for s in sections], ['Dairy', 'Vegetable'])
+        self.assertEqual([s['title'] for s in sections], ['Vegetable', 'Dairy'])   # the account's category order
         self.assertTrue(all(s['stop'] is None for s in sections))
 
 
