@@ -1,38 +1,38 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
+from recipes.access import deletable, is_owner, readable
 from recipes.models import Tag
-from recipes.utils import is_htmx
+
 from .forms import TagForm
 
 
 class TagListView(LoginRequiredMixin, View):
-    template_name = 'tags/tags.html'
-
-    def get(self, request):
-        return render(request, self.template_name, {
-            'tags': Tag.objects.all(),
-            'form': TagForm(),
-        })
+    def get(self, request, form=None):
+        tags = readable(Tag, request.user).annotate(uses=Count('recipe')).order_by('name')
+        for t in tags:
+            t.mine = is_owner(t, request.user)
+        return render(request, 'tags/tags.html', {'tags': tags, 'form': form or TagForm(owner=request.user),
+                                                  'page': 'tags'})
 
     def post(self, request):
-        form = TagForm(request.POST)
+        form = TagForm(request.POST, owner=request.user)
         if form.is_valid():
-            tag = form.save()
-            if is_htmx(request):
-                return render(request, 'partials/tag_row.html', {'tag': tag})
+            tag = form.save(commit=False)
+            tag.owner = request.user
+            tag.save()
+            messages.success(request, f'Added the tag “{tag.name}”.')
             return redirect('tag-list')
-        return render(request, self.template_name, {
-            'tags': Tag.objects.all(),
-            'form': form,
-        })
+        return self.get(request, form)
 
 
 class TagDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        Tag.objects.filter(pk=pk).delete()
-        if is_htmx(request):
-            return HttpResponse('')
+        tag = get_object_or_404(deletable(Tag, request.user), pk=pk)
+        name = tag.name
+        tag.delete()
+        messages.success(request, f'Deleted the tag “{name}”.')
         return redirect('tag-list')

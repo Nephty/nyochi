@@ -1,35 +1,55 @@
 {% extends "base.html" %}
-{% load recipe_extras %}
-{% block title %}Ingredients{% endblock %}
+{% block title %}Ingredients · Nyochi{% endblock %}
+{% block phone_title %}Ingredients{% endblock %}
+{% block phone_actions %}<a class="btn btn-ghost btn-icon" href="{% url 'ingredient-create' %}" aria-label="New ingredient">{% icon "add" %}</a>{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">Ingredients</h1>
-  <a href="{% url 'ingredient-create' %}" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">+ New ingredient</a>
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Your pantry</div>
+    <h1>Ingredients</h1>
+    <div class="sub">{{ ingredients|length }} ingredient{{ ingredients|length|pluralize }} · {{ in_season_count }} in season right now</div>
+  </div>
+  <div class="actions"><a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a></div>
 </div>
 
 {% if ingredients %}
-  {% regroup ingredients by get_category_display as by_category %}
-  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 items-start">
-    {% for group in by_category %}
-      <div>
-        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{{ group.grouper }}</h2>
-        <div class="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          {% for ingredient in group.list %}
-            {% with status=ingredient.current_season_status %}
-            {% season_badge_class status as cls %}
-            {% season_label status as label %}
-            <a href="{% url 'ingredient-detail' ingredient.pk %}"
-               class="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
-              <span class="font-medium text-sm">{{ ingredient.name }}</span>
-              <span class="px-2 py-0.5 rounded-full text-xs {{ cls }}">{{ label }}</span>
-            </a>
-            {% endwith %}
-          {% endfor %}
-        </div>
-      </div>
-    {% endfor %}
+<div data-filter-list>
+  <div class="toolbar">
+    <div class="search">{% icon "search" %}<input class="input" type="search" placeholder="Search ingredients" data-filter-q aria-label="Search ingredients"></div>
+    <button type="button" class="pill" data-filter-season aria-pressed="false">{% icon "eco" %}In season now</button>
+    <div class="pills" role="group" aria-label="Category">
+      <button type="button" class="pill on" data-filter-cat="">All</button>
+      {% for value, label in categories %}<button type="button" class="pill" data-filter-cat="{{ value }}">{{ label }}</button>{% endfor %}
+    </div>
+    <span class="count-note" data-count></span>
   </div>
+
+  {% regroup ingredients by category as groups %}
+  {% for group in groups %}
+  <section data-group>
+    <div class="group-title"><h2>{{ group.list.0.get_category_display }}</h2><span class="n">{{ group.list|length }}</span></div>
+    <div class="ing-grid">
+      {% for i in group.list %}
+      <a class="ing" href="{% url 'ingredient-detail' i.pk %}" data-item data-text="{{ i.name|lower }}" data-cat="{{ i.category }}" data-season="{% if i.status_now == 'in' or i.status_now == 'early' or i.status_now == 'late' %}1{% else %}0{% endif %}">
+        <div class="top">
+          <span class="nm">{{ i.name }}</span>
+          {% if i.link and i.link.price %}<span class="tag{% if not i.promo %} soft{% endif %}" title="{{ i.link.name }}">{{ i.link.price|euro }}</span>{% endif %}
+        </div>
+        <div class="mini-ribbon">{% ribbon i.seasons %}</div>
+        <div class="row" style="gap:.35rem">
+          <span class="chip season-{{ i.status_now }}">{% if i.status_now == "in" %}in season{% elif i.status_now == "early" %}early season{% elif i.status_now == "late" %}late season{% elif i.status_now == "out" %}out of season{% else %}season unknown{% endif %}</span>
+          {% if i.promo %}<span class="chip good">on sale</span>{% endif %}
+          {% if not i.mine %}<span class="chip mine-no">shared</span>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  <div class="empty hidden" data-empty>{% icon "search" %}<b>No ingredient matches</b><span>Try fewer words, or clear the filters.</span></div>
+</div>
 {% else %}
-  <p class="text-gray-500">No ingredients yet. <a href="{% url 'ingredient-create' %}" class="text-emerald-600 underline">Create one.</a></p>
+<div class="panel"><div class="empty">{% icon "eco" %}<b>No ingredients yet</b><span>They are created as you write recipes, or here.</span><a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a></div></div>
 {% endif %}
 {% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/filter.js' %}"></script>{% endblock %}

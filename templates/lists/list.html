@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Lists · Nyochi{% endblock %}
+{% block phone_title %}Lists{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Shopping lists</div>
+    <h1>{% if archived %}Archived lists{% else %}Lists{% endif %}</h1>
+  </div>
+  <div class="actions">
+    <div class="seg" role="group" aria-label="Which lists">
+      <a href="{% url 'saved-grocery-list' %}" {% if not archived %}class="on"{% endif %}>Active</a>
+      <a href="{% url 'saved-grocery-list' %}?tab=archived" {% if archived %}class="on"{% endif %}>Archived{% if archived_count %} <span class="muted">{{ archived_count }}</span>{% endif %}</a>
+    </div>
+    {% if not archived %}<a class="btn btn-primary" href="{% url 'plan' %}">{% icon "add" %}New list</a>{% endif %}
+  </div>
+</div>
+
+{% if lists %}
+<div class="lists">
+  {% for l in lists %}
+  <a class="lcard{% if l.total and l.done == l.total %} done{% endif %}" href="{% url 'saved-grocery-detail' l.pk %}">
+    <h3>{{ l.name }}</h3>
+    <div class="meta"><span>{{ l.created_at|date:"j M Y" }}</span>{% if l.location %}<span>{% icon "location_on" %}{{ l.location }}</span>{% endif %}{% if not l.mine %}<span class="chip mine-no">shared</span>{% endif %}</div>
+    {% if l.recipes.all %}<div class="names">{% for r in l.recipes.all %}{{ r.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+    <div class="progress thin"><div style="width: {% if l.total %}{% widthratio l.done l.total 100 %}{% else %}0{% endif %}%"></div></div>
+    <div class="meta"><span>{{ l.done }} of {{ l.total }} in the cart</span></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel"><div class="empty">{% icon "receipt_long" %}<b>{% if archived %}Nothing archived{% else %}No list yet{% endif %}</b><span>{% if archived %}Finished lists you archive end up here.{% else %}Pick a few recipes in the planner and save the result as a list.{% endif %}</span>{% if not archived %}<a class="btn btn-primary" href="{% url 'plan' %}">{% icon "checklist" %}Plan a shop</a>{% endif %}</div></div>
+{% endif %}
+{% endblock %}

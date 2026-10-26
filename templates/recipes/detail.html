@@ -1,87 +1,86 @@
 {% extends "base.html" %}
-{% load recipe_extras %}
-{% block title %}{{ recipe.name }}{% endblock %}
+{% block title %}{{ recipe.name }} · Nyochi{% endblock %}
+{% block phone_title %}Recipe{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <a href="{% url 'recipe-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Recipes</a>
-</div>
-
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <div class="flex items-start justify-between gap-4 mb-4">
-    <h1 class="text-2xl font-bold">{{ recipe.name }}</h1>
-    <div class="flex gap-2 shrink-0">
-      <a href="{% url 'recipe-update' recipe.pk %}" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Edit</a>
-      <a href="{% url 'recipe-delete' recipe.pk %}" class="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50">Delete</a>
+<div class="page-head">
+  <div>
+    <a class="back" href="{% url 'recipe-list' %}">{% icon "chevron_left" %}Recipes</a>
+    <h1>{{ recipe.name }}</h1>
+    <div class="row" style="margin-top:.7rem">
+      <span class="chip">{% icon "schedule" %}{{ recipe.prep_time }} min prep · {{ recipe.cook_time }} min cook</span>
+      <span class="chip">{% flames recipe.difficulty %}{{ recipe.get_difficulty_display }}</span>
+      <span class="chip">{{ recipe.get_meal_type_display }}</span>
+      {% for t in recipe.tags.all %}<span class="tagpill">{{ t.name }}</span>{% endfor %}
+      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
     </div>
   </div>
-
-  <!-- Durations + difficulty + meal type -->
-  <div class="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-    <span>🔪 Prep: <strong>{{ recipe.prep_time }} min</strong></span>
-    <span>🍳 Cook: <strong>{{ recipe.cook_time }} min</strong></span>
-    <span>⏱ Total: <strong>{{ recipe.total_time }} min</strong></span>
-    <span class="flex items-center gap-1">{% difficulty_stars recipe.difficulty %} <strong>{{ recipe.get_difficulty_display }}</strong></span>
-    <span class="px-2 py-0.5 bg-sky-50 text-sky-700 rounded-full text-xs font-medium self-center">{{ recipe.get_meal_type_display }}</span>
+  <div class="actions">
+    <a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}Add to plan</a>
+    {% if can_edit %}<a class="btn" href="{% url 'recipe-update' recipe.pk %}">{% icon "edit" %}Edit</a>{% endif %}
+    {% if mine %}<button type="button" class="btn" data-share="recipe:{{ recipe.pk }}" data-name="{{ recipe.name }}">{% icon "share" %}Share</button>{% endif %}
+    {% if mine %}
+    <form method="post" action="{% url 'recipe-delete' recipe.pk %}" data-confirm="Delete “{{ recipe.name }}”? It also disappears from the lists you made with it." class="inline-form">{% csrf_token %}
+      <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete recipe">{% icon "delete" %}</button>
+    </form>
+    {% endif %}
   </div>
-
-  <!-- Tags -->
-  {% if recipe.tags.all %}
-    <div class="flex flex-wrap gap-1 mb-4">
-      {% for tag in recipe.tags.all %}
-        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-sm">{{ tag }}</span>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  <!-- Description -->
-  {% if recipe.description %}
-    <p class="text-gray-700 whitespace-pre-line">{{ recipe.description }}</p>
-  {% endif %}
 </div>
 
-{% if request.user == recipe.owner %}
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <h2 class="font-semibold mb-3">Sharing</h2>
-  {% include "partials/share_panel.html" with obj=recipe model_type="recipe" %}
-</div>
-{% endif %}
-
-<!-- Ingredients -->
-<div class="bg-white rounded-xl border border-gray-200 p-6">
-  <h2 class="font-semibold text-lg mb-4">Ingredients</h2>
-  {% if recipe_ingredients %}
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="text-left text-gray-500 border-b border-gray-100">
-          <th class="pb-2 font-medium">Ingredient</th>
-          <th class="pb-2 font-medium">Quantity</th>
-          <th class="pb-2 font-medium hidden sm:table-cell">Season</th>
-          <th class="pb-2 font-medium hidden sm:table-cell">Category</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ri in recipe_ingredients %}
-          {% with status=ri.ingredient.current_season_status %}
-          {% season_badge_class status as cls %}
-          {% season_label status as label %}
-          <tr class="border-b border-gray-50 hover:bg-gray-50 {% if ri.is_main %}font-medium{% endif %}">
-            <td class="py-2">
-              <a href="{% url 'ingredient-detail' ri.ingredient.pk %}" class="hover:text-emerald-700">
-                {{ ri.ingredient }}{% if ri.is_main %} ★{% endif %}
-              </a>
-            </td>
-            <td class="py-2 text-gray-600">{{ ri.quantity }} {{ ri.unit.abbreviation }}</td>
-            <td class="py-2 hidden sm:table-cell">
-              <span class="px-2 py-0.5 rounded-full text-xs {{ cls }}">{{ label }}</span>
-            </td>
-            <td class="py-2 text-gray-500 hidden sm:table-cell">{{ ri.ingredient.get_category_display }}</td>
-          </tr>
-          {% endwith %}
+<div class="detail">
+  <div>
+    <section class="panel">
+      <div class="panel-head"><h2>Ingredients</h2><span class="muted sm">{{ rows|length }}</span></div>
+      <div class="panel-body irows-d">
+        {% for row in rows %}
+        <div class="drow-i">
+          <div class="nm">
+            {% if row.ri.is_main %}<span class="star-main" title="Main ingredient">{% icon "star_fill" %}</span>{% endif %}
+            <a href="{% url 'ingredient-detail' row.ri.ingredient.pk %}">{{ row.ri.ingredient.name }}</a>
+            <span class="chip season-{{ row.status }}" title="{{ row.status|season_label }} this month">{% if row.status == "in" %}in season{% elif row.status == "early" %}early{% elif row.status == "late" %}late{% elif row.status == "out" %}out of season{% else %}?{% endif %}</span>
+          </div>
+          <div class="qty">{{ row.ri.quantity|amount }} {{ row.ri.unit.abbreviation }}</div>
+          <div class="buy">
+            {% if row.link %}
+              <span class="chip store-{{ row.link.store }}">{{ row.link.store_label|default:row.link.store }}</span>
+              {% if row.promo %}<span class="tag" title="{{ row.link.promo_titles }}">{{ row.link.promo_titles|default:"Promotion"|truncatechars:26 }}</span>{% if row.verdict == "real" %}<span class="real real">real deal</span>{% elif row.verdict == "usual" %}<span class="real usual">usual price</span>{% endif %}{% endif %}
+              <b>{{ row.link.price|euro }}</b>{% if row.link.package_size %}<span class="muted">/ {{ row.link.package_size }}</span>{% endif %}
+              {% if row.cost %}<span class="muted">≈ {{ row.cost|euro }} here</span>{% endif %}
+            {% else %}
+              <span class="none">no product linked</span>
+            {% endif %}
+          </div>
+        </div>
         {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p class="text-gray-500 text-sm">No ingredients yet. <a href="{% url 'recipe-update' recipe.pk %}" class="text-emerald-600 underline">Edit recipe to add some.</a></p>
-  {% endif %}
+      </div>
+    </section>
+
+    {% if recipe.description %}
+    <section class="panel">
+      <div class="panel-head"><h2>Method</h2></div>
+      <div class="panel-body desc">{{ recipe.description }}</div>
+    </section>
+    {% endif %}
+  </div>
+
+  <div>
+    <section class="receipt">
+      <div class="estimate">
+        <div class="rcpt-head"><span>Estimate</span><span>{{ costing.priced }}/{{ costing.total }} priced</span></div>
+        {% if costing.cost %}
+          <div class="big" style="margin-top:.7rem">≈ {{ costing.cost|euro }}</div>
+          <div class="cap">for what this recipe uses, from the linked Shopping products</div>
+          {% if costing.saving %}<div class="saving">{% icon "savings" %} up to {{ costing.saving|euro }} saved by current promotions</div>{% endif %}
+          {% if costing.promos %}<div class="sm muted" style="margin-top:.3rem">{{ costing.promos }} ingredient{{ costing.promos|pluralize }} on promotion right now</div>{% endif %}
+        {% else %}
+          <div class="cap" style="margin:.8rem 0 .4rem">Link ingredients to products in Shopping and this card will tell you what the recipe costs and which ingredients are on sale.</div>
+        {% endif %}
+        {% if shopping_on and not reachable %}<div class="notice bad" style="margin:.8rem 0">{% icon "cloud_off" %}<span>Shopping can’t be reached right now: these are the last prices we have.</span></div>{% endif %}
+        {% include "partials/barcode.html" %}
+      </div>
+    </section>
+    {% if not shopping_on %}
+    <div class="notice">{% icon "info" %}<span>The link to Shopping is not set up on this server yet, so prices are unavailable.</span></div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

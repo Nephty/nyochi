@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ saved.name }} · Nyochi{% endblock %}
+{% block phone_title %}List{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <a class="back" href="{% url 'saved-grocery-list' %}">{% icon "chevron_left" %}Lists</a>
+    <h1>{{ saved.name }}</h1>
+    <div class="row" style="margin-top:.7rem">
+      <span class="chip">{{ saved.created_at|date:"j M Y" }}</span>
+      {% if saved.archived %}<span class="chip">archived</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
+    </div>
+  </div>
+  <div class="actions no-print">
+    {% if can_edit %}
+    <form method="post" action="{% url 'list-action' saved.pk 'rename' %}" data-rename="{{ saved.name }}" data-rename-title="Rename list" class="inline-form">{% csrf_token %}<input type="hidden" name="name" value="{{ saved.name }}">
+      <button type="button" class="btn" data-rename-btn>{% icon "edit" %}Rename</button></form>
+    {% if saved.archived %}
+    <form method="post" action="{% url 'list-action' saved.pk 'unarchive' %}" class="inline-form">{% csrf_token %}<button class="btn">{% icon "unarchive" %}Restore</button></form>
+    {% else %}
+    <form method="post" action="{% url 'list-action' saved.pk 'archive' %}" class="inline-form">{% csrf_token %}<button class="btn">{% icon "archive" %}Archive</button></form>
+    {% endif %}
+    {% endif %}
+    {% if mine %}<button type="button" class="btn" data-share="grocerylist:{{ saved.pk }}" data-name="{{ saved.name }}">{% icon "share" %}Share</button>
+    <form method="post" action="{% url 'list-action' saved.pk 'delete' %}" class="inline-form" data-confirm="Delete “{{ saved.name }}”?">{% csrf_token %}
+      <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete list">{% icon "delete" %}</button></form>{% endif %}
+  </div>
+</div>
+
+<div class="list-screen">
+  <div>
+    <div data-receipt></div>
+    {% if can_edit %}
+    <form class="add-item no-print" data-add novalidate>
+      <input class="input" type="text" maxlength="120" placeholder="Add something else: bin bags, 2 baguettes…" aria-label="Add an item" required>
+      <button class="btn" type="submit">{% icon "add" %}Add</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="sticky-col no-print">
+    <section class="panel"><div class="panel-body stack">
+      <div class="field"><label class="label" for="loc">Walk the shop in the order of</label>
+        <select class="select" id="loc" data-location></select></div>
+      <div class="row">
+        {% if can_edit %}<button type="button" class="btn btn-sm" data-uncheck>{% icon "restart_alt" %}Uncheck all</button>{% endif %}
+        <button type="button" class="btn btn-sm" data-copy>{% icon "content_copy" %}Copy text</button>
+        <button type="button" class="btn btn-sm" data-print>{% icon "print" %}Print</button>
+      </div>
+    </div></section>
+    {% if recipes %}
+    <section class="panel"><div class="panel-head"><h2>From these recipes</h2></div><div class="panel-body">
+      {% for r in recipes %}<a class="rowcard" style="text-decoration:none;margin-bottom:.5rem" href="{% url 'recipe-detail' r.pk %}"><b>{{ r.name }}</b></a>{% endfor %}
+    </div></section>
+    {% endif %}
+  </div>
+</div>
+{{ data|json_script:"list-data" }}
+{% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/lists.js' %}"></script>{% endblock %}

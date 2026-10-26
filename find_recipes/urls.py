@@ -1,8 +1,11 @@
 from django.urls import path
+from django.views.generic import RedirectView
+
 from . import views
 
 urlpatterns = [
-    path('selector/', views.RecipeSelectorView.as_view(), name='recipe-selector'),
-    path('selector/search/<str:meal_type>/', views.SelectorSectionView.as_view(), name='selector-section'),
-    path('selector/grocery/', views.SelectorGroceryView.as_view(), name='selector-grocery'),
+    path('plan/', views.PlanView.as_view(), name='plan'),
+    path('plan/receipt/', views.receipt, name='plan-receipt'),
+    path('plan/save/', views.save, name='plan-save'),
+    path('selector/', RedirectView.as_view(pattern_name='plan', permanent=True), name='recipe-selector'),
 ]

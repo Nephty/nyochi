@@ -1,141 +1,134 @@
+"""Plan: choose recipes (filtering happens in the browser over the data below), see the shopping list build up."""
+from decimal import Decimal, InvalidOperation
+
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.db.models import Prefetch
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 
-from recipes.models import Recipe, ShopLocation
-from recipes.utils import accessible_qs, _compute_grocery_list, _location_qs
-from .forms import RecipeSelectorForm
+from recipes import grocery
+from recipes.access import readable, readable_locations
+from recipes.costing import recipe_costing
+from recipes.http import ApiError, api, body, positive_int
+from recipes.models import Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList, Tag
+from recipes.seasons import current_month
 
-def _has_filter(cd):
-    return bool(
-        cd.get('include_ingredients') or
-        cd.get('exclude_ingredients') or
-        cd.get('tags') or
-        cd.get('max_prep_time') is not None or
-        cd.get('max_cook_time') is not None
+MAX_RECIPES = 40
+MULT_MIN, MULT_MAX = Decimal('0.25'), Decimal('20')
+
+
+def _plan_recipes(user):
+    month = current_month()
+    qs = readable(Recipe, user).prefetch_related(
+        'tags',
+        Prefetch('recipeingredient_set', queryset=RecipeIngredient.objects.select_related('ingredient', 'unit')
+                 .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links')),
     )
+    out = []
+    for r in qs:
+        ris = list(r.recipeingredient_set.all())
+        mains = [{'id': ri.ingredient_id, 'name': ri.ingredient.name,
+                  'season': ri.ingredient.season_map().get(month, 'unknown')} for ri in ris if ri.is_main]
+        costing = recipe_costing(ris)
+        out.append({
+            'id': r.pk, 'name': r.name, 'meal': r.meal_type, 'prep': r.prep_time, 'cook': r.cook_time,
+            'difficulty': r.difficulty, 'tags': [t.pk for t in r.tags.all()],
+            'ing': [ri.ingredient_id for ri in ris], 'main': mains,
+            'inSeason': bool(mains) and all(m['season'] in ('in', 'early', 'late') for m in mains),
+            'cost': float(costing['cost']) if costing['cost'] is not None else None,
+            'priced': costing['priced'], 'count': costing['total'], 'promos': costing['promos'],
+        })
+    return out
 
 
-_MEAL_EMOJI = {
-    'breakfast': '🌅',
-    'full_meal': '🍽️',
-    'snack': '🍎',
-    'desert': '🍰',
-}
-
-
-class RecipeSelectorView(LoginRequiredMixin, View):
-    template_name = 'find_recipes/selector.html'
-
+class PlanView(LoginRequiredMixin, View):
     def get(self, request):
-        empty_cd = {'include_ingredients': None, 'exclude_ingredients': None,
-                    'tags': None, 'max_prep_time': None, 'max_cook_time': None}
-        sections = [
-            {'value': v, 'label': l, 'emoji': _MEAL_EMOJI[v],
-             'form': RecipeSelectorForm(prefix=v, user=request.user),
-             'results': self._filter(empty_cd, v, request.user),
-             'has_filter': False}
-            for v, l in Recipe.MealType.choices
-        ]
-        return render(request, self.template_name, {
-            'sections': sections,
-            'location_choices': _location_qs(request.user),
-            'shop_location_id': '',
-            'selected_pks': set(),
-        })
-
-    def post(self, request):
-        sections = []
-        for v, l in Recipe.MealType.choices:
-            form = RecipeSelectorForm(request.POST, prefix=v, user=request.user)
-            cd = form.cleaned_data if form.is_valid() else {}
-            results = self._filter(cd, v, request.user) if form.is_valid() else []
-            sections.append({'value': v, 'label': l, 'emoji': _MEAL_EMOJI[v],
-                             'form': form, 'results': results,
-                             'has_filter': _has_filter(cd)})
-
-        selected_pks = set(request.POST.getlist('selected_recipe_pks'))
-        shop_location_id = request.POST.get('shop_location', '')
-        location = (
-            accessible_qs(ShopLocation, request.user).filter(pk=shop_location_id).first()
-            if shop_location_id else None
-        )
-
-        grocery_grouped, aisle_label, selected_recipes = None, {}, []
-        if selected_pks:
-            selected_recipes = list(
-                accessible_qs(Recipe, request.user).filter(pk__in=selected_pks)
-            )
-            grocery_grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
-
-        return render(request, self.template_name, {
-            'sections': sections,
-            'location_choices': _location_qs(request.user),
-            'shop_location_id': shop_location_id,
-            'selected_pks': selected_pks,
-            'selected_recipes': selected_recipes,
-            'grocery_grouped': grocery_grouped,
-            'aisle_label': aisle_label,
-            'location': location,
-        })
-
-    def _filter(self, cd, meal_type, user=None):
-        base_qs = accessible_qs(Recipe, user) if user is not None else Recipe.objects
-        qs = base_qs.filter(meal_type=meal_type).prefetch_related('tags', 'ingredients')
-        if cd.get('exclude_ingredients'):
-            qs = qs.exclude(ingredients__in=cd['exclude_ingredients'])
-        if cd.get('max_prep_time') is not None:
-            qs = qs.filter(prep_time__lte=cd['max_prep_time'])
-        if cd.get('max_cook_time') is not None:
-            qs = qs.filter(cook_time__lte=cd['max_cook_time'])
-        scored = []
-        for recipe in qs:
-            score = 0
-            ri_ids = set(recipe.ingredients.values_list('pk', flat=True))
-            tag_ids = set(recipe.tags.values_list('pk', flat=True))
-            if cd.get('include_ingredients'):
-                score += len(set(cd['include_ingredients'].values_list('pk', flat=True)) & ri_ids)
-            if cd.get('tags'):
-                score += len(set(cd['tags'].values_list('pk', flat=True)) & tag_ids)
-            scored.append((score, recipe))
-        scored.sort(key=lambda x: (-x[0], x[1].name))
-        return [{'recipe': r, 'score': s} for s, r in scored]
-
-
-class SelectorSectionView(LoginRequiredMixin, View):
-    def post(self, request, meal_type):
-        form = RecipeSelectorForm(request.POST, prefix=meal_type, user=request.user)
-        cd = form.cleaned_data if form.is_valid() else {}
-        results = (
-            RecipeSelectorView()._filter(cd, meal_type, request.user)
-            if form.is_valid() else []
-        )
-        selected_pks = set(request.POST.getlist('selected_recipe_pks'))
-        return render(request, 'partials/selector_results.html', {
-            'results': results,
-            'selected_pks': selected_pks,
-            'has_filter': _has_filter(cd),
+        recipes = _plan_recipes(request.user)
+        used = {i for r in recipes for i in r['ing']}
+        ingredient_names = {}
+        for ri in RecipeIngredient.objects.filter(ingredient_id__in=used).select_related('ingredient').distinct():
+            ingredient_names[ri.ingredient_id] = ri.ingredient.name
+        locations = readable_locations(request.user).select_related('shop').order_by('shop__name', 'name')
+        preselect = []
+        for raw in request.GET.getlist('recipe'):
+            try:
+                preselect.append(int(raw))
+            except ValueError:
+                pass
+        return render(request, 'plan/plan.html', {
+            'page': 'plan',
+            'plan': {
+                'recipes': recipes,
+                'tags': [{'id': t.pk, 'name': t.name} for t in readable(Tag, request.user)],
+                'ingredients': sorted(({'id': k, 'name': v} for k, v in ingredient_names.items()),
+                                      key=lambda i: i['name'].lower()),
+                'locations': [{'id': l.pk, 'name': str(l), 'store': l.shop.shopping_store} for l in locations],
+                'meals': [{'value': v, 'label': l} for v, l in Recipe.MealType.choices],
+                'preselect': preselect,
+                'urls': {'receipt': reverse('plan-receipt'), 'save': reverse('plan-save')},
+            },
         })
 
 
-class SelectorGroceryView(LoginRequiredMixin, View):
-    def post(self, request):
-        selected_pks = request.POST.getlist('selected_recipe_pks')
-        shop_location_id = request.POST.get('shop_location', '')
-        location = (
-            accessible_qs(ShopLocation, request.user).filter(pk=shop_location_id).first()
-            if shop_location_id else None
-        )
-        grocery_grouped, aisle_label, selected_recipes = None, {}, []
-        if selected_pks:
-            selected_recipes = list(
-                accessible_qs(Recipe, request.user).filter(pk__in=selected_pks)
-            )
-            grocery_grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
-        return render(request, 'partials/selector_grocery.html', {
-            'grocery_grouped': grocery_grouped,
-            'aisle_label': aisle_label,
-            'location': location,
-            'selected_pks': set(selected_pks),
-            'selected_recipes': selected_recipes,
-        })
+def _selection(request):
+    data = body(request)
+    picks = data.get('recipes')
+    if not isinstance(picks, list) or not picks:
+        raise ApiError('Pick at least one recipe.')
+    if len(picks) > MAX_RECIPES:
+        raise ApiError(f'At most {MAX_RECIPES} recipes at once.')
+    mults = {}
+    for p in picks:
+        if not isinstance(p, dict):
+            raise ApiError('Invalid selection.')
+        rid = positive_int(p.get('id'), 'recipe')
+        try:
+            mult = Decimal(str(p.get('mult', 1)))
+        except InvalidOperation:
+            raise ApiError('Invalid portion multiplier.')
+        if not MULT_MIN <= mult <= MULT_MAX:
+            raise ApiError('Portions can be scaled from ×0.25 to ×20.')
+        mults[rid] = mult
+    recipes = list(readable(Recipe, request.user).filter(pk__in=mults))
+    if not recipes:
+        raise ApiError('None of these recipes exist (any more).', 404)
+    location = None
+    if data.get('location'):
+        location = readable_locations(request.user).select_related('shop').filter(
+            pk=positive_int(data['location'], 'location')).first()
+        if location is None:
+            raise ApiError('Unknown shop location.', 404)
+    return data, [(r, mults[r.pk]) for r in recipes], location
+
+
+@api
+def receipt(request):
+    if request.method != 'POST':
+        raise ApiError('POST only.', 405)
+    _, picks, location = _selection(request)
+    return JsonResponse(grocery.receipt(grocery.merge_recipes(picks), location, request.user))
+
+
+@api
+def save(request):
+    if request.method != 'POST':
+        raise ApiError('POST only.', 405)
+    data, picks, location = _selection(request)
+    lines = grocery.merge_recipes(picks)
+    if not lines:
+        raise ApiError('These recipes have no ingredients.')
+    name = ' '.join(str(data.get('name') or '').split())[:200] or \
+        f'Shopping list — {timezone.localdate().strftime("%B %-d")}'
+    with transaction.atomic():
+        saved = SavedGroceryList.objects.create(name=name, owner=request.user, location=location)
+        saved.recipes.set([r for r, _ in picks])
+        SavedGroceryItem.objects.bulk_create([
+            SavedGroceryItem(grocery_list=saved, ingredient=l.ingredient, quantity=max(l.amount, Decimal('0.01')),
+                             unit=l.unit, owner=request.user)
+            for l in lines
+        ])
+    return JsonResponse({'id': saved.pk, 'url': reverse('saved-grocery-detail', args=[saved.pk])}, status=201)

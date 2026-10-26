@@ -1,192 +1,69 @@
 {% extends "base.html" %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} · Nyochi{% endblock %}
+{% block phone_title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="mb-4">
-  {% if ingredient %}
-    <a href="{% url 'ingredient-detail' ingredient.pk %}" class="text-sm text-gray-500 hover:text-gray-700">← {{ ingredient.name }}</a>
-  {% else %}
-    <a href="{% url 'ingredient-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Ingredients</a>
-  {% endif %}
+<div class="page-head">
+  <div>
+    <a class="back" href="{% if ingredient %}{% url 'ingredient-detail' ingredient.pk %}{% else %}{% url 'ingredient-list' %}{% endif %}">{% icon "chevron_left" %}{% if ingredient %}{{ ingredient.name }}{% else %}Ingredients{% endif %}</a>
+    <h1>{{ title }}</h1>
+  </div>
 </div>
 
-<h1 class="text-2xl font-bold mb-6">{{ title }}</h1>
-
-<form method="post" class="space-y-6">
+<form method="post" novalidate class="stack" data-ingredient-form>
   {% csrf_token %}
+  {% if form.non_field_errors %}<div class="notice bad">{% icon "error" %}<div>{{ form.non_field_errors }}</div></div>{% endif %}
 
-  <!-- Basic info -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">Details</h2>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        {{ form.name.errors }}
-        <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"
-               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+  <section class="panel form-card"><div class="panel-body">
+    <div class="fgrid">
+      <div class="field">
+        <label class="label" for="{{ form.name.id_for_label }}">Name</label>
+        {{ form.name }}{{ form.name.errors }}
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-        {{ form.category.errors }}
-        <select name="{{ form.category.html_name }}"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          {% for value, label in form.fields.category.choices %}
-            <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
+      <div class="field">
+        <label class="label" for="{{ form.category.id_for_label }}">Category</label>
+        {{ form.category }}{{ form.category.errors }}
+        <span class="help">Used to sort the shopping list when a shop has no exact place for the ingredient.</span>
       </div>
     </div>
-  </div>
+  </div></section>
 
-  <!-- Seasonal availability -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">Seasonal availability</h2>
-    {{ season_formset.management_form }}
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      {% for sa_form in season_formset %}
-        {% for hidden in sa_form.hidden_fields %}{{ hidden }}{% endfor %}
-        {% with month_num=sa_form.month.value %}
-          <div class="month-card border border-gray-200 rounded-lg p-3 cursor-pointer select-none">
-            <div class="text-sm font-medium text-gray-700 mb-2">
-              {% for m, name in months %}{% if m == month_num %}{{ name }}{% endif %}{% endfor %}
-            </div>
-            {{ sa_form.status.errors }}
-            <select name="{{ sa_form.status.html_name }}"
-                    class="w-full border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    onclick="event.stopPropagation()">
-              {% for value, label in sa_form.fields.status.choices %}
-                <option value="{{ value }}" {% if sa_form.status.value == value %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        {% endwith %}
+  <section class="panel form-card"><div class="panel-body">
+    <div class="section-h"><h2>Season</h2><span class="hint">when is it at its best where you live?</span></div>
+    <div class="brush no-print" data-brushbar hidden>
+      <div class="seg" role="group" aria-label="Paint with">
+        <button type="button" data-brush="in" aria-pressed="true"><i class="m-in"></i>In season</button>
+        <button type="button" data-brush="early" aria-pressed="false"><i class="m-early"></i>Early</button>
+        <button type="button" data-brush="late" aria-pressed="false"><i class="m-late"></i>Late</button>
+        <button type="button" data-brush="out" aria-pressed="false"><i class="m-out"></i>Out</button>
+      </div>
+      <button type="button" class="btn btn-sm" data-fill="in">All year</button>
+      <button type="button" class="btn btn-sm" data-fill="out">Clear</button>
+      <span class="muted sm">Pick a colour, then click or drag over the months.</span>
+    </div>
+    <div class="ribbon big edit" data-ribbon>
+      {% for number, label, field in form.season_cells %}
+        <label class="m m-{{ field.value|default:'out' }}" data-month="{{ number }}" title="{{ label }}"><b>{{ label|slice:":1" }}</b>{{ field }}</label>
       {% endfor %}
     </div>
-  </div>
+    <div class="ribbon-months" aria-hidden="true">{% for number, label, field in form.season_cells %}<span>{{ label|slice:":3" }}</span>{% endfor %}</div>
+  </div></section>
 
-  <!-- Shop links -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">Shop links</h2>
-    {{ shop_formset.management_form }}
-    <div class="grid grid-cols-12 gap-2 text-xs text-gray-400 font-medium mb-1 px-0.5">
-      <div class="col-span-3">Shop</div>
-      <div class="col-span-3">Name</div>
-      <div class="col-span-4">URL</div>
-      <div class="col-span-2"></div>
-    </div>
-    <div id="shop-forms" class="space-y-2">
-      {% for shop_form in shop_formset %}
-        <div class="shop-row grid grid-cols-12 gap-2 items-center text-sm">
-          {% for hidden in shop_form.hidden_fields %}{{ hidden }}{% endfor %}
-          <div class="col-span-3">
-            {{ shop_form.shop.errors }}
-            <select name="{{ shop_form.shop.html_name }}"
-                    class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              <option value=""></option>
-              {% for pk, label in shop_form.fields.shop.choices %}
-                {% if pk %}
-                  <option value="{{ pk }}"
-                          {% if shop_form.shop.value|stringformat:"s" == pk|stringformat:"s" %}selected{% endif %}>
-                    {{ label }}
-                  </option>
-                {% endif %}
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-span-3">
-            {{ shop_form.name.errors }}
-            <input type="text" name="{{ shop_form.name.html_name }}" value="{{ shop_form.name.value|default:'' }}"
-                   placeholder="Label (optional)"
-                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          </div>
-          <div class="col-span-4">
-            {{ shop_form.url.errors }}
-            <input type="url" name="{{ shop_form.url.html_name }}" value="{{ shop_form.url.value|default:'' }}"
-                   placeholder="https://…"
-                   class="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-          </div>
-          {% if shop_form.DELETE %}
-            <div class="col-span-2 flex items-center gap-1">
-              {{ shop_form.DELETE }}
-              <label class="text-xs text-red-400">Delete</label>
-            </div>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-    <button type="button" id="add-shop" class="mt-3 text-sm text-emerald-600 hover:text-emerald-800">+ Add shop link</button>
-  </div>
-
-  <div class="flex gap-3">
-    <button type="submit" class="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Save</button>
-    {% if ingredient %}
-      <a href="{% url 'ingredient-detail' ingredient.pk %}" class="px-6 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+  <section class="panel form-card"><div class="panel-body picker" data-picker data-store-hint="">
+    <div class="section-h"><h2>Products in Shopping</h2><span class="hint">gives this ingredient a price, promotions and a link to the shop’s page</span></div>
+    {% if shopping_on %}
+      <div class="linkcards" data-chosen></div>
+      <div class="search" style="margin-top:.9rem">{% icon "search" %}<input class="input" type="search" placeholder="Search Shopping: “penne”, “tomates pelées”…" data-search autocomplete="off" aria-label="Search Shopping products"></div>
+      <div class="results" data-results aria-live="polite"></div>
     {% else %}
-      <a href="{% url 'ingredient-list' %}" class="px-6 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Cancel</a>
+      <div class="notice">{% icon "info" %}<span>The link to Shopping is not set up on this server yet, so products can’t be picked.</span></div>
     {% endif %}
+  </div></section>
+
+  <div class="form-actions" style="max-width:60rem">
+    <button class="btn btn-primary" type="submit">{% icon "check" %}Save ingredient</button>
+    <a class="btn btn-ghost" href="{% if ingredient %}{% url 'ingredient-detail' ingredient.pk %}{% else %}{% url 'ingredient-list' %}{% endif %}">Cancel</a>
   </div>
 </form>
-
-<script>
-  // Month card click-to-toggle in/out season
-  const SEASON_STYLE = {
-    light: {
-      in:    { background: '#ecfdf5', borderColor: '#6ee7b7' },
-      early: { background: '#fffbeb', borderColor: '#fcd34d' },
-      late:  { background: '#fff7ed', borderColor: '#fdba74' },
-      out:   { background: '#ffffff', borderColor: '#e5e7eb' },
-    },
-    dark: {
-      in:    { background: '#064e3b', borderColor: '#059669' },
-      early: { background: '#78350f', borderColor: '#d97706' },
-      late:  { background: '#7c2d12', borderColor: '#ea580c' },
-      out:   { background: '#1f2937', borderColor: '#374151' },
-    },
-  };
-
-  function applyMonthCardStyle(card) {
-    const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    const sel = card.querySelector('select');
-    const style = SEASON_STYLE[mode][sel?.value] ?? SEASON_STYLE[mode].out;
-    card.style.background  = style.background;
-    card.style.borderColor = style.borderColor;
-  }
-
-  // Re-apply all cards when theme switches
-  new MutationObserver(() =>
-    document.querySelectorAll('.month-card').forEach(applyMonthCardStyle)
-  ).observe(document.documentElement, { attributeFilter: ['class'] });
-
-  document.querySelectorAll('.month-card').forEach(card => {
-    applyMonthCardStyle(card);
-
-    card.addEventListener('click', e => {
-      if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
-      const sel = card.querySelector('select');
-      if (!sel) return;
-      sel.value = sel.value === 'in' ? 'out' : 'in';
-      applyMonthCardStyle(card);
-    });
-
-    card.querySelector('select')?.addEventListener('change', () => applyMonthCardStyle(card));
-  });
-
-  document.getElementById('add-shop').addEventListener('click', () => {
-    const container = document.getElementById('shop-forms');
-    const rows = container.querySelectorAll('.shop-row');
-    const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
-    if (!totalForms) return;
-    const idx = parseInt(totalForms.value);
-    const last = rows[rows.length - 1];
-    const clone = last.cloneNode(true);
-    clone.querySelectorAll('input, select').forEach(el => {
-      el.name = el.name.replace(/-\d+-/, `-${idx}-`);
-      if (el.id) el.id = el.id.replace(/-\d+-/, `-${idx}-`);
-      if (el.tagName === 'SELECT') el.selectedIndex = 0;
-      else if (el.type === 'checkbox') el.checked = false;
-      else el.value = '';
-    });
-    container.appendChild(clone);
-    totalForms.value = idx + 1;
-  });
-</script>
+{{ links_json|json_script:"links-data" }}
 {% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/ribbon.js' %}"></script><script type="module" src="{% static 'nyochi/picker.js' %}"></script>{% endblock %}

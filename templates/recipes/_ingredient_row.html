@@ -1,0 +1,10 @@
+<div class="irow{% if f.errors %} invalid{% endif %}" data-row>
+  {{ f.id }}
+  <span class="hidden">{{ f.DELETE }}</span>
+  <div class="combo" data-combo>{{ f.ingredient }}</div>
+  <div>{{ f.quantity }}</div>
+  <div>{{ f.unit }}</div>
+  <label class="main-toggle" title="Main ingredient">{{ f.is_main }}{% icon "star" %}main</label>
+  <button type="button" class="btn btn-ghost btn-icon" data-remove-row aria-label="Remove this ingredient" title="Remove">{% icon "close" %}</button>
+  {% if f.errors %}<div class="errorlist-wrap" style="grid-column:1/-1">{% for field in f %}{% for e in field.errors %}<div class="formerr">{% icon "error" %}{{ field.label }}: {{ e }}</div>{% endfor %}{% endfor %}{% for e in f.non_field_errors %}<div class="formerr">{% icon "error" %}{{ e }}</div>{% endfor %}</div>{% endif %}
+</div>

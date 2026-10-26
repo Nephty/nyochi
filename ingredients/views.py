@@ -1,159 +1,177 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import DeleteView, DetailView, ListView
 
-from recipes.models import Ingredient, IngredientCategory, SeasonalAvailability
-from recipes.utils import accessible_qs, MONTHS
-from .forms import IngredientForm, SeasonalAvailabilityCreateFormSet, SeasonalAvailabilityFormSet, ShopLinkFormSet
+from recipes import shopping
+from recipes.access import deletable, is_owner, readable, writable
+from recipes.http import ApiError, api, body
+from recipes.models import Ingredient, IngredientCategory, Recipe, ShoppingLink
+from recipes.seasons import current_month
 
-
-class IngredientListView(LoginRequiredMixin, ListView):
-    model = Ingredient
-    template_name = 'ingredients/list.html'
-    context_object_name = 'ingredients'
-
-    def get_queryset(self):
-        return accessible_qs(Ingredient, self.request.user).order_by('category', 'name')
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['categories'] = IngredientCategory.choices
-        return ctx
+from .forms import IngredientForm
 
 
-class IngredientDetailView(LoginRequiredMixin, DetailView):
-    model = Ingredient
-    template_name = 'ingredients/detail.html'
-
-    def get_queryset(self):
-        return accessible_qs(Ingredient, self.request.user)
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['seasons'] = {
-            sa.month: sa
-            for sa in self.object.seasonal_availability.all()
-        }
-        ctx['months'] = MONTHS
-        ctx['shop_links'] = self.object.shop_links.all()
-        return ctx
-
-
-class IngredientCreateView(LoginRequiredMixin, View):
-    template_name = 'ingredients/form.html'
-
-    def _make_season_initial(self):
-        return [{'month': m, 'status': 'out'} for m, _ in MONTHS]
-
+class IngredientListView(LoginRequiredMixin, View):
     def get(self, request):
-        ingredient = Ingredient()
-        return render(request, self.template_name, {
-            'form': IngredientForm(),
-            'season_formset': SeasonalAvailabilityCreateFormSet(
-                instance=ingredient,
-                initial=self._make_season_initial(),
-            ),
-            'shop_formset': ShopLinkFormSet(
-                instance=ingredient, form_kwargs={'user': request.user}
-            ),
-            'months': MONTHS,
-            'title': 'New ingredient',
-        })
-
-    def post(self, request):
-        form = IngredientForm(request.POST)
-        if form.is_valid():
-            ingredient = form.save(commit=False)
-            ingredient.owner = request.user
-            ingredient.save()
-            season_formset = SeasonalAvailabilityFormSet(request.POST, instance=ingredient)
-            shop_formset = ShopLinkFormSet(
-                request.POST, instance=ingredient, form_kwargs={'user': request.user}
-            )
-            if season_formset.is_valid() and shop_formset.is_valid():
-                season_formset.save()
-                shop_formset.save()
-                for obj in shop_formset.new_objects:
-                    obj.owner = request.user
-                    obj.save(update_fields=['owner'])
-                return redirect('ingredient-detail', pk=ingredient.pk)
-            ingredient.delete()
-        else:
-            season_formset = SeasonalAvailabilityFormSet(
-                request.POST,
-                initial=self._make_season_initial(),
-            )
-            shop_formset = ShopLinkFormSet(request.POST, form_kwargs={'user': request.user})
-        return render(request, self.template_name, {
-            'form': form,
-            'season_formset': season_formset,
-            'shop_formset': shop_formset,
-            'months': MONTHS,
-            'title': 'New ingredient',
+        month = current_month()
+        ingredients = list(
+            readable(Ingredient, request.user)
+            .prefetch_related('seasonal_availability', 'shopping_links')
+            .order_by('name')
+        )
+        for ing in ingredients:
+            ing.seasons = ing.season_map()
+            ing.status_now = ing.seasons.get(month, 'unknown')
+            link = shopping.pick_link(list(ing.shopping_links.all()))
+            ing.link = link
+            ing.promo = bool(link and shopping.promo_active(link))
+            ing.mine = is_owner(ing, request.user)
+        return render(request, 'ingredients/list.html', {
+            'ingredients': ingredients, 'categories': IngredientCategory.choices, 'page': 'ingredients',
+            'in_season_count': sum(1 for i in ingredients if i.status_now in ('in', 'early', 'late')),
         })
 
 
-class IngredientUpdateView(LoginRequiredMixin, View):
+class IngredientDetailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        ingredient = get_object_or_404(readable(Ingredient, request.user), pk=pk)
+        links = list(ingredient.shopping_links.all())
+        reachable = shopping.refresh(links) if links else True
+        month = current_month()
+        recipes = (
+            readable(Recipe, request.user)
+            .filter(recipeingredient__ingredient=ingredient)
+            .select_related().distinct()
+        )
+        return render(request, 'ingredients/detail.html', {
+            'ingredient': ingredient, 'seasons': ingredient.season_map(), 'month': month,
+            'links': [
+                {'link': l, 'promo': shopping.promo_active(l), 'verdict': shopping.verdict(l),
+                 'deal': shopping.deal_text(l)} for l in links
+            ],
+            'recipes': recipes, 'reachable': reachable, 'shopping_on': shopping.configured(),
+            'mine': is_owner(ingredient, request.user),
+            'can_edit': writable(Ingredient, request.user).filter(pk=ingredient.pk).exists(),
+            'page': 'ingredients',
+        })
+
+
+def _sync_links(ingredient, request):
+    """Make the ingredient's Shopping links match the form: the posted keys, one of them preferred."""
+    posted = []
+    for key in request.POST.getlist('link'):
+        key = key.strip()
+        if shopping.KEY_RE.match(key) and key not in posted:
+            posted.append(key)
+    preferred = request.POST.get('preferred', '')
+    existing = {l.key: l for l in ingredient.shopping_links.all()}
+    for key, link in existing.items():
+        if key not in posted:
+            link.delete()
+    created = []
+    for key in posted:
+        store, code = key.split('|', 1)
+        link = existing.get(key)
+        if link is None:
+            link = ShoppingLink.objects.create(ingredient=ingredient, key=key, store=store, code=code,
+                                               store_label=store.title())
+            created.append(link)
+            existing[key] = link
+        want = key == preferred
+        if link.is_preferred != want:
+            link.is_preferred = want
+            link.save(update_fields=['is_preferred'])
+    if created:
+        shopping.refresh(created, force=True)   # one batch call; offline, the next page view fills them in
+    return len(posted)
+
+
+class IngredientFormView(LoginRequiredMixin, View):
     template_name = 'ingredients/form.html'
 
-    def _get_ingredient(self, request, pk):
-        return get_object_or_404(accessible_qs(Ingredient, request.user), pk=pk)
+    def _ingredient(self, request, pk):
+        return get_object_or_404(writable(Ingredient, request.user), pk=pk) if pk else None
 
-    def _ensure_all_months(self, ingredient):
-        existing = set(ingredient.seasonal_availability.values_list('month', flat=True))
-        to_create = [
-            SeasonalAvailability(ingredient=ingredient, month=m, status='out')
-            for m, _ in MONTHS if m not in existing
-        ]
-        if to_create:
-            SeasonalAvailability.objects.bulk_create(to_create)
-
-    def get(self, request, pk):
-        ingredient = self._get_ingredient(request, pk)
-        self._ensure_all_months(ingredient)
+    def _render(self, request, ingredient, form):
+        links = list(ingredient.shopping_links.all()) if ingredient else []
+        if request.method == 'POST':   # keep what was picked when the form comes back with errors
+            keys = [k for k in request.POST.getlist('link') if shopping.KEY_RE.match(k)]
+            by_key = {l.key: l for l in links}
+            links = [by_key.get(k) or ShoppingLink(key=k, store=k.split('|')[0], code=k.split('|')[1],
+                                                   name=k) for k in dict.fromkeys(keys)]
+            for l in links:
+                l.is_preferred = l.key == request.POST.get('preferred')
         return render(request, self.template_name, {
-            'form': IngredientForm(instance=ingredient),
-            'season_formset': SeasonalAvailabilityFormSet(instance=ingredient),
-            'shop_formset': ShopLinkFormSet(
-                instance=ingredient, form_kwargs={'user': request.user}
-            ),
-            'months': MONTHS,
-            'title': f'Edit — {ingredient.name}',
-            'ingredient': ingredient,
+            'form': form, 'ingredient': ingredient, 'links': links, 'page': 'ingredients',
+            'title': f'Edit {ingredient.name}' if ingredient else 'New ingredient',
+            'shopping_on': shopping.configured(),
+            'links_json': [shopping.link_json(l) for l in links],
         })
 
+    def get(self, request, pk=None):
+        ingredient = self._ingredient(request, pk)
+        return self._render(request, ingredient, IngredientForm(instance=ingredient, owner=request.user))
+
+    def post(self, request, pk=None):
+        ingredient = self._ingredient(request, pk)
+        form = IngredientForm(request.POST, instance=ingredient, owner=request.user)
+        if form.is_valid():
+            with transaction.atomic():
+                saved = form.save(commit=False)
+                if ingredient is None:
+                    saved.owner = request.user
+                saved.save()
+                form.save_seasons(saved)
+                n = _sync_links(saved, request)
+            messages.success(request, f'Saved “{saved.name}”' + (f' with {n} linked product{"s" if n != 1 else ""}.' if n else '.'))
+            return redirect('ingredient-detail', pk=saved.pk)
+        messages.error(request, 'The ingredient was not saved: fix the highlighted fields.')
+        return self._render(request, ingredient, form)
+
+
+class IngredientDeleteView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        ingredient = self._get_ingredient(request, pk)
-        self._ensure_all_months(ingredient)
-        form = IngredientForm(request.POST, instance=ingredient)
-        season_formset = SeasonalAvailabilityFormSet(request.POST, instance=ingredient)
-        shop_formset = ShopLinkFormSet(
-            request.POST, instance=ingredient, form_kwargs={'user': request.user}
-        )
-        if form.is_valid() and season_formset.is_valid() and shop_formset.is_valid():
-            form.save()
-            season_formset.save()
-            shop_formset.save()
-            for obj in shop_formset.new_objects:
-                obj.owner = request.user
-                obj.save(update_fields=['owner'])
-            return redirect('ingredient-detail', pk=ingredient.pk)
-        return render(request, self.template_name, {
-            'form': form,
-            'season_formset': season_formset,
-            'shop_formset': shop_formset,
-            'months': MONTHS,
-            'title': f'Edit — {ingredient.name}',
-            'ingredient': ingredient,
-        })
+        ingredient = get_object_or_404(deletable(Ingredient, request.user), pk=pk)
+        name = ingredient.name
+        ingredient.delete()
+        messages.success(request, f'Deleted “{name}” (and its place in recipes and lists).')
+        return redirect('ingredient-list')
 
 
-class IngredientDeleteView(LoginRequiredMixin, DeleteView):
-    model = Ingredient
-    template_name = 'ingredients/confirm_delete.html'
-    success_url = reverse_lazy('ingredient-list')
+@api
+def quick_create(request):
+    """POST {name, category?} -> the user's ingredient of that name (created if needed)."""
+    if request.method != 'POST':
+        raise ApiError('POST only.', 405)
+    data = body(request)
+    name = ' '.join(str(data.get('name', '')).split())[:100]
+    if not name:
+        raise ApiError('Give the ingredient a name.')
+    category = data.get('category') or IngredientCategory.OTHER
+    if category not in IngredientCategory.values:
+        raise ApiError('Unknown category.')
+    existing = readable(Ingredient, request.user).filter(name__iexact=name).first()
+    if existing:
+        return JsonResponse({'id': existing.pk, 'name': existing.name, 'existing': True})
+    ingredient = Ingredient.objects.create(name=name, category=category, owner=request.user)
+    from recipes.models import SeasonalAvailability
+    SeasonalAvailability.objects.bulk_create(
+        [SeasonalAvailability(ingredient=ingredient, month=m, status='out') for m in range(1, 13)])
+    return JsonResponse({'id': ingredient.pk, 'name': ingredient.name, 'existing': False}, status=201)
 
-    def get_queryset(self):
-        return accessible_qs(Ingredient, self.request.user)
+
+@api
+def shopping_search(request):
+    """GET ?q=&store= -> Shopping products (proxied: the browser may not call Shopping itself)."""
+    if not shopping.configured():
+        raise ApiError('The Shopping link is not set up on this server.', 503)
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'rows': []})
+    rows = shopping.search(q, request.GET.get('store', ''))
+    if rows is None:
+        raise ApiError('Shopping is unreachable right now.', 503)
+    return JsonResponse({'rows': rows})

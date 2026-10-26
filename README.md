@@ -1,201 +1,90 @@
-# Nyochi — Recipe Book
+# Nyochi — recipes, seasons and shopping lists
 
-A personal recipe planner with grocery list generation, ingredient seasonality tracking, and multi-user sharing. Built with Django 6 and HTMX.
+A personal cookbook that builds the shopping list for you, in the order you walk the shop, and knows what things cost
+(through the **Shopping** app of the same suite). Django 6 (runs on 5.2 too), vanilla ES modules, plain CSS tokens.
+Accounts, sessions and per-user access live in the hub (see the repo's `CLAUDE.md`); this app only reads them.
 
----
+Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 under `dev.sh`).
 
-## Tech stack
+## What it does
 
-| Layer | Technology |
+- **Recipes**: index cards with prep/cook time, difficulty, meal type, tags, ingredients (quantity + unit, a star for
+  the *main* ones). Client-side search and filters; an estimated cost and "N on sale" from Shopping.
+- **Ingredients**: a category and a **season ribbon** (12 months: out / early / in / late, painted with a brush),
+  plus **products in Shopping** (see below).
+- **Plan**: tick recipes (filters: text, meal, tags, must-include / leave-out ingredients, max times, in-season first,
+  all in the browser), scale portions (×0.25 – ×20), pick a shop location, and the receipt on the right builds itself:
+  amounts merged across recipes (500 g + 1 kg = 1.5 kg), sections in the shop's walking order, what to buy and what it
+  costs. Save it as a list, copy it as text, print it.
+- **Lists**: saved shopping lists with check-off, extra hand-typed items, archive / restore, a chosen location.
+- **Shops**: shops → locations (branches) → aisles. The **layout editor** sets each location's walking route (drag or ↑↓),
+  which aisle each ingredient category is in, and exceptions for single ingredients; copy a layout between locations.
+- **Sharing** (recipes, ingredients, shops, lists): by hub username; shared people can read and edit, only the owner
+  deletes or re-shares.
+
+## The link to Shopping
+
+Shopping (`../shopping`) fetches the stores' products and promotions. Nyochi reads it through a small **read-only JSON
+API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/api/ext/products/`):
+
+- An ingredient has any number of `ShoppingLink`s (`store|code`, Shopping's product identity), one *preferred*. Each keeps
+  a **snapshot** (name, pack size, price, promotion, deal and real-deal figures, store page URL) refreshed in one batch
+  call when older than 6 h, on any page that shows it (`recipes/shopping.py`). Shopping down = the last snapshot is shown
+  and the pages say so. The old free-text web links (`ShopLink`) are kept in the database but no longer shown.
+- `recipes/pricing` logic: pack sizes ("500 g", "6 x 33 cl") are parsed to grams / millilitres / pieces. A recipe's cost is
+  proportional (a quarter of a 1 kg pack = a quarter of its price); a list line counts **whole packs**, minus the saving
+  of the current promotion on those packs. Amounts and packs that can't be compared (clove vs grams) count as one pack and
+  are shown with "≈".
+- Which product is bought: the shop's own store if it has one (`Shop.shopping_store`), else the preferred one, else the
+  cheapest. The receipt also shows what each store would cost for the lines it covers.
+- The browser never calls Shopping (CSP `connect-src 'self'`): search for the product picker goes through
+  `/shopping/search/`.
+- Config: `SHOPPING_API_URL` (default `https://shopping.nephty.top`) and `SHOPPING_API_TOKEN_FILE` (NixOS: the
+  `shoppingApiTokenFile` option, delivered as a systemd credential, so the file can be root-only). No token = the link is
+  off and the UI says so. The token file is shared with Shopping's `apiTokenFile`; create it once on the VPS with
+  `install -d -m 700 /etc/nephty && head -c 32 /dev/urandom | base64 | tr -d '\n' > /etc/nephty/shopping-api-token && chmod 600 /etc/nephty/shopping-api-token`.
+
+## Layout of the code
+
+| Path | What |
 |---|---|
-| Backend | Django 6 (Python 3.12) |
-| Database | SQLite (file at `db/db.sqlite3`) |
-| Frontend | Tailwind CSS (CDN), HTMX 2.0 |
-| Auth | Django built-in auth (`django.contrib.auth`) |
+| `recipes/` | **All models** (`models.py`), `access.py` (who can read / write / delete what), `grocery.py` (merge, layout, receipt), `shopping.py` (API client, snapshots, pricing), `costing.py`, `seasons.py`, `templatetags/nyo.py` (icons, money, ribbon), the recipe views and sharing |
+| `ingredients/`, `shops/`, `tags/`, `grocery/` (saved lists), `find_recipes/` (the Plan page and its receipt API) | views, forms, urls |
+| `config/` | settings, `middleware.py` (hub access check; JSON 403 with a login link for `fetch`), `routers.py` (auth/sessions → hub DB), `storage.py` (hashed static files), `context.py` (messages → toasts) |
+| `static/nyochi/` | `nyochi.css` (tokens + components, the Shopping family), ES modules (`ui.js` helpers, `shell.js`, `plan.js`, `receipt.js`, `layout.js`, `ribbon.js`, `picker.js`, `combo.js`, `lists.js`, `filter.js`), self-hosted fonts |
+| `templates/` | server-rendered pages; interactive parts get their data as `json_script` |
 
-No build step required — Tailwind and HTMX are loaded from CDN.
+### Data notes
 
----
+- `auth_user` is in the hub's database: every `owner` / `shared_with` is declared `db_constraint=False`, `shared_with` is
+  only ever read through its M2M table (two queries, never a join), and the admin hides it.
+- **Access**: top-level objects (Recipe, Ingredient, Shop, SavedGroceryList, Tag) have owner + shared_with; their children
+  (recipe ingredients, locations, aisles, layout rows, list items, links) follow the parent. An ingredient / tag is also
+  *readable* when a recipe or list you can read uses it. Rows with no owner: everyone reads, superusers change.
+- Names are unique **per owner**, ignoring case (a `Lower(name), owner` constraint, also checked in the forms).
+- `Unit.dimension` / `factor` (mass → g, volume → ml, count → piece) let amounts be added; other units (clove, bunch) are
+  only added to themselves. Seeded by migration `0014`.
+- Layout: `AisleOrder` (route per location), `CategoryAisleMapping` (category → aisle), `IngredientAisle` (exception).
+  Sorting: exception → category → "Elsewhere"; aisles without a position come after the ordered ones.
+- The current month (seasons) is taken in `Europe/Brussels`.
 
-## Features
-
-### Recipes
-- Create, edit, and delete recipes with name, description, prep/cook time, difficulty (Easy → Pro), and meal type (Breakfast, Full meal, Snack, Dessert)
-- Attach ingredients with quantity, unit, and an optional **main ingredient** flag
-- Tag recipes for filtering
-- View seasonal availability of each ingredient at a glance from the recipe detail page
-
-### Ingredients
-- Full ingredient catalogue with category (Vegetable, Fruit, Starch, Meat, Dairy, Legume, Fish & Seafood, Spice & Herb, Oil & Fat, Other)
-- Per-month seasonality status: Out of season / Early / In season / Late season, with colour-coded badges
-- Shop links per ingredient (URL + optional label per shop)
-- See which recipes use each ingredient from the ingredient detail page
-
-### Shops & aisles
-- Create shops with named aisles
-- Define multiple **locations** per shop (e.g. different branches)
-- Set aisle ordering per location
-- Map ingredient categories to aisles per location — used to sort grocery lists automatically
-- Copy category→aisle mappings from one location to another
-
-### Grocery list
-- Select any combination of recipes and generate a consolidated ingredient list (quantities summed across recipes)
-- Optionally sort by shop location: ingredients are grouped by aisle in the order you walk the shop
-- Save a list for later (stored as a `SavedGroceryList`)
-- Tick items off while shopping with a live progress bar
-- Recipe summary sidebar: see which recipes contributed to the list and their main ingredients
-- Per-ingredient recipe chips: see which recipe each item comes from, inline
-- Archive completed lists; delete lists you no longer need
-
-### Find Recipes
-- Four-column selector (one per meal type)
-- Per-section filters: must-include ingredients (boosts score), exclude ingredients (hides recipe), tags, max prep time, max cook time
-- Results ranked by score — recipes matching no filter are shown in grey
-- Select recipes across sections, choose a shop location, and generate a grocery list in-page
-- Save directly to saved lists without leaving the page
-
-### User accounts
-- Register with a username (lowercase a–z only) and password
-- Login / logout
-- Every view requires authentication — no endpoint is publicly accessible
-- Dark mode toggle (persisted in `localStorage`)
-
-### Ownership & sharing
-- Every recipe, ingredient, shop (and its aisles/locations), and grocery list is owned by the user who created it
-- Data is private by default — other users cannot see or access your objects
-- Share any recipe, ingredient, shop, or grocery list with specific users by username
-- Shared users get read + write access; only the owner can manage the shared-with list
-- Unowned objects (e.g. seeded base data) are visible to all users
-
----
-
-## Prerequisites
-
-- Python 3.12+
-- pip
-
----
-
-## Setup
+## Running it
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/Nephty/nyochi.git
-cd nyochi
+# from the lab root: dev.sh starts hub (8000) and every app, Nyochi on 8002
+./dev.sh
 
-# 2. Create and activate a virtual environment
-python -m venv .venv
-source .venv/bin/activate      # Linux / macOS
-# .venv\Scripts\activate       # Windows
-
-# 3. Install dependencies
-pip install django
-
-# 4. Create the database directory and apply migrations
-mkdir -p db
-python manage.py migrate
-
-# 5. Create your first user
-python manage.py createsuperuser
-# or register via the web UI after starting the server
+# or alone, with a Python that has Django: tests (68), no server needed
+python manage.py test recipes
 ```
+Tests use two databases (this app's and a stand-in hub: `HubTestCase` in `recipes/tests/base.py`) and need no network
+(Shopping is mocked). `nix run .#manage -- <cmd>` is the packaged `manage.py`.
 
----
+UI checks that need the browser: `?theme=dark|light` forces a theme. Without the hub, an auto-login middleware in a
+scratch settings module (not in the repo) is the easiest way to look at pages.
 
-## Running
+## Deployment
 
-```bash
-python manage.py runserver
-```
-
-Visit [http://127.0.0.1:8000](http://127.0.0.1:8000). You will be redirected to the login page if not authenticated.
-
----
-
-## Configuration
-
-Settings are in `config/settings.py` and can be overridden with environment variables:
-
-| Variable | Default | Description |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | insecure dev key | Set to a long random string in production |
-| `DJANGO_DEBUG` | `true` | Set to `false` in production |
-| `ALLOWED_HOSTS` | `*` (when DEBUG) | Comma-separated list of allowed hostnames |
-
-Example for production:
-
-```bash
-export DJANGO_SECRET_KEY="your-long-random-secret"
-export DJANGO_DEBUG="false"
-export ALLOWED_HOSTS="yourdomain.com"
-python manage.py runserver
-```
-
----
-
-## Project structure
-
-```
-nyochi/
-├── accounts/          # Auth app: register, login, logout
-├── config/            # Django project settings and root URL conf
-├── find_recipes/      # Recipe selector with scoring and grocery preview
-├── grocery/           # Grocery list generation and saved list management
-├── ingredients/       # Ingredient catalogue and seasonality
-├── recipes/           # Core models, recipe CRUD, shared utils
-│   ├── models.py      # All 14 models (Recipe, Ingredient, Shop, …)
-│   ├── utils.py       # accessible_qs(), _save_grocery_list(), …
-│   └── templatetags/  # recipe_extras: season badges, difficulty stars
-├── shops/             # Shop, aisle, and location management
-├── tags/              # Tag CRUD
-├── templates/         # All HTML templates (one directory, per-app subdirs)
-│   └── partials/      # HTMX partial templates
-└── db/                # SQLite database (git-ignored)
-```
-
----
-
-## Data model (summary)
-
-```
-User (Django built-in)
-├── Recipe              — owner FK, shared_with M2M
-│   └── RecipeIngredient — per-recipe ingredient with quantity, unit, is_main
-├── Ingredient          — owner FK, shared_with M2M, category, seasonality
-│   ├── SeasonalAvailability — status per month (12 rows per ingredient)
-│   └── ShopLink        — URL per shop for buying this ingredient
-├── Shop                — owner FK, shared_with M2M
-│   ├── Aisle           — named aisle within a shop
-│   ├── ShopLocation    — named branch of a shop
-│   ├── AisleOrder      — ordering of aisles within a location
-│   └── CategoryAisleMapping — maps ingredient category → aisle for a location
-├── SavedGroceryList    — owner FK, shared_with M2M, links to recipes
-│   └── SavedGroceryItem — ingredient + quantity + in_cart flag
-├── Tag                 — global, not owned
-└── Unit                — global, not owned
-```
-
-All owned models follow the same access pattern: objects are visible when `owner IS NULL OR owner = user OR user IN shared_with`.
-
----
-
-## Seeding sample data
-
-A management command is not included, but you can seed via the Django shell:
-
-```bash
-python manage.py shell
-```
-
-```python
-from django.contrib.auth import get_user_model
-from recipes.models import Ingredient, Recipe, Unit, RecipeIngredient, IngredientCategory
-
-User = get_user_model()
-user = User.objects.get(username='yourname')
-
-# Assign all unowned objects to yourself
-from recipes.models import Ingredient, Recipe, RecipeIngredient, SavedGroceryList, SavedGroceryItem
-for model in [Ingredient, Recipe, RecipeIngredient, SavedGroceryList, SavedGroceryItem]:
-    model.objects.filter(owner=None).update(owner=user)
-```
+Pushed to `Nephty/nyochi`, pinned as the `nyochi` input of `.nix`; deployed by rebuilding on the VPS (see `.nix/DEPLOY.md`).
+`flake.nix` builds `collectstatic` (hashed files, imports rewritten) and its `installPhase` lists the directories to ship:
+add a new top-level directory there.

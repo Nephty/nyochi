@@ -1,72 +1,40 @@
 from django import forms
-from django.forms import inlineformset_factory
-from recipes.models import Ingredient, SeasonalAvailability, Shop, ShopLink
-from recipes.utils import accessible_qs
 
-_INPUT_CLASS = (
-    'w-full border border-gray-300 rounded px-2 py-1 text-sm '
-    'focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors'
-)
+from recipes.forms import UniqueNameMixin
+from recipes.models import Ingredient, SeasonalAvailability
+from recipes.seasons import MONTHS, STATUS_LABELS, STATUSES
 
 
-class IngredientForm(forms.ModelForm):
+class IngredientForm(UniqueNameMixin, forms.ModelForm):
+    """Name, category and the twelve months of the season ribbon (season_1 .. season_12)."""
+    owner_label = 'an ingredient'
+
     class Meta:
         model = Ingredient
         fields = ['name', 'category']
-        widgets = {
-            'category': forms.Select(attrs={'class': _INPUT_CLASS}),
-        }
-
-
-class SeasonalAvailabilityForm(forms.ModelForm):
-    class Meta:
-        model = SeasonalAvailability
-        fields = ['month', 'status']
-        widgets = {
-            'month': forms.HiddenInput(),
-            'status': forms.Select(attrs={'class': _INPUT_CLASS}),
-        }
-
-
-SeasonalAvailabilityFormSet = inlineformset_factory(
-    Ingredient,
-    SeasonalAvailability,
-    form=SeasonalAvailabilityForm,
-    extra=0,
-    can_delete=False,
-)
-
-# extra=12 so all 12 month forms are rendered on create
-SeasonalAvailabilityCreateFormSet = inlineformset_factory(
-    Ingredient,
-    SeasonalAvailability,
-    form=SeasonalAvailabilityForm,
-    extra=12,
-    can_delete=False,
-)
-
-
-class ShopLinkForm(forms.ModelForm):
-    class Meta:
-        model = ShopLink
-        fields = ['shop', 'name', 'url']
-        widgets = {
-            'shop': forms.Select(attrs={'class': _INPUT_CLASS}),
-            'name': forms.TextInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'Label (optional)'}),
-            'url': forms.URLInput(attrs={'class': _INPUT_CLASS, 'placeholder': 'https://…'}),
-        }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        if user is not None:
-            self.fields['shop'].queryset = accessible_qs(Shop, user)
+        current = self.instance.season_map() if self.instance.pk else {}
+        for number, label in MONTHS:
+            self.fields[f'season_{number}'] = forms.ChoiceField(
+                choices=[(s, STATUS_LABELS[s]) for s in STATUSES], required=False, label=label,
+                initial=current.get(number, 'out'),
+            )
 
+    def season_values(self):
+        return {n: (self.cleaned_data.get(f'season_{n}') or 'out') for n, _ in MONTHS}
 
-ShopLinkFormSet = inlineformset_factory(
-    Ingredient,
-    ShopLink,
-    form=ShopLinkForm,
-    extra=1,
-    can_delete=True,
-)
+    def season_cells(self):
+        """[(month number, label, bound field)] for the ribbon editor."""
+        return [(n, label, self[f'season_{n}']) for n, label in MONTHS]
+
+    def save_seasons(self, ingredient):
+        existing = {sa.month: sa for sa in ingredient.seasonal_availability.all()}
+        for month, status in self.season_values().items():
+            row = existing.get(month)
+            if row is None:
+                SeasonalAvailability.objects.create(ingredient=ingredient, month=month, status=status)
+            elif row.status != status:
+                row.status = status
+                row.save(update_fields=['status'])

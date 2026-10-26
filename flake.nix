@@ -20,6 +20,7 @@
           ps.django
           ps.gunicorn
           ps.whitenoise
+          ps.tzdata   # settings.TIME_ZONE is Europe/Brussels (the current month for seasons)
         ]);
 
         # Source filtered to exclude dev/build cruft from the Nix store.
@@ -28,12 +29,12 @@
           filter = path: _type:
             let base = baseNameOf path; in
             !(lib.elem base [
-              ".venv" ".git" ".direnv" "staticfiles" "result"
-              "__pycache__" "db.sqlite3" "node_modules" ".idea"
+              ".venv" ".git" ".direnv" "staticfiles" "result" "db" ".claude"
+              "__pycache__" "db.sqlite3" "node_modules" ".idea" "example-flake.nix"
             ]);
         };
 
-        # Derivation that collects static files (Django admin CSS/JS) at build time.
+        # Derivation that collects static files (the Nyochi UI and Django admin) at build time.
         appSrc = pkgs.stdenv.mkDerivation {
           pname = "recipe-book-app";
           version = "0.1.0";
@@ -56,7 +57,7 @@
             runHook preInstall
             mkdir -p $out/share/recipe-book
             cp -r accounts config find_recipes grocery ingredients \
-                  recipes shops tags templates manage.py staticfiles \
+                  recipes shops tags static templates manage.py staticfiles \
                   $out/share/recipe-book/
             runHook postInstall
           '';
@@ -184,6 +185,20 @@
               default = null;
               description = "Path to a file containing the Django SECRET_KEY.";
             };
+            shoppingApiUrl = lib.mkOption {
+              type = lib.types.str;
+              default = "https://shopping.nephty.top";
+              description = "Where the Shopping app is (its read-only /api/ext/ is how prices and promotions are read).";
+            };
+            shoppingApiTokenFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = ''
+                File holding the bearer token of Shopping's /api/ext/ API. It can be root-only: systemd hands it to the
+                service as a credential. Null = no link to Shopping (prices are simply not shown). Give a string, not a
+                Nix path literal, so the secret doesn't get copied into the store.
+              '';
+            };
             urlPrefix = lib.mkOption {
               type = lib.types.str;
               default = "";
@@ -204,6 +219,7 @@
                 RECIPE_BOOK_STATE_DIR = "/var/lib/recipe-book";
                 RECIPE_BOOK_DB_PATH = "/var/lib/recipe-book/db.sqlite3";
                 DJANGO_FORCE_SCRIPT_NAME = cfg.urlPrefix;
+                SHOPPING_API_URL = cfg.shoppingApiUrl;
               };
               serviceConfig = {
                 ExecStart = pkgs.writeShellScript "recipe-book-start" ''
@@ -211,12 +227,18 @@
                     DJANGO_SECRET_KEY="$(cat ${cfg.secretKeyFile})"
                     export DJANGO_SECRET_KEY
                   ''}
+                  ${lib.optionalString (cfg.shoppingApiTokenFile != null) ''
+                    export SHOPPING_API_TOKEN_FILE="$CREDENTIALS_DIRECTORY/shopping-api-token"
+                  ''}
                   exec ${cfg.package}/bin/recipe-book-server
                 '';
                 DynamicUser = true;
                 StateDirectory = "recipe-book";
                 Restart = "on-failure";
                 RestartSec = 2;
+              } // lib.optionalAttrs (cfg.shoppingApiTokenFile != null) {
+                # Readable by the service even when the file is root-only.
+                LoadCredential = "shopping-api-token:${cfg.shoppingApiTokenFile}";
               };
             };
           };

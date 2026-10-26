@@ -1,40 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Tags{% endblock %}
+{% block title %}Tags · Nyochi{% endblock %}
+{% block phone_title %}Tags{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Tags</h1>
-
-<div class="grid sm:grid-cols-2 gap-6">
-  <!-- Existing tags -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">All tags</h2>
-    {% if tags %}
-      <ul class="space-y-2" id="tag-list">
-        {% for tag in tags %}
-          {% include "partials/tag_row.html" %}
-        {% endfor %}
-      </ul>
-    {% else %}
-      <ul class="space-y-2" id="tag-list"></ul>
-      <p class="text-sm text-gray-400">No tags yet.</p>
-    {% endif %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Labels for recipes</div>
+    <h1>Tags</h1>
   </div>
-
-  <!-- Create new tag -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="font-semibold mb-4">Add a tag</h2>
-    <form method="post"
-          hx-post="{% url 'tag-list' %}"
-          hx-target="#tag-list"
-          hx-swap="beforeend"
-          hx-on::after-request="this.reset()"
-          class="flex gap-2">
+</div>
+<div class="stack">
+  <section class="panel form-card"><div class="panel-body">
+    <form method="post" class="row" novalidate>
       {% csrf_token %}
-      {{ form.name.errors }}
-      <input type="text" name="{{ form.name.html_name }}" value="{{ form.name.value|default:'' }}"
-             placeholder="Tag name"
-             class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-      <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Add</button>
+      <div class="field" style="flex:1;min-width:14rem"><label class="label" for="{{ form.name.id_for_label }}">New tag</label>{{ form.name }}{{ form.name.errors }}</div>
+      <button class="btn btn-primary" type="submit" style="align-self:flex-end">{% icon "add" %}Add tag</button>
     </form>
-  </div>
+  </div></section>
+  <section class="panel form-card"><div class="panel-body">
+    <div class="taglist">
+      {% for t in tags %}
+      <span class="tagitem">{{ t.name }} <small>{{ t.uses }}</small>
+        {% if t.mine %}<form method="post" action="{% url 'tag-delete' t.pk %}" class="inline-form" data-confirm="Delete the tag “{{ t.name }}”? Recipes keep existing without it.">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon" title="Delete" aria-label="Delete {{ t.name }}">{% icon "close" %}</button></form>{% else %}<span class="chip mine-no">shared</span>{% endif %}
+      </span>
+      {% empty %}<span class="muted">No tags yet. Add one above, or while writing a recipe.</span>{% endfor %}
+    </div>
+  </div></section>
 </div>
 {% endblock %}

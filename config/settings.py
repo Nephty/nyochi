@@ -56,10 +56,12 @@ TEMPLATES = [
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
+            'builtins': ['recipes.templatetags.nyo'],
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context.flash',
             ],
         },
     },
@@ -88,7 +90,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Brussels'
 USE_I18N = True
 USE_TZ = True
 
@@ -99,4 +101,13 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 STATIC_URL = f"{os.environ.get('DJANGO_FORCE_SCRIPT_NAME', '')}/static/"
 STATIC_ROOT = Path(os.environ.get('RECIPE_BOOK_STATIC_ROOT', str(BASE_DIR / 'staticfiles')))
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG else 'config.storage.Storage'},
+}
+
+# The Shopping app (prices, promotions): a read-only JSON API with a bearer token. Only this server calls it.
+SHOPPING_API_URL = os.environ.get('SHOPPING_API_URL', 'https://shopping.nephty.top')
+SHOPPING_API_TOKEN_FILE = os.environ.get('SHOPPING_API_TOKEN_FILE', '')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

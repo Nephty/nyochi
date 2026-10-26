@@ -1,0 +1,21 @@
+<div class="linkcard{% if item.promo %} promo{% endif %}{% if item.link.missing %} missing{% endif %}">
+  <div>
+    <div class="nm">{{ item.link.name|default:item.link.key }}</div>
+  </div>
+  <div class="px">
+    {% if item.link.price %}<div class="now">{{ item.link.price|euro }}</div>{% endif %}
+    {% if item.link.package_size %}<small>{{ item.link.package_size }}</small>{% endif %}
+  </div>
+  <div class="sub">
+    <span class="chip store-{{ item.link.store }}">{{ item.link.store_label|default:item.link.store }}</span>
+    {% if item.link.is_preferred %}<span class="chip good">preferred</span>{% endif %}
+    {% if item.promo %}<span class="tag">{{ item.link.promo_titles|default:"Promotion"|truncatechars:40 }}</span>
+      {% if item.deal %}<b style="color:var(--save)">{{ item.deal }}</b>{% endif %}
+      {% if item.verdict == "real" %}<span class="real real">real deal</span>{% elif item.verdict == "usual" %}<span class="real usual">usual price</span>{% endif %}
+      {% if item.link.promo_until %}<span>until {{ item.link.promo_until|date:"j M" }}</span>{% endif %}
+    {% endif %}
+    {% if item.link.missing %}<span class="chip bad">no longer in Shopping</span>{% endif %}
+    {% if item.link.prev_price and item.link.prev_price != item.link.price %}<span>was {{ item.link.prev_price|euro }}</span>{% endif %}
+  </div>
+  {% if item.link.url %}<div class="acts"><a class="btn btn-sm" href="{{ item.link.url }}" target="_blank" rel="noopener noreferrer">{% icon "open_in_new" %}Open in the shop</a></div>{% endif %}
+</div>

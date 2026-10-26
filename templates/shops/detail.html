@@ -1,94 +1,79 @@
 {% extends "base.html" %}
-{% block title %}{{ shop.name }}{% endblock %}
+{% block title %}{{ shop.name }} · Nyochi{% endblock %}
+{% block phone_title %}{{ shop.name }}{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <a href="{% url 'shop-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Shops</a>
+<div class="page-head">
+  <div>
+    <a class="back" href="{% url 'shop-list' %}">{% icon "chevron_left" %}Shops</a>
+    <h1>{{ shop.name }}</h1>
+    <div class="row" style="margin-top:.7rem">
+      {% if shop.shopping_store %}<span class="chip store-{{ shop.shopping_store }}">{{ shop.shopping_store|title }} in Shopping</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">shared with you{% if not can_edit %} · read only{% endif %}</span>{% endif %}
+    </div>
+  </div>
+  <div class="actions">
+    {% if mine %}<button type="button" class="btn" data-share="shop:{{ shop.pk }}" data-name="{{ shop.name }}">{% icon "share" %}Share</button>
+    <form method="post" action="{% url 'shop-delete' shop.pk %}" class="inline-form" data-confirm="Delete “{{ shop.name }}” with all its locations and aisles?">{% csrf_token %}
+      <button class="btn btn-danger btn-icon" title="Delete shop" aria-label="Delete shop">{% icon "delete" %}</button>
+    </form>{% endif %}
+  </div>
 </div>
 
-<h1 class="text-2xl font-bold mb-6">{{ shop.name }}</h1>
-
-<!-- ── Aisles ──────────────────────────────────────────────────────────────── -->
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <h2 class="font-semibold mb-4">Aisles</h2>
-
-  {% if not aisles %}
-    <p class="text-sm text-gray-400 mb-4" id="no-aisles-msg">No aisles yet — add one below.</p>
+<div class="stack">
+  {% if can_edit %}
+  <section class="panel form-card"><div class="panel-body">
+    <form method="post" action="{% url 'shop-update' shop.pk %}" class="fgrid" novalidate style="align-items:end">
+      {% csrf_token %}
+      <div class="field"><label class="label" for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}</div>
+      <div class="field"><label class="label" for="{{ form.shopping_store.id_for_label }}">Shopping store</label>{{ form.shopping_store }}</div>
+      <div><button class="btn" type="submit">{% icon "check" %}Save</button></div>
+    </form>
+  </div></section>
   {% endif %}
-  <ul class="divide-y divide-gray-100 mb-4" id="aisle-list">
-    {% for aisle in aisles %}
-      {% include "partials/aisle_item.html" %}
-    {% endfor %}
-  </ul>
 
-  <form method="post"
-        hx-post="{% url 'shop-detail' shop.pk %}"
-        hx-target="#aisle-list"
-        hx-swap="beforeend"
-        hx-on::after-request="this.reset()"
-        class="flex gap-2">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="add_aisle">
-    {{ aisle_form.shop }}
-    {% if aisle_form.name.errors %}
-      <p class="text-xs text-red-500">{{ aisle_form.name.errors|join:", " }}</p>
+  <section class="panel form-card"><div class="panel-body">
+    <div class="section-h"><h2>Aisles</h2><span class="hint">the shelves and sections you name on the shop floor, shared by all its locations</span></div>
+    <div class="taglist">
+      {% for a in aisles %}
+      <span class="tagitem">
+        {{ a.name }}
+        {% if can_edit %}
+        <form method="post" action="{% url 'aisle-update' a.pk %}" class="inline-form" data-rename="{{ a.name }}" data-rename-title="Rename aisle">{% csrf_token %}<input type="hidden" name="name" value="{{ a.name }}">
+          <button class="btn btn-ghost btn-sm btn-icon" type="button" data-rename-btn title="Rename" aria-label="Rename {{ a.name }}">{% icon "edit" %}</button></form>
+        <form method="post" action="{% url 'aisle-delete' a.pk %}" class="inline-form" data-confirm="Delete the aisle “{{ a.name }}”? It leaves every location’s route.">{% csrf_token %}
+          <button class="btn btn-ghost btn-sm btn-icon" title="Delete" aria-label="Delete {{ a.name }}">{% icon "close" %}</button></form>
+        {% endif %}
+      </span>
+      {% empty %}<span class="muted">No aisle yet.</span>{% endfor %}
+    </div>
+    {% if can_edit %}
+    <form method="post" action="{% url 'aisle-add' shop.pk %}" class="row" style="margin-top:1rem" novalidate>
+      {% csrf_token %}
+      <input class="input" style="flex:1;min-width:12rem;width:auto" type="text" name="names" placeholder="Add aisles: Fruit &amp; veg, Dairy, Bakery…" aria-label="Aisle names" required>
+      <button class="btn" type="submit">{% icon "add" %}Add</button>
+    </form>
     {% endif %}
-    <input type="text" name="{{ aisle_form.name.html_name }}"
-           value="{{ aisle_form.name.value|default:'' }}"
-           placeholder="Aisle name (e.g. Dairy, Produce)"
-           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-    <button type="submit"
-            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium
-                   hover:bg-emerald-700 transition-colors whitespace-nowrap">
-      Add aisle
-    </button>
-  </form>
-</div>
+  </div></section>
 
-<!-- ── Locations ──────────────────────────────────────────────────────────── -->
-<h2 class="font-semibold text-lg mb-4">Locations</h2>
-
-<div id="location-list">
-  {% for item in loc_data %}
-    {% include "partials/location_card.html" %}
-  {% empty %}
-    <p class="text-sm text-gray-400 mb-4">No locations yet — add one below.</p>
-  {% endfor %}
-</div>
-
-<!-- Add location -->
-<div class="bg-white rounded-xl border border-gray-200 p-6">
-  <h3 class="font-semibold mb-4">Add location</h3>
-  <form method="post"
-        hx-post="{% url 'shop-detail' shop.pk %}"
-        hx-target="#location-list"
-        hx-swap="beforeend"
-        hx-on::after-request="this.reset()"
-        class="flex gap-2">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="add_location">
-    {{ location_form.shop }}
-    {% if location_form.name.errors %}
-      <p class="text-xs text-red-500">{{ location_form.name.errors|join:", " }}</p>
+  <section>
+    <div class="section-h"><h2>Locations &amp; layout</h2><span class="hint">each branch has its own walking route</span></div>
+    <div class="loc-tabs" data-loc-tabs>
+      {% for l in locations %}<button type="button" class="pill" data-loc="{{ l.pk }}">{% icon "location_on" %}{{ l.name }}</button>{% endfor %}
+      {% if can_edit %}
+      <form method="post" action="{% url 'location-add' shop.pk %}" class="row" style="gap:.4rem" novalidate>{% csrf_token %}
+        <input class="input" style="width:12rem" type="text" name="name" placeholder="New location, e.g. Rue Neuve" aria-label="New location" required>
+        <button class="btn btn-sm" type="submit">{% icon "add" %}Add</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if locations %}
+      <div data-layout></div>
+      <noscript><div class="notice">{% icon "info" %}<span>The layout editor needs JavaScript.</span></div></noscript>
+    {% else %}
+      <div class="panel"><div class="empty">{% icon "location_on" %}<b>Add a location</b><span>A location is one branch of the shop. Its aisles are walked in an order you choose.</span></div></div>
     {% endif %}
-    <input type="text" name="{{ location_form.name.html_name }}"
-           value="{{ location_form.name.value|default:'' }}"
-           placeholder="Location name (e.g. Genappe, City centre)"
-           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-    <button type="submit"
-            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium
-                   hover:bg-emerald-700 transition-colors whitespace-nowrap">
-      Add location
-    </button>
-  </form>
+  </section>
 </div>
-
-{% if request.user == shop.owner %}
-<div class="bg-white rounded-xl border border-gray-200 p-6 mt-6">
-  <h2 class="font-semibold mb-3">Sharing</h2>
-  {% include "partials/share_panel.html" with obj=shop model_type="shop" %}
-</div>
-{% endif %}
-
+{{ editor|json_script:"layout-data" }}
 {% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/layout.js' %}"></script>{% endblock %}

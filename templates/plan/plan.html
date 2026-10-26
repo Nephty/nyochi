@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Plan · Nyochi{% endblock %}
+{% block phone_title %}Plan{% endblock %}
+{% block body_class %}plan-page{% endblock %}
+{% block main %}
+<div class="plan" data-plan data-pane="recipes">
+  <div class="plan-tabs" role="tablist">
+    <button type="button" data-pane-btn="recipes" aria-pressed="true">{% icon "menu_book" %}Recipes</button>
+    <button type="button" data-pane-btn="list" aria-pressed="false">{% icon "receipt_long" %}List <span class="badge" data-badge>0</span></button>
+  </div>
+
+  <div class="plan-left">
+    <div class="eyebrow">Plan a shop</div>
+    <h1>What are we eating?</h1>
+    <p class="muted" style="margin:.2rem 0 0">Tick recipes; the shopping list builds itself on the right.</p>
+
+    <div class="plan-filter">
+      <div class="line">
+        <div class="search" style="flex:1 1 14rem;max-width:24rem">{% icon "search" %}<input class="input" type="search" placeholder="Search recipes" data-q aria-label="Search recipes"></div>
+        <div class="pills" data-meals role="group" aria-label="Meal type"></div>
+        <button type="button" class="pill" data-season aria-pressed="false" title="Put recipes whose main ingredients are in season first">{% icon "eco" %}In season first</button>
+        <button type="button" class="pill" data-more-btn aria-pressed="false">{% icon "tune" %}Filters <span class="n" data-filter-n></span></button>
+      </div>
+      <div class="more hidden" data-more>
+        <div class="field"><label class="label">Must include</label><div class="chipbox" data-inc><input list="plan-ings" placeholder="Add an ingredient" aria-label="Ingredient to include"></div></div>
+        <div class="field"><label class="label">Leave out</label><div class="chipbox" data-exc><input list="plan-ings" placeholder="Add an ingredient" aria-label="Ingredient to leave out"></div></div>
+        <div class="field"><label class="label">Tags</label><div class="pills" data-tags></div></div>
+        <div class="field"><label class="label" for="max-prep">Max prep (min)</label><input class="input" id="max-prep" type="number" min="0" data-max-prep></div>
+        <div class="field"><label class="label" for="max-cook">Max cook (min)</label><input class="input" id="max-cook" type="number" min="0" data-max-cook></div>
+        <div class="field" style="align-content:end"><button type="button" class="btn btn-sm" data-clear>Clear filters</button></div>
+      </div>
+      <datalist id="plan-ings"></datalist>
+    </div>
+    <div data-list></div>
+    <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Loosen a filter, or write a new recipe.</span><a class="btn" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a></div>
+  </div>
+
+  <div class="plan-right">
+    <div class="sticky">
+      <div class="plan-bar">
+        <select class="select" data-location aria-label="Shop location to sort the list by"></select>
+      </div>
+      <div class="plan-bar" data-picked></div>
+      <div data-receipt></div>
+      <div class="plan-bar no-print" style="margin-top:1rem" data-actions hidden>
+        <input class="input" style="flex:1 1 10rem" type="text" maxlength="200" placeholder="List name (optional)" data-name aria-label="List name">
+        <button class="btn btn-primary" type="button" data-save>{% icon "check" %}Save list</button>
+        <button class="btn btn-icon" type="button" data-copy title="Copy as text" aria-label="Copy the list as text">{% icon "content_copy" %}</button>
+        <button class="btn btn-icon" type="button" data-print title="Print" aria-label="Print">{% icon "print" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+{{ plan|json_script:"plan-data" }}
+{% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/plan.js' %}"></script>{% endblock %}

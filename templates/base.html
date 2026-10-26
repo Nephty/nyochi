@@ -1,386 +1,77 @@
-{% load recipe_extras %}
-<!DOCTYPE html>
-<html lang="en" class="h-full">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Recipe Book{% endblock %}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Nyochi{% endblock %}</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f6c427'/%3E%3Cellipse cx='16' cy='16' rx='10' ry='6.2' transform='rotate(-20 16 16)' fill='%232b2104'/%3E%3C/svg%3E">
+  {% load static %}
+  <link rel="preload" href="{% static 'nyochi/fonts/Figtree-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'nyochi/fonts/BricolageGrotesque-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'nyochi/nyochi.css' %}">
   <script>
-    if (localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches))
-      document.documentElement.classList.add('dark');
+    (function () {
+      var t = null;
+      try { t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("nyochi-theme"); } catch (e) {}
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+      // Phones: the real visible height (100vh/dvh ignore some browser toolbars).
+      function h() { document.documentElement.style.setProperty("--app-h", window.innerHeight + "px"); }
+      h(); window.addEventListener("resize", h);
+    })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-  <style>
-    /* Declared explicitly (not left as the ambiguous "light dark") so
-       native controls (checkboxes, date pickers, scrollbars) always
-       follow this site's own light/dark class rather than the OS
-       preference — otherwise a system set to dark can render them dark
-       even while html.dark is absent and every other color is light. */
-    :root { color-scheme: light; }
-    html.dark { color-scheme: dark; }
-
-    /* Confirm modal */
-    dialog {
-      padding: 0; border: none; border-radius: 0.75rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-      max-width: 22rem; width: calc(100% - 2rem);
-    }
-    dialog::backdrop { background: rgba(0,0,0,0.4); }
-    html.dark dialog { background: #1f2937; color: #f9fafb; }
-
-    /* Wider dialog for ingredient filter modals */
-    .selector-filter-modal { max-width: 680px; }
-
-    /* Recipe results scroll — shows ~5 items then scrolls */
-    .results-scroll {
-      max-height: 282px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #6ee7b7 transparent;
-    }
-    .results-scroll::-webkit-scrollbar { width: 5px; }
-    .results-scroll::-webkit-scrollbar-track { background: transparent; }
-    .results-scroll::-webkit-scrollbar-thumb { background: #6ee7b7; border-radius: 9999px; }
-    .results-scroll::-webkit-scrollbar-thumb:hover { background: #10b981; }
-    html.dark .results-scroll { scrollbar-color: #059669 transparent; }
-    html.dark .results-scroll::-webkit-scrollbar-thumb { background: #059669; }
-    html.dark .results-scroll::-webkit-scrollbar-thumb:hover { background: #10b981; }
-
-    /* Checkboxes */
-    input[type=checkbox] { accent-color: #10b981; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
-
-    /* Number inputs — values match Tailwind border-gray-300 / rounded / px-2 py-1 / text-sm */
-    input[type=number] {
-      border: 1px solid #d1d5db; border-radius: 0.375rem;
-      padding: 0.25rem 0.5rem; font-size: 0.875rem;
-      width: 100%; box-sizing: border-box;
-    }
-    input[type=number]:focus { outline: none; border-color: #34d399; }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; }
-
-    /* Dark mode
-       html.dark has specificity 0,1,1 vs Tailwind's class selectors 0,1,0
-       so no !important needed — our selectors naturally win. */
-    html.dark body { background-color: #111827; color: #f9fafb; }
-    html.dark nav { background-color: #1f2937 !important; }
-    html.dark .bg-white  { background-color: #1f2937; }
-    html.dark .bg-gray-50  { background-color: #111827; }
-    html.dark .bg-gray-100 { background-color: #374151; }
-    html.dark .border-gray-200 { border-color: #374151; }
-    html.dark .border-gray-300 { border-color: #4b5563; }
-    html.dark .border-gray-100 { border-color: #4b5563; }
-    html.dark .text-gray-900 { color: #f9fafb; }
-    html.dark .text-gray-700 { color: #d1d5db; }
-    html.dark .text-gray-600 { color: #9ca3af; }
-    html.dark .text-gray-500 { color: #9ca3af; }
-    html.dark .text-gray-400 { color: #6b7280; }
-    html.dark .hover\:bg-gray-50:hover  { background-color: #374151; }
-    html.dark .hover\:bg-gray-100:hover { background-color: #4b5563; }
-    html.dark .divide-gray-100 > * { border-color: #4b5563; }
-    html.dark input:not([type=checkbox]):not([type=radio]),
-    html.dark select,
-    html.dark textarea { background-color: #374151; color: #f9fafb; border-color: #4b5563; }
-    html.dark .bg-emerald-50  { background-color: #064e3b; }
-    html.dark .text-emerald-700 { color: #34d399; }
-    html.dark .text-emerald-800 { color: #6ee7b7; }
-    html.dark .border-emerald-200 { border-color: #065f46; }
-    html.dark .hover\:bg-emerald-700:hover    { background-color: #34d399; }
-    html.dark .hover\:text-emerald-700:hover  { color: #6ee7b7; }
-    html.dark .hover\:text-emerald-800:hover  { color: #a7f3d0; }
-    html.dark .hover\:border-emerald-300:hover { border-color: #34d399; }
-    html.dark .hover\:border-emerald-400:hover { border-color: #6ee7b7; }
-    html.dark .tag-pill { background: #374151; color: #d1d5db; border-color: #4b5563; }
-    html.dark .bg-emerald-100 { background-color: #064e3b; }
-    html.dark .hover\:bg-emerald-50:hover { background-color: #064e3b; }
-    html.dark .bg-red-100 { background-color: #450a0a; }
-    html.dark .text-red-600 { color: #f87171; }
-    html.dark .text-red-700 { color: #fca5a5; }
-    html.dark .hover\:bg-red-50:hover { background-color: #450a0a; }
-    html.dark .focus\:ring-red-400:focus { --tw-ring-color: #f87171; }
-
-    /* Clickable tag pill toggle */
-    .tag-pill-label { position: relative; }
-    .tag-pill-label input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
-    .tag-pill {
-      display: inline-block; padding: 2px 12px; border-radius: 9999px;
-      border: 1px solid #d1d5db; background: #f9fafb; color: #4b5563;
-      font-size: 0.75rem; line-height: 1.75; cursor: pointer;
-      transition: background 0.1s, color 0.1s, border-color 0.1s;
-    }
-    .tag-pill-label input[type=checkbox]:checked ~ .tag-pill {
-      background: #10b981; color: white; border-color: #10b981;
-    }
-
-    /* Difficulty rating pill toggle */
-    .diff-pill-label { position: relative; }
-    .diff-pill-label input[type=radio] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
-    .diff-pill {
-      display: inline-block; padding: 2px 12px; border-radius: 9999px;
-      border: 1px solid #d1d5db; background: #f9fafb; color: #4b5563;
-      font-size: 0.75rem; line-height: 1.75; cursor: pointer;
-      transition: background 0.1s, color 0.1s, border-color 0.1s;
-    }
-    .diff-pill-label input[type=radio]:checked ~ .diff-pill {
-      background: #f59e0b; color: white; border-color: #f59e0b;
-    }
-    html.dark .diff-pill { background: #374151; color: #d1d5db; border-color: #4b5563; }
-    html.dark .diff-pill-label input[type=radio]:checked ~ .diff-pill {
-      background: #d97706; color: white; border-color: #d97706;
-    }
-
-    /* Meal type pill toggle */
-    .meal-pill-label { position: relative; }
-    .meal-pill-label input[type=radio] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
-    .meal-pill {
-      display: inline-block; padding: 2px 12px; border-radius: 9999px;
-      border: 1px solid #d1d5db; background: #f9fafb; color: #4b5563;
-      font-size: 0.75rem; line-height: 1.75; cursor: pointer;
-      transition: background 0.1s, color 0.1s, border-color 0.1s;
-    }
-    .meal-pill-label input[type=radio]:checked ~ .meal-pill {
-      background: #0ea5e9; color: white; border-color: #0ea5e9;
-    }
-    html.dark .meal-pill { background: #374151; color: #d1d5db; border-color: #4b5563; }
-    html.dark .meal-pill-label input[type=radio]:checked ~ .meal-pill {
-      background: #0284c7; color: white; border-color: #0284c7;
-    }
-    html.dark .bg-sky-50   { background-color: #0c4a6e; }
-    html.dark .text-sky-700 { color: #38bdf8; }
-
-    /* Top nav — sticky header, brand mark, and icon-only theme toggle
-       (structural pattern shared with Paperclip's header) */
-    nav.site-nav {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(8px);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    }
-    html.dark nav.site-nav { background: rgba(31, 41, 55, 0.92); }
-
-    .brand-mark {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 2rem; height: 2rem; border-radius: 0.5rem;
-      background: #059669; font-size: 1.05rem; line-height: 1;
-    }
-    html.dark .brand-mark { background: #10b981; }
-
-    .nav-divider { width: 1px; height: 1.4rem; background: #e5e7eb; }
-    html.dark .nav-divider { background: #374151; }
-
-    .user-chip {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.35rem 0.75rem 0.35rem 0.5rem; border-radius: 9999px;
-      background: #f9fafb; color: #6b7280; font-size: 0.85rem;
-    }
-    html.dark .user-chip { background: #111827; color: #9ca3af; }
-
-    .user-chip-avatar {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 1.5rem; height: 1.5rem; border-radius: 9999px;
-      background: #059669; color: #fff; font-size: 0.7rem; font-weight: 700;
-      text-transform: uppercase;
-    }
-    html.dark .user-chip-avatar { background: #10b981; }
-
-    .theme-toggle {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 2.1rem; height: 2.1rem; padding: 0; background: none; border: none;
-      border-radius: 9999px; font-size: 1.05rem; line-height: 1; cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .theme-toggle:hover { background: #f3f4f6; }
-    html.dark .theme-toggle:hover { background: #374151; }
-    .theme-toggle:focus-visible { outline: 2px solid #059669; outline-offset: 2px; }
-  </style>
+  {% block head %}{% endblock %}
 </head>
-<body class="min-h-full bg-gray-50 text-gray-900" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-
-  <!-- Nav -->
-  <nav class="site-nav border-b border-gray-200">
-    <div class="px-4 sm:px-6">
-      <div class="flex items-center justify-between h-14 gap-4">
-        <div class="flex items-center gap-2">
-          <a href="https://nephty.top/" class="inline-flex items-center px-3 py-1.5 rounded-full border border-gray-200 text-sm font-medium hover:bg-gray-100 transition-colors" title="Back to Nephty Lab">Hub</a>
-          <a href="{% url 'recipe-list' %}" class="inline-flex items-center gap-2 font-semibold text-lg tracking-tight">
-            <span class="brand-mark">🍳</span>
-            Recipe Book
-          </a>
-        </div>
-
-        <div class="flex items-center gap-1">
-          <!-- Desktop links -->
-          {% if user.is_authenticated %}
-          <div class="hidden sm:flex items-center gap-1 text-sm font-medium">
-            <a href="{% url 'recipe-selector' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'recipe-selector' %}bg-emerald-50 text-emerald-700{% endif %}">Find Recipes</a>
-            <a href="{% url 'grocery-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'grocery-list' %}bg-emerald-50 text-emerald-700{% endif %}">Grocery List</a>
-            <a href="{% url 'recipe-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'recipe-list' %}bg-emerald-50 text-emerald-700{% endif %}">Recipes</a>
-            <a href="{% url 'ingredient-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if 'ingredient' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700{% endif %}">Ingredients</a>
-            <a href="{% url 'shop-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if 'shop' in request.resolver_match.url_name %}bg-emerald-50 text-emerald-700{% endif %}">Shops</a>
-            <a href="{% url 'tag-list' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors {% if request.resolver_match.url_name == 'tag-list' %}bg-emerald-50 text-emerald-700{% endif %}">Tags</a>
-          </div>
-          <span class="nav-divider hidden sm:inline-block mx-1"></span>
-          <div class="hidden sm:flex items-center gap-2 text-sm">
-            <span class="user-chip">
-              <span class="user-chip-avatar">{{ user.username|slice:":1" }}</span>
-              {{ user.username }}
-            </span>
-            <form method="post" action="{% url 'logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-500">Log out</button>
-            </form>
-          </div>
-          {% else %}
-          <div class="hidden sm:flex items-center gap-1 text-sm font-medium">
-            <a href="{% url 'login' %}" class="px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors">Log in</a>
-            <a href="{% url 'register' %}" class="px-3 py-1.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors">Register</a>
-          </div>
-          {% endif %}
-
-          <span class="nav-divider hidden sm:inline-block mx-1"></span>
-
-          <!-- Dark mode toggle -->
-          <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
-
-          <!-- Mobile hamburger -->
-          <button id="nav-toggle" class="sm:hidden theme-toggle text-gray-600" aria-expanded="false" aria-controls="nav-menu">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- Mobile menu -->
-      <div id="nav-menu" class="sm:hidden hidden pb-3 flex flex-col gap-2 text-sm font-medium border-t border-gray-100 pt-2">
-        {% if user.is_authenticated %}
-          <a href="{% url 'recipe-selector' %}" class="px-2 py-1 rounded hover:bg-gray-50">Find Recipes</a>
-          <a href="{% url 'grocery-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Grocery List</a>
-          <a href="{% url 'recipe-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Recipes</a>
-          <a href="{% url 'ingredient-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Ingredients</a>
-          <a href="{% url 'shop-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Shops</a>
-          <a href="{% url 'tag-list' %}" class="px-2 py-1 rounded hover:bg-gray-50">Tags</a>
-          <hr class="border-gray-100">
-          <span class="px-2 text-gray-400">{{ user.username }}</span>
-          <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <button type="submit" class="px-2 py-1 text-left w-full rounded hover:bg-gray-50 text-gray-600">Log out</button>
-          </form>
-        {% else %}
-          <a href="{% url 'login' %}" class="px-2 py-1 rounded hover:bg-gray-50">Log in</a>
-          <a href="{% url 'register' %}" class="px-2 py-1 rounded hover:bg-gray-50">Register</a>
-        {% endif %}
-      </div>
+<body class="app {% block body_class %}{% endblock %}">
+{% block body %}
+<div class="shell">
+  <header class="phone-head">
+    <a class="brand" href="{% url 'recipe-list' %}" aria-label="Recipes">{% include "partials/mark.html" %}</a>
+    <span class="ttl">{% block phone_title %}Nyochi{% endblock %}</span>
+    <div class="acts">{% block phone_actions %}{% endblock %}{% include "partials/theme_btn.html" %}</div>
+  </header>
+  <aside class="rail">
+    <a class="brand" href="{% url 'recipe-list' %}">{% include "partials/mark.html" %}<span class="brand-name">Nyo<em>chi</em></span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %} title="Recipes">{% icon "menu_book" %}<span>Recipes</span></a>
+      <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %} title="Ingredients">{% icon "eco" %}<span>Ingredients</span></a>
+      <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %} title="Plan">{% icon "checklist" %}<span>Plan</span></a>
+      <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %} title="Lists">{% icon "receipt_long" %}<span>Lists</span></a>
+      <div class="nav-sep"></div>
+      <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
+      <a href="{% url 'tag-list' %}" {% if page == "tags" %}aria-current="page"{% endif %} title="Tags">{% icon "sell" %}<span>Tags</span></a>
+    </nav>
+    <div class="rail-foot">
+      <span class="who">{{ user.get_username }}</span>
+      {% include "partials/theme_btn.html" %}
+      <a class="btn btn-ghost btn-icon" href="https://nephty.top/" title="Back to Nephty Lab" aria-label="Back to Nephty Lab">{% icon "home" %}</a>
+      {% if user.is_staff %}<a class="btn btn-ghost btn-icon" href="/admin/" title="Django admin" aria-label="Django admin">{% icon "admin_panel_settings" %}</a>{% endif %}
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost btn-icon" title="Sign out" aria-label="Sign out">{% icon "logout" %}</button></form>
     </div>
+  </aside>
+  <main class="main">{% block main %}<div class="page">{% block content %}{% endblock %}</div>{% endblock %}</main>
+  <nav class="tabbar" aria-label="Main">
+    <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %}>{% icon "menu_book" %}Recipes</a>
+    <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %}>{% icon "eco" %}Ingredients</a>
+    <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %}>{% icon "checklist" %}Plan</a>
+    <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %}>{% icon "receipt_long" %}Lists</a>
+    <button type="button" data-more {% if page == "shops" or page == "tags" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
   </nav>
-
-  <!-- Main content -->
-  <main class="max-w-screen-2xl mx-auto px-4 py-6">
-    {% if messages %}
-      {% for msg in messages %}
-        {% if msg.tags == 'error' or msg.level >= 40 %}
-          <div class="mb-4 px-4 py-2 rounded bg-red-50 text-red-800 border border-red-200">{{ msg }}</div>
-        {% elif msg.tags == 'warning' or msg.level >= 30 %}
-          <div class="mb-4 px-4 py-2 rounded bg-amber-50 text-amber-800 border border-amber-200">{{ msg }}</div>
-        {% else %}
-          <div class="mb-4 px-4 py-2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">{{ msg }}</div>
-        {% endif %}
-      {% endfor %}
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
-
-  <!-- Confirm modal -->
-  <dialog id="confirm-modal">
-    <div class="p-6">
-      <p id="confirm-message" class="text-sm text-gray-700 mb-5"></p>
-      <div class="flex justify-end gap-2">
-        <button id="confirm-cancel"
-                class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
-          Cancel
-        </button>
-        <button id="confirm-ok"
-                class="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
-          Confirm
-        </button>
-      </div>
-    </div>
-  </dialog>
-
-  <script>
-    document.getElementById('nav-toggle').addEventListener('click', () => {
-      const menu = document.getElementById('nav-menu');
-      const toggle = document.getElementById('nav-toggle');
-      const expanded = !menu.classList.contains('hidden');
-      menu.classList.toggle('hidden');
-      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-    });
-
-    // Dark mode toggle
-    const themeToggle = document.getElementById('theme-toggle');
-
-    function applyTheme(dark) {
-      document.documentElement.classList.toggle('dark', dark);
-      themeToggle.textContent = dark ? '🌙' : '☀️';
-      localStorage.setItem('theme', dark ? 'dark' : 'light');
-    }
-
-    // Initialise toggle visual to match the class already set by the FOUC script
-    applyTheme(document.documentElement.classList.contains('dark'));
-
-    themeToggle.addEventListener('click', () =>
-      applyTheme(!document.documentElement.classList.contains('dark'))
-    );
-
-    // Confirm modal
-    const confirmModal   = document.getElementById('confirm-modal');
-    const confirmMessage = document.getElementById('confirm-message');
-    const confirmOk      = document.getElementById('confirm-ok');
-    const confirmCancel  = document.getElementById('confirm-cancel');
-    let pendingForm = null;
-
-    document.addEventListener('submit', e => {
-      const msg = e.target.dataset.confirm;
-      if (!msg) return;
-      e.preventDefault();
-      pendingForm = e.target;
-      confirmMessage.textContent = msg;
-      confirmModal.showModal();
-    });
-
-    confirmOk.addEventListener('click', () => {
-      confirmModal.close();
-      if (pendingForm) {
-        delete pendingForm.dataset.confirm;
-        pendingForm.submit();
-        pendingForm = null;
-      }
-    });
-
-    confirmCancel.addEventListener('click', () => {
-      confirmModal.close();
-      pendingForm = null;
-    });
-
-    // Click backdrop to dismiss
-    confirmModal.addEventListener('click', e => {
-      if (e.target === confirmModal) confirmModal.close();
-    });
-
-    // Hook HTMX confirm into our custom modal
-    document.addEventListener('htmx:confirm', e => {
-      if (!e.detail.question) return;
-      e.preventDefault();
-      confirmMessage.textContent = e.detail.question;
-      confirmModal.showModal();
-      confirmOk.onclick = () => { confirmModal.close(); e.detail.issueRequest(true); };
-      confirmCancel.onclick = () => { confirmModal.close(); };
-    });
-  </script>
+</div>
+<div class="sheet-back" data-sheet-back></div>
+<div class="more-sheet" data-more-sheet>
+  <a href="{% url 'shop-list' %}">{% icon "storefront" %}Shops</a>
+  <a href="{% url 'tag-list' %}">{% icon "sell" %}Tags</a>
+  <a href="https://nephty.top/">{% icon "home" %}Nephty Lab</a>
+  {% if user.is_staff %}<a href="/admin/">{% icon "admin_panel_settings" %}Django admin</a>{% endif %}
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>{% icon "logout" %}Sign out</button></form>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+{% endblock %}
+{% if has_flash %}{{ flash|json_script:"flash" }}{% endif %}
+{% icons_json %}
+<script type="module" src="{% static 'nyochi/theme.js' %}"></script>
+<script type="module" src="{% static 'nyochi/shell.js' %}"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

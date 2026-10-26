@@ -1,13 +1,20 @@
 from django.urls import path
+from django.views.generic import RedirectView
+
 from . import views
 
 urlpatterns = [
-    path('grocery/', views.GroceryListView.as_view(), name='grocery-list'),
-    path('grocery/results/', views.GroceryResultsView.as_view(), name='grocery-results'),
-    path('grocery/save/', views.SaveGroceryListView.as_view(), name='save-grocery-list'),
-    path('grocery/saved/', views.SavedGroceryListsView.as_view(), name='saved-grocery-list'),
-    path('grocery/saved/<int:pk>/', views.SavedGroceryDetailView.as_view(), name='saved-grocery-detail'),
-    path('grocery/saved/<int:pk>/delete/', views.SavedGroceryDeleteView.as_view(), name='saved-grocery-delete'),
-    path('grocery/saved/item/<int:pk>/toggle/', views.ToggleCartItemView.as_view(), name='toggle-cart-item'),
-    path('grocery/saved/<int:pk>/archive/', views.ArchiveGroceryListView.as_view(), name='archive-grocery-list'),
+    path('lists/', views.SavedListsView.as_view(), name='saved-grocery-list'),
+    path('lists/<int:pk>/', views.SavedListDetailView.as_view(), name='saved-grocery-detail'),
+    path('lists/<int:pk>/receipt/', views.receipt_json, name='list-receipt'),
+    path('lists/<int:pk>/location/', views.set_location, name='list-location'),
+    path('lists/<int:pk>/uncheck/', views.uncheck_all, name='list-uncheck'),
+    path('lists/<int:pk>/items/', views.add_item, name='list-add-item'),
+    path('lists/<int:pk>/<str:action>/', views.SavedListActionView.as_view(), name='list-action'),
+    path('lists/item/<int:pk>/check/', views.check_item, name='list-check-item'),
+    path('lists/item/<int:pk>/delete/', views.delete_item, name='list-delete-item'),
+    # the old addresses
+    path('grocery/', RedirectView.as_view(pattern_name='plan', permanent=True), name='grocery-list'),
+    path('grocery/saved/', RedirectView.as_view(pattern_name='saved-grocery-list', permanent=True)),
+    path('grocery/saved/<int:pk>/', RedirectView.as_view(pattern_name='saved-grocery-detail', permanent=True)),
 ]

@@ -1,198 +1,184 @@
+from decimal import Decimal, InvalidOperation
+
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse
+from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.template.loader import render_to_string
 from django.views import View
 
-from recipes.models import RecipeIngredient, SavedGroceryItem, SavedGroceryList, ShopLocation
-from recipes.utils import (
-    accessible_qs, _compute_grocery_list, _location_qs, _save_grocery_list,
-    _sorted_grocery_items, is_htmx,
+from recipes import grocery
+from recipes.access import (
+    deletable, is_owner, readable, readable_locations, readable_items, writable, writable_items,
 )
-from .forms import GrocerySelectForm
+from recipes.http import ApiError, api, body, positive_int
+from recipes.models import Ingredient, SavedGroceryItem, SavedGroceryList, Unit
 
 
-def _ingredient_recipes_map(saved):
-    result = {}
-    for ri in RecipeIngredient.objects.filter(recipe__in=saved.recipes.all()).select_related('recipe'):
-        result.setdefault(ri.ingredient_id, []).append(ri.recipe.name)
-    return result
-
-
-def _recipe_summaries(saved):
-    summaries = []
-    for r in saved.recipes.prefetch_related('recipeingredient_set__ingredient'):
-        main_ings = [ri.ingredient.name for ri in r.recipeingredient_set.all() if ri.is_main]
-        summaries.append({'recipe': r, 'main_ingredients': main_ings})
-    return summaries
-
-_SAVE_SUCCESS_HTML = (
-    '<span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 py-1">'
-    '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none"'
-    ' stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'
-    '<path d="M2 6l3 3 5-5"/></svg>List saved</span>'
-)
-
-
-class GroceryListView(LoginRequiredMixin, View):
-    template_name = 'grocery/grocery_list.html'
-
-    def _saved_lists(self, user):
-        return (
-            accessible_qs(SavedGroceryList, user)
-            .filter(archived=False)
-            .prefetch_related('recipes', 'items')
-        )
-
+class SavedListsView(LoginRequiredMixin, View):
     def get(self, request):
-        return render(request, self.template_name, {
-            'form': GrocerySelectForm(user=request.user),
-            'saved_lists': self._saved_lists(request.user),
-        })
-
-    def post(self, request):
-        form = GrocerySelectForm(request.POST, user=request.user)
-        if not form.is_valid():
-            return render(request, self.template_name, {
-                'form': form,
-                'saved_lists': self._saved_lists(request.user),
-            })
-
-        selected_recipes = form.cleaned_data['recipes']
-        location = form.cleaned_data.get('shop_location')
-        grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
-
-        return render(request, self.template_name, {
-            'form': form,
-            'grouped': grouped,
-            'aisle_label': aisle_label,
-            'selected_recipes': selected_recipes,
-            'location': location,
-            'saved_lists': self._saved_lists(request.user),
-        })
-
-
-class GroceryResultsView(LoginRequiredMixin, View):
-    def post(self, request):
-        form = GrocerySelectForm(request.POST, user=request.user)
-        if not form.is_valid():
-            return HttpResponse('')
-        selected_recipes = form.cleaned_data['recipes']
-        location = form.cleaned_data.get('shop_location')
-        grouped, aisle_label = _compute_grocery_list(selected_recipes, location)
-        return render(request, 'partials/grocery_results.html', {
-            'grouped': grouped,
-            'aisle_label': aisle_label,
-            'selected_recipes': selected_recipes,
-            'location': location,
-        })
-
-
-class SaveGroceryListView(LoginRequiredMixin, View):
-    def post(self, request):
-        pks = request.POST.getlist('recipe_pks') or request.POST.getlist('selected_recipe_pks')
-        saved = _save_grocery_list(pks, user=request.user)
-        if is_htmx(request):
-            if not saved:
-                return HttpResponse('<span class="text-xs text-red-500">No recipes selected.</span>')
-            saved_lists = (
-                accessible_qs(SavedGroceryList, request.user)
-                .filter(archived=False)
-                .prefetch_related('recipes', 'items')
-            )
-            oob = render_to_string(
-                'partials/saved_lists_section.html',
-                {'saved_lists': saved_lists},
-                request=request,
-            )
-            return HttpResponse(
-                _SAVE_SUCCESS_HTML +
-                f'<div id="saved-lists-section" hx-swap-oob="true">{oob}</div>'
-            )
-        return redirect('saved-grocery-detail', pk=saved.pk) if saved else redirect('grocery-list')
-
-
-class SavedGroceryListsView(LoginRequiredMixin, View):
-    template_name = 'saved_lists/list.html'
-
-    def get(self, request):
-        saved_lists = (
-            accessible_qs(SavedGroceryList, request.user)
-            .filter(archived=False)
-            .prefetch_related('recipes', 'items')
+        archived = request.GET.get('tab') == 'archived'
+        lists = (
+            readable(SavedGroceryList, request.user).filter(archived=archived)
+            .annotate(total=Count('items', distinct=True),
+                      done=Count('items', filter=Q(items__in_cart=True), distinct=True))
+            .prefetch_related('recipes').select_related('location__shop')
         )
-        return render(request, self.template_name, {'saved_lists': saved_lists})
+        for l in lists:
+            l.mine = is_owner(l, request.user)
+        return render(request, 'lists/list.html', {
+            'lists': lists, 'archived': archived, 'page': 'lists',
+            'archived_count': readable(SavedGroceryList, request.user).filter(archived=True).count(),
+        })
 
 
-class SavedGroceryDetailView(LoginRequiredMixin, View):
-    template_name = 'saved_lists/detail.html'
+def _list_for_read(request, pk):
+    return get_object_or_404(readable(SavedGroceryList, request.user).prefetch_related('recipes'), pk=pk)
 
+
+def _list_for_write(request, pk):
+    return get_object_or_404(writable(SavedGroceryList, request.user), pk=pk)
+
+
+def _location(request, raw):
+    if not raw:
+        return None
+    return readable_locations(request.user).select_related('shop').filter(pk=positive_int(raw, 'location')).first()
+
+
+def _receipt(saved, location, user):
+    items = saved.items.select_related('ingredient', 'unit').prefetch_related('ingredient__seasonal_availability')
+    data = grocery.receipt(grocery.lines_from_items(items), location, user)
+    done = sum(1 for s in data['sections'] for l in s['lines'] if l['checked'])
+    data['progress'] = {'done': done, 'total': data['totals']['lines']}
+    return data
+
+
+class SavedListDetailView(LoginRequiredMixin, View):
     def get(self, request, pk):
-        saved = get_object_or_404(accessible_qs(SavedGroceryList, request.user), pk=pk)
-        location_id = request.GET.get('location', '')
-        location = (
-            accessible_qs(ShopLocation, request.user).filter(pk=location_id).first()
-            if location_id else None
-        )
-        grouped, aisle_label = _sorted_grocery_items(saved, location)
-        total   = saved.items.count()
-        in_cart = saved.items.filter(in_cart=True).count()
-        all_done = total > 0 and in_cart == total
-        return render(request, self.template_name, {
-            'saved': saved,
-            'grouped': grouped,
-            'aisle_label': aisle_label,
-            'location_choices': _location_qs(request.user),
-            'location': location,
-            'location_id': location_id,
-            'total': total,
-            'in_cart': in_cart,
-            'all_done': all_done,
-            'ingredient_recipes': _ingredient_recipes_map(saved),
-            'recipe_summaries': _recipe_summaries(saved),
+        saved = _list_for_read(request, pk)
+        location = _location(request, request.GET.get('location')) or saved.location
+        if location is not None and not readable_locations(request.user).filter(pk=location.pk).exists():
+            location = None
+        ingredients = readable(Ingredient, request.user).order_by('name')
+        return render(request, 'lists/detail.html', {
+            'saved': saved, 'page': 'lists',
+            'can_edit': writable(SavedGroceryList, request.user).filter(pk=saved.pk).exists(),
+            'mine': is_owner(saved, request.user),
+            'data': {
+                'id': saved.pk,
+                'receipt': _receipt(saved, location, request.user),
+                'location': location.pk if location else None,
+                'locations': [{'id': l.pk, 'name': str(l)}
+                              for l in readable_locations(request.user).select_related('shop')
+                              .order_by('shop__name', 'name')],
+                'ingredients': [{'id': i.pk, 'name': i.name} for i in ingredients],
+                'units': [{'id': u.pk, 'abbr': u.abbreviation, 'name': u.name} for u in Unit.objects.all()],
+                'canEdit': writable(SavedGroceryList, request.user).filter(pk=saved.pk).exists(),
+            },
+            'recipes': saved.recipes.all(),
         })
 
 
-class SavedGroceryDeleteView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        accessible_qs(SavedGroceryList, request.user).filter(pk=pk).delete()
-        next_url = request.POST.get('next', '')
-        return redirect(next_url if next_url else 'saved-grocery-list')
+@api
+def receipt_json(request, pk):
+    saved = _list_for_read(request, pk)
+    location = _location(request, request.GET.get('location'))
+    return JsonResponse(_receipt(saved, location, request.user))
 
 
-class ArchiveGroceryListView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        saved = get_object_or_404(accessible_qs(SavedGroceryList, request.user), pk=pk)
-        saved.archived = True
-        saved.save(update_fields=['archived'])
-        return redirect('grocery-list')
+class SavedListActionView(LoginRequiredMixin, View):
+    """Plain form posts from the lists page and the list screen: rename, archive, unarchive, delete."""
+
+    def post(self, request, pk, action):
+        if action == 'delete':
+            saved = get_object_or_404(deletable(SavedGroceryList, request.user), pk=pk)
+            saved.delete()
+            messages.success(request, 'List deleted.')
+            return redirect('saved-grocery-list')
+        saved = _list_for_write(request, pk)
+        if action == 'rename':
+            name = ' '.join(request.POST.get('name', '').split())[:200]
+            if not name:
+                messages.error(request, 'A list needs a name.')
+            else:
+                saved.name = name
+                saved.save(update_fields=['name'])
+                messages.success(request, 'List renamed.')
+            return redirect('saved-grocery-detail', pk=saved.pk)
+        if action in ('archive', 'unarchive'):
+            saved.archived = action == 'archive'
+            saved.save(update_fields=['archived'])
+            messages.success(request, 'List archived.' if saved.archived else 'List restored.')
+            return redirect('saved-grocery-list')
+        raise ApiError('Unknown action.', 404)
 
 
-class ToggleCartItemView(LoginRequiredMixin, View):
-    def post(self, request, pk):
-        item = get_object_or_404(accessible_qs(SavedGroceryItem, request.user), pk=pk)
-        item.in_cart = not item.in_cart
-        item.save(update_fields=['in_cart'])
-        saved = item.grocery_list
-        total    = saved.items.count()
-        in_cart  = saved.items.filter(in_cart=True).count()
-        pct      = f'calc({in_cart} / {total} * 100%)' if total else '0%'
-        all_done = total > 0 and in_cart == total
-        item_html = render_to_string(
-            'partials/cart_item.html',
-            {'item': item, 'ingredient_recipes': _ingredient_recipes_map(saved)},
-            request=request,
-        )
-        archive_html = render_to_string(
-            'partials/archive_btn.html',
-            {'saved': saved, 'all_done': all_done},
-            request=request,
-        )
-        oob = (
-            f'<span id="progress-text" hx-swap-oob="true">{in_cart} / {total}</span>'
-            f'<div id="progress-bar" hx-swap-oob="true"'
-            f' class="h-full bg-emerald-500 rounded-full transition-all duration-300"'
-            f' style="width:{pct}"></div>'
-            f'<div id="archive-btn-area" hx-swap-oob="true">{archive_html}</div>'
-        )
-        return HttpResponse(item_html + oob)
+@api
+def set_location(request, pk):
+    saved = _list_for_write(request, pk)
+    location = _location(request, body(request).get('location'))
+    saved.location = location
+    saved.save(update_fields=['location'])
+    return JsonResponse(_receipt(saved, location, request.user))
+
+
+@api
+def check_item(request, pk):
+    item = get_object_or_404(writable_items(request.user), pk=pk)
+    checked = body(request).get('checked')
+    if not isinstance(checked, bool):
+        raise ApiError('Say whether the item is in the cart (checked: true/false).')
+    item.in_cart = checked
+    item.save(update_fields=['in_cart'])
+    qs = item.grocery_list.items
+    return JsonResponse({'done': qs.filter(in_cart=True).count(), 'total': qs.count()})
+
+
+@api
+def uncheck_all(request, pk):
+    saved = _list_for_write(request, pk)
+    saved.items.update(in_cart=False)
+    return JsonResponse({'done': 0, 'total': saved.items.count()})
+
+
+@api
+def add_item(request, pk):
+    saved = _list_for_write(request, pk)
+    data = body(request)
+    if data.get('ingredient_id'):
+        ingredient = readable(Ingredient, request.user).filter(
+            pk=positive_int(data['ingredient_id'], 'ingredient')).first()
+        if ingredient is None:
+            raise ApiError('Unknown ingredient.', 404)
+        unit = Unit.objects.filter(pk=positive_int(data.get('unit_id'), 'unit')).first()
+        if unit is None:
+            raise ApiError('Pick a unit.')
+        try:
+            quantity = Decimal(str(data.get('quantity', 1)))
+        except InvalidOperation:
+            raise ApiError('Invalid quantity.')
+        if not Decimal('0.01') <= quantity <= Decimal('99999'):
+            raise ApiError('Quantity must be positive.')
+        item = saved.items.filter(ingredient=ingredient, unit=unit).first()
+        if item:
+            item.quantity += quantity
+            item.in_cart = False
+            item.save(update_fields=['quantity', 'in_cart'])
+        else:
+            SavedGroceryItem.objects.create(grocery_list=saved, ingredient=ingredient, unit=unit,
+                                            quantity=quantity, owner=request.user)
+    else:
+        name = ' '.join(str(data.get('name', '')).split())[:120]
+        if not name:
+            raise ApiError('Type what to buy.')
+        SavedGroceryItem.objects.create(grocery_list=saved, custom_name=name, owner=request.user)
+    return JsonResponse(_receipt(saved, saved.location, request.user), status=201)
+
+
+@api
+def delete_item(request, pk):
+    item = get_object_or_404(writable_items(request.user), pk=pk)
+    saved = item.grocery_list
+    item.delete()
+    return JsonResponse(_receipt(saved, saved.location, request.user))

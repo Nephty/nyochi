@@ -1,69 +1,33 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full">
+<!doctype html>
+{% load static %}
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nyochi</title>
+  <link rel="stylesheet" href="{% static 'nyochi/nyochi.css' %}">
   <script>
-    if (localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches))
-      document.documentElement.classList.add('dark');
+    (function () { var t = null; try { t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("nyochi-theme"); } catch (e) {}
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); })();
   </script>
-  <title>Access Restricted — Recipe Book</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root { color-scheme: light; }
-    html.dark { color-scheme: dark; }
-  </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-  <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm p-8 sm:p-10 max-w-md w-full text-center">
-    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-3xl mb-5">🔒</div>
-    <h1 class="text-xl font-bold mb-1">Access Restricted</h1>
-    <p class="text-gray-500 dark:text-gray-400 text-sm mb-5">Recipe Book</p>
-    {% if user.is_authenticated %}
-      <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
-        <span class="font-medium text-gray-900 dark:text-gray-100">{{ user.username }}</span> doesn't have permission to use this app.
-        Ask the administrator to grant you access.
-      </p>
-    {% else %}
-      <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
-        This app requires an account. Ask the administrator to create one for you,
-        or log in if you already have one.
-      </p>
-      <a href="https://nephty.top/login/?next={{ request.build_absolute_uri }}"
-         class="inline-flex items-center px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-medium transition-colors mb-4">
-        Log in
-      </a>
-      <br>
-    {% endif %}
-    <a href="https://nephty.top"
-       class="text-sm text-gray-400 dark:text-gray-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-      ← Nephty Lab
-    </a>
-  </div>
-
-  <button type="button" id="theme-toggle"
-          class="fixed bottom-4 right-4 inline-flex items-center justify-center w-9 h-9 rounded-full text-base bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-          title="Toggle theme" aria-label="Toggle theme"></button>
-
-  <script>
-    (function () {
-      var html = document.documentElement;
-      var toggle = document.getElementById("theme-toggle");
-      function isDark() { return html.classList.contains("dark"); }
-      function render() { toggle.textContent = isDark() ? "🌙" : "☀️"; }
-      render();
-      toggle.addEventListener("click", function () {
-        if (isDark()) {
-          html.classList.remove("dark");
-          localStorage.setItem("theme", "light");
-        } else {
-          html.classList.add("dark");
-          localStorage.setItem("theme", "dark");
-        }
-        render();
-      });
-    })();
-  </script>
+<body>
+  <main class="auth">
+    <div class="auth-card"><div class="receipt">
+      <div class="top">{% include "partials/mark.html" %}<span class="eyebrow">Nyochi</span></div>
+      {% if signed_in %}
+        <h1>No access yet</h1>
+        <p class="lead">You are signed in, but your account has not been given Nyochi. Ask the admin to turn it on in the hub.</p>
+        <a class="btn btn-primary" href="https://nephty.top/">Back to the hub</a>
+      {% else %}
+        <h1>Sign in first</h1>
+        <p class="lead">Nyochi is a private cookbook: accounts live in the Nephty Lab hub.</p>
+        <a class="btn btn-primary" id="login" href="https://nephty.top/login/">Sign in</a>
+        <script>document.getElementById("login").href = "https://nephty.top/login/?next=" + encodeURIComponent(location.href);</script>
+      {% endif %}
+      {% include "partials/barcode.html" %}
+      <div class="foot">BON APPÉTIT</div>
+    </div></div>
+  </main>
 </body>
 </html>

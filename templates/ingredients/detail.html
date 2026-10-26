@@ -1,83 +1,67 @@
 {% extends "base.html" %}
-{% load recipe_extras %}
-{% block title %}{{ ingredient.name }}{% endblock %}
+{% block title %}{{ ingredient.name }} · Nyochi{% endblock %}
+{% block phone_title %}Ingredient{% endblock %}
 {% block content %}
-<div class="mb-4">
-  <a href="{% url 'ingredient-list' %}" class="text-sm text-gray-500 hover:text-gray-700">← Ingredients</a>
-</div>
-
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <div class="flex items-start justify-between gap-4 mb-3">
-    <div>
-      <h1 class="text-2xl font-bold">{{ ingredient.name }}</h1>
-      <span class="text-sm text-gray-500">{{ ingredient.get_category_display }}</span>
-    </div>
-    <div class="flex gap-2">
-      <a href="{% url 'ingredient-update' ingredient.pk %}" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Edit</a>
-      <a href="{% url 'ingredient-delete' ingredient.pk %}" class="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50">Delete</a>
+<div class="page-head">
+  <div>
+    <a class="back" href="{% url 'ingredient-list' %}">{% icon "chevron_left" %}Ingredients</a>
+    <h1>{{ ingredient.name }}</h1>
+    <div class="row" style="margin-top:.7rem">
+      <span class="chip">{{ ingredient.get_category_display }}</span>
+      {% with now=seasons|get_item:month %}<span class="chip season-{{ now|default:'unknown' }}">{% if now == "in" %}in season now{% elif now == "early" %}early season now{% elif now == "late" %}late season now{% elif now == "out" %}out of season now{% else %}season unknown{% endif %}</span>{% endwith %}
+      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
     </div>
   </div>
-</div>
-
-<!-- Season grid -->
-<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-  <h2 class="font-semibold mb-4">Seasonal availability</h2>
-  <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
-    {% for month_num, month_name in months %}
-      {% with sa=seasons|get_item:month_num %}
-        {% if sa %}
-          {% season_badge_class sa.status as cls %}
-          {% season_label sa.status as label %}
-          <div class="rounded-lg px-2 py-2 {{ cls }}">
-            <div class="font-semibold">{{ month_name|slice:":3" }}</div>
-            <div class="mt-0.5 opacity-80">{{ sa.get_status_display }}</div>
-          </div>
-        {% else %}
-          <div class="rounded-lg px-2 py-2 bg-gray-50 text-gray-400">
-            <div class="font-semibold">{{ month_name|slice:":3" }}</div>
-            <div class="mt-0.5">—</div>
-          </div>
-        {% endif %}
-      {% endwith %}
-    {% endfor %}
+  <div class="actions">
+    {% if can_edit %}<a class="btn" href="{% url 'ingredient-update' ingredient.pk %}">{% icon "edit" %}Edit</a>{% endif %}
+    {% if mine %}<button type="button" class="btn" data-share="ingredient:{{ ingredient.pk }}" data-name="{{ ingredient.name }}">{% icon "share" %}Share</button>
+    <form method="post" action="{% url 'ingredient-delete' ingredient.pk %}" class="inline-form" data-confirm="Delete “{{ ingredient.name }}”? It is removed from every recipe and list that uses it.">{% csrf_token %}
+      <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete ingredient">{% icon "delete" %}</button>
+    </form>{% endif %}
   </div>
 </div>
 
-<!-- Shop links -->
-{% if shop_links %}
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-    <h2 class="font-semibold mb-3">Shop links</h2>
-    <ul class="space-y-2 text-sm">
-      {% for link in shop_links %}
-        <li class="flex items-center gap-2">
-          <a href="{% url 'shop-detail' link.shop_id %}"
-             class="text-gray-600 font-medium w-28 shrink-0 hover:text-emerald-700">{{ link.shop.name }}</a>
-          <a href="{{ link.url }}" target="_blank" rel="noopener"
-             class="text-emerald-600 hover:underline truncate">{{ link.name|default:link.url }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  </div>
-{% endif %}
+<div class="detail">
+  <div>
+    <section class="panel">
+      <div class="panel-head"><h2>Season</h2></div>
+      <div class="panel-body">
+        {% ribbon seasons "big" %}
+        <div class="ribbon-legend">
+          <span><i class="m-in" style="background:var(--save)"></i>In season</span>
+          <span><i style="background:var(--early)"></i>Early</span>
+          <span><i style="background:var(--late)"></i>Late</span>
+          <span><i style="background:var(--paper-3)"></i>Out of season</span>
+          <span>Ringed: this month</span>
+        </div>
+      </div>
+    </section>
 
-<!-- Recipes using this ingredient -->
-{% with recipes=ingredient.recipe_set.all %}
-  {% if recipes %}
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="font-semibold mb-3">Used in</h2>
-      <ul class="space-y-1 text-sm">
-        {% for recipe in recipes %}
-          <li><a href="{% url 'recipe-detail' recipe.pk %}" class="hover:text-emerald-700">{{ recipe }}</a></li>
+    <section class="panel">
+      <div class="panel-head"><h2>Used in</h2><span class="muted sm">{{ recipes|length }}</span></div>
+      <div class="panel-body">
+        {% for r in recipes %}
+          <a class="rowcard" style="text-decoration:none;margin-bottom:.5rem" href="{% url 'recipe-detail' r.pk %}"><b>{{ r.name }}</b><span class="muted sm">{{ r.get_meal_type_display }} · {{ r.total_time }} min</span></a>
+        {% empty %}
+          <p class="muted" style="margin:0">No recipe uses this ingredient yet.</p>
         {% endfor %}
-      </ul>
-    </div>
-  {% endif %}
-{% endwith %}
+      </div>
+    </section>
+  </div>
 
-{% if request.user == ingredient.owner %}
-<div class="bg-white rounded-xl border border-gray-200 p-6 mt-6">
-  <h2 class="font-semibold mb-3">Sharing</h2>
-  {% include "partials/share_panel.html" with obj=ingredient model_type="ingredient" %}
+  <div>
+    <section class="panel">
+      <div class="panel-head"><h2>In the shops</h2><span class="muted sm">via Shopping</span></div>
+      <div class="panel-body linkcards">
+        {% for item in links %}
+          {% include "ingredients/_linkcard.html" with item=item %}
+        {% empty %}
+          <p class="muted" style="margin:0">No product linked yet.{% if can_edit %} <a href="{% url 'ingredient-update' ingredient.pk %}">Link one</a> to see its price and promotions here and in your recipes.{% endif %}</p>
+        {% endfor %}
+        {% if shopping_on and not reachable %}<div class="notice bad">{% icon "cloud_off" %}<span>Shopping can’t be reached right now: these are the last prices we have.</span></div>{% endif %}
+        {% if not shopping_on %}<div class="notice">{% icon "info" %}<span>The link to Shopping is not set up on this server yet.</span></div>{% endif %}
+      </div>
+    </section>
+  </div>
 </div>
-{% endif %}
 {% endblock %}

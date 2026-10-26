@@ -1,38 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Shops{% endblock %}
+{% block title %}Shops · Nyochi{% endblock %}
+{% block phone_title %}Shops{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold">Shops</h1>
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Where you buy</div>
+    <h1>Shops</h1>
+    <div class="sub">Describe how a shop is laid out and your shopping list follows its aisles.</div>
+  </div>
 </div>
 
-<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8" id="shop-grid">
-  {% for shop in shops %}
-    {% include "partials/shop_card.html" %}
-  {% empty %}
-    <p class="text-gray-400 text-sm col-span-full">No shops yet — create one below.</p>
+<div class="shops">
+  {% for s in shops %}
+  <a class="scard" href="{% url 'shop-detail' s.pk %}">
+    <div class="top"><span class="glyph">{% icon "storefront" %}</span><div><h3>{{ s.name }}</h3>{% if s.shopping_store %}<span class="chip store-{{ s.shopping_store }}" style="margin-top:.3rem">{{ s.shopping_store|title }} in Shopping</span>{% endif %}</div></div>
+    <div class="row sm muted"><span>{{ s.locations.all|length }} location{{ s.locations.all|length|pluralize }}</span><span>·</span><span>{{ s.aisles.all|length }} aisle{{ s.aisles.all|length|pluralize }}</span>{% if not s.mine %}<span class="chip mine-no">shared</span>{% endif %}</div>
+  </a>
   {% endfor %}
-</div>
-
-<div class="bg-white rounded-xl border border-gray-200 p-6 max-w-md">
-  <h2 class="font-semibold mb-4">Add shop</h2>
-  {% if form.name.errors %}
-    <p class="text-xs text-red-500 mb-2">{{ form.name.errors|join:", " }}</p>
-  {% endif %}
-  <form method="post"
-        hx-post="{% url 'shop-list' %}"
-        hx-target="#shop-grid"
-        hx-swap="afterbegin"
-        hx-on::after-request="this.reset()"
-        class="flex gap-2">
+  <form method="post" class="scard" novalidate style="border-style:dashed;box-shadow:none">
     {% csrf_token %}
-    <input type="text" name="{{ form.name.html_name }}"
-           value="{{ form.name.value|default:'' }}"
-           placeholder="Shop name (e.g. Delhaize, Carrefour)"
-           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm
-                  focus:outline-none focus:ring-2 focus:ring-emerald-400">
-    <button type="submit"
-            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium
-                   hover:bg-emerald-700 transition-colors">Add</button>
+    <div class="top"><span class="glyph">{% icon "add" %}</span><h3>Add a shop</h3></div>
+    <div class="field"><label class="label" for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
+    <div class="field"><label class="label" for="{{ form.shopping_store.id_for_label }}">Shopping store</label>{{ form.shopping_store }}
+      <span class="help">When set, lists for this shop prefer that store’s products.</span></div>
+    <button class="btn btn-primary" type="submit">{% icon "add" %}Add shop</button>
   </form>
 </div>
 {% endblock %}
