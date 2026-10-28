@@ -44,20 +44,24 @@ API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/
   off and the UI says so. The token file is shared with Shopping's `apiTokenFile`; create it once on the VPS with
   `install -d -m 700 /etc/nephty && head -c 32 /dev/urandom | base64 | tr -d '\n' > /etc/nephty/shopping-api-token && chmod 600 /etc/nephty/shopping-api-token`.
 
-## Accounts (shared with Shopping)
+## Accounts and communities (Home's labauth)
 
-Nyochi and Shopping share **one login that is not the hub's**: the same accounts database (`ACCOUNTS_DB_PATH`, SQLite, alias
-`accounts`, routed by `config/routers.py`), the same `SECRET_KEY` (`/var/lib/lab-auth/secret-key` in production), and the
-same session cookie (`nyoshop_session`, domain `.nephty.top`), so signing in on either counts on both. Each app has its own
-`/login/` page (no redirect between hosts). There is no signup: accounts are created in the Django admin of either app.
-Any account may use Nyochi; Shopping adds per-account flags for its Fetch / Datasets pages (`Profile`).
+The house apps share **one login on Home** (not the hub's): users, sessions and communities live in the lab-auth
+database Home owns (`ACCOUNTS_DB_PATH`, alias `accounts`, routed by `config/routers.py`, `labauth` app synced from
+`home/labauth`). `LOGIN_URL` is Home's; `/login/` here only redirects. Nyochi never migrates that database in production
+(Home's `home-accounts` unit does; recipe-book requires it).
 
-- **Shopping owns the schema**: its `shopping-accounts` systemd oneshot runs `migrate --database accounts`; Nyochi never
-  migrates the accounts DB (its own `migrate` only touches `default`, plus content types that land in `accounts`).
-- Ownership numbers in this app's rows are account ids. After moving from the hub accounts, run once:
-  `manage.py remap_owners --map OLD_ID=username ... [--dry-run]` (rewrites every `owner` / `shared_with` in one statement
-  per table, so id swaps cannot chain).
-- Hub: the hub card is only a link now (no AppAccess slug).
+- **Everything belongs to a community** (`recipes/community.py`): every row with an owner has a `community_id`; the
+  owner is only who made it. New rows take the request's community (a context variable set by
+  `recipes.community.CommunityMiddleware`), a child row its parent's, else (tests, commands) the owner's first community.
+  Names are unique per community. Rows without a community (seeded) are global: read by all, changed by superusers.
+- **Who may do what** (`recipes/access.py`): members whose community gives `nyochi.view` read its rows (labauth's
+  `AppAccessMiddleware` keeps the others out); `nyochi.recipes.edit` (recipes, tags), `nyochi.ingredients.edit`
+  (ingredients, categories, Shopping links), `nyochi.shops.edit` (shops, locations, aisles, layouts) and
+  `nyochi.lists.edit` (plan saving, saved lists) create, change and delete. Templates' `mine` = "may change it here".
+- Categories are per community (the ten defaults seeded on first use).
+- Per-row sharing (`shared_with`, the Share buttons) and `remap_owners` are gone: the community is what is shared.
+  Migration 0017 put every existing row in the first community (Home's bootstrap).
 
 ## Layout of the code
 
