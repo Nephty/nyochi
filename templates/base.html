@@ -41,11 +41,13 @@
       <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
       <a href="{% url 'category-list' %}" {% if page == "categories" %}aria-current="page"{% endif %} title="Categories">{% icon "category" %}<span>Categories</span></a>
       <a href="{% url 'tag-list' %}" {% if page == "tags" %}aria-current="page"{% endif %} title="Tags">{% icon "sell" %}<span>Tags</span></a>
+      {% if shopping_url %}<div class="nav-sep"></div>
+      <a class="sister" href="{{ shopping_url }}" title="Shopping: prices and promotions, same account">{% icon "shopping_cart" %}<span>Shopping</span><small>prices</small></a>{% endif %}
     </nav>
     <div class="rail-foot">
       <span class="who">{{ user.get_username }}</span>
       {% include "partials/theme_btn.html" %}
-      <a class="btn btn-ghost btn-icon" href="https://nephty.top/" title="Back to Nephty Lab" aria-label="Back to Nephty Lab">{% icon "home" %}</a>
+      <a class="btn btn-ghost btn-icon" href="{{ hub_url }}" title="Back to Nephty Lab" aria-label="Back to Nephty Lab">{% icon "home" %}</a>
       {% if user.is_staff %}<a class="btn btn-ghost btn-icon" href="/admin/" title="Django admin" aria-label="Django admin">{% icon "admin_panel_settings" %}</a>{% endif %}
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost btn-icon" title="Sign out" aria-label="Sign out">{% icon "logout" %}</button></form>
     </div>
@@ -64,7 +66,8 @@
   <a href="{% url 'shop-list' %}">{% icon "storefront" %}Shops</a>
   <a href="{% url 'category-list' %}">{% icon "category" %}Categories</a>
   <a href="{% url 'tag-list' %}">{% icon "sell" %}Tags</a>
-  <a href="https://nephty.top/">{% icon "home" %}Nephty Lab</a>
+  {% if shopping_url %}<a href="{{ shopping_url }}">{% icon "shopping_cart" %}Shopping (prices)</a>{% endif %}
+  <a href="{{ hub_url }}">{% icon "home" %}Nephty Lab</a>
   {% if user.is_staff %}<a href="/admin/">{% icon "admin_panel_settings" %}Django admin</a>{% endif %}
   <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>{% icon "logout" %}Sign out</button></form>
 </div>

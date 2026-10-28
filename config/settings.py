@@ -66,6 +66,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'config.context.flash',
+                'config.context.links',
             ],
         },
     },
@@ -115,5 +116,6 @@ STORAGES = {
 
 # The Shopping app (prices, promotions): a read-only JSON API with a bearer token. Only this server calls it.
 SHOPPING_API_URL = os.environ.get('SHOPPING_API_URL', 'https://shopping.nephty.top')
+HUB_URL = os.environ.get('HUB_URL', 'https://nephty.top/')
 SHOPPING_API_TOKEN_FILE = os.environ.get('SHOPPING_API_TOKEN_FILE', '')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
