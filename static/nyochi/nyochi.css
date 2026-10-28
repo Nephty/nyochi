@@ -735,3 +735,12 @@ body.plan-page .main { min-height: 0; }
 .d-late { background: var(--late); }
 .d-out { background: var(--line-2); }
 .d-unknown { background: repeating-linear-gradient(45deg, var(--paper-2) 0 3px, var(--paper-3) 3px 5px); }
+/* ------------------------------------------------------------------ the community switcher (labauth/switcher.html) */
+.lab-switch { display: grid; gap: .15rem; margin: 0 .2rem .9rem; padding: .55rem .7rem; border-radius: 12px; border: 1px dashed var(--line-2); background: color-mix(in srgb, var(--paper) 70%, transparent); }
+.lab-switch-k { font: 800 .64rem var(--font); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.lab-switch b { font: 700 .98rem var(--display); }
+.lab-switch select { all: unset; cursor: pointer; font: 700 .98rem var(--display); padding-right: 1.2rem;
+  background: linear-gradient(45deg, transparent 50%, var(--muted) 50%) calc(100% - 7px) 55% / 5px 5px no-repeat, linear-gradient(135deg, var(--muted) 50%, transparent 50%) calc(100% - 2px) 55% / 5px 5px no-repeat; }
+.lab-switch select option { background: var(--paper); color: var(--ink); }
+.lab-msg { padding: 1.8rem 1.7rem calc(9px + 1.6rem); display: grid; gap: 1rem; }
+@media (max-width: 1100px) { .rail .lab-switch { display: none; } }

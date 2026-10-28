@@ -70,7 +70,7 @@ class IngredientFormTests(HubTestCase):
         self.make_ingredient('Tomato')
         r = self.client.post(reverse('ingredient-create'), {'name': 'tomato', 'category': 'other', **season_post()})
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'You already have an ingredient called')
+        self.assertContains(r, 'Your community already has an ingredient called')
         self.assertEqual(Ingredient.objects.filter(name__iexact='tomato').count(), 1)
 
     def test_pages_render(self):

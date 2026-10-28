@@ -21,7 +21,7 @@
   {% for l in lists %}
   <a class="lcard{% if l.total and l.done == l.total %} done{% endif %}" href="{% url 'saved-grocery-detail' l.pk %}">
     <h3>{{ l.name }}</h3>
-    <div class="meta"><span>{{ l.created_at|date:"j M Y" }}</span>{% if l.location %}<span>{% icon "location_on" %}{{ l.location }}</span>{% endif %}{% if not l.mine %}<span class="chip mine-no">shared</span>{% endif %}</div>
+    <div class="meta"><span>{{ l.created_at|date:"j M Y" }}</span>{% if l.location %}<span>{% icon "location_on" %}{{ l.location }}</span>{% endif %}{% if not l.mine %}<span class="chip mine-no">read-only</span>{% endif %}</div>
     {% if l.recipes.all %}<div class="names">{% for r in l.recipes.all %}{{ r.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
     <div class="progress thin"><div style="width: {% if l.total %}{% widthratio l.done l.total 100 %}{% else %}0{% endif %}%"></div></div>
     <div class="meta"><span>{{ l.done }} of {{ l.total }} in the cart</span></div>

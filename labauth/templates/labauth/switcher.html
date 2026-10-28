@@ -1,0 +1,9 @@
+{% if lab.community %}<form class="lab-switch" method="post" action="{% url 'lab_switch' %}" title="Your community: what you see and may do here depends on it">
+  {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <span class="lab-switch-k">Community</span>
+  {% if lab.communities|length > 1 %}
+  <select name="community" aria-label="Community" onchange="this.form.submit()">
+    {% for c in lab.communities %}<option value="{{ c.pk }}" {% if c.pk == lab.community.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  {% else %}<b>{{ lab.community.name }}</b>{% endif %}
+</form>{% endif %}

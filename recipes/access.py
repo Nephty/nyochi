@@ -1,63 +1,43 @@
-"""Who can see / change / delete what.
+"""Who can see / change / delete what: the community decides (labauth, recipes/community.py).
 
-Four kinds of rows:
-  * top-level objects (Recipe, Ingredient, Shop, SavedGroceryList, Tag) have an owner and a shared_with list;
+Three kinds of rows:
+  * top-level objects (Recipe, Ingredient, Shop, SavedGroceryList, Tag, Category) belong to a community: every member
+    who may open Nyochi reads them, the matching `nyochi.*.edit` permission changes and deletes them;
   * their children (RecipeIngredient, ShopLocation, Aisle, mappings, orders, list items, links...) have no access of
-    their own: they follow their parent, so sharing a shop shares its locations and layout, with no copying;
-  * an ingredient or tag is also readable (not editable) when a recipe / list you can read uses it;
-  * rows without an owner are everyone's to read, a superuser's to change.
+    their own: they follow their parent;
+  * rows without a community (seeded ones) are everyone's to read, a superuser's to change.
 
-auth_user lives in the hub's database, so nothing here joins to it: shared_with is read through the
-M2M table's user_id column only.
+`user` is request.user, which carries the active community (`lab_community_id`) and its permissions (`lab_perms`).
+The owner of a row is only who made it; it gives no rights.
 """
 from django.db.models import Q
 
-from .models import (
-    Aisle, Ingredient, Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList, Shop, ShopLocation, Tag,
-)
-
-
-def _shared_ids(model, user):
-    through = model.shared_with.through
-    return through.objects.filter(user_id=user.pk).values(f'{model._meta.model_name}_id')
+from .community import can_edit, community_of
+from .models import Aisle, SavedGroceryItem, SavedGroceryList, Shop, ShopLocation
 
 
 def readable(model, user):
-    """Rows of a top-level model that `user` may see."""
-    q = Q(owner_id=user.pk) | Q(owner__isnull=True)
-    if hasattr(model, 'shared_with'):
-        q |= Q(pk__in=_shared_ids(model, user))
-    if model is Ingredient:
-        recipes = readable(Recipe, user).values('pk')
-        lists = readable(SavedGroceryList, user).values('pk')
-        q |= Q(pk__in=RecipeIngredient.objects.filter(recipe__in=recipes).values('ingredient'))
-        q |= Q(pk__in=SavedGroceryItem.objects.filter(grocery_list__in=lists).values('ingredient'))
-    elif model is Tag:
-        q |= Q(pk__in=Recipe.tags.through.objects.filter(
-            recipe__in=readable(Recipe, user).values('pk')).values('tag'))
-    return model.objects.filter(q)
+    """Rows of a top-level model that `user` may see: their community's, and the global ones."""
+    return model.objects.filter(Q(community_id=community_of(user)) | Q(community_id__isnull=True))
 
 
 def writable(model, user):
-    """Rows `user` may edit: their own, shared with them, and (superusers) the ownerless ones."""
-    q = Q(owner_id=user.pk)
-    if hasattr(model, 'shared_with'):
-        q |= Q(pk__in=_shared_ids(model, user))
+    """Rows `user` may edit (and delete): their community's, with the permission for that kind; superusers also the
+    global ones."""
+    q = Q(community_id=community_of(user)) if can_edit(user, model) else Q(pk__in=[])
     if user.is_superuser:
-        q |= Q(owner__isnull=True)
+        q |= Q(community_id__isnull=True)
     return model.objects.filter(q)
 
 
-def deletable(model, user):
-    """Rows `user` may delete or share: only the owner (a superuser for ownerless rows)."""
-    q = Q(owner_id=user.pk)
-    if user.is_superuser:
-        q |= Q(owner__isnull=True)
-    return model.objects.filter(q)
+deletable = writable
 
 
 def is_owner(obj, user):
-    return obj.owner_id == user.pk or (obj.owner_id is None and user.is_superuser)
+    """May `user` change this row? (The templates call it `mine`: they show the edit / delete buttons.)"""
+    if obj.community_id is None:
+        return user.is_superuser
+    return obj.community_id == community_of(user) and can_edit(user, type(obj))
 
 
 # children, through their parent -------------------------------------------------------------

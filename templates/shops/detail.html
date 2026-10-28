@@ -8,11 +8,11 @@
     <h1>{{ shop.name }}</h1>
     <div class="row" style="margin-top:.7rem">
       {% if shop.shopping_store %}<span class="chip store-{{ shop.shopping_store }}">{{ shop.shopping_store|title }} in Shopping</span>{% endif %}
-      {% if not mine %}<span class="chip mine-no">shared with you{% if not can_edit %} · read only{% endif %}</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>
   </div>
   <div class="actions">
-    {% if mine %}<button type="button" class="btn" data-share="shop:{{ shop.pk }}" data-name="{{ shop.name }}">{% icon "share" %}Share</button>
+    {% if mine %}
     <form method="post" action="{% url 'shop-delete' shop.pk %}" class="inline-form" data-confirm="Delete “{{ shop.name }}” with all its locations and aisles?">{% csrf_token %}
       <button class="btn btn-danger btn-icon" title="Delete shop" aria-label="Delete shop">{% icon "delete" %}</button>
     </form>{% endif %}

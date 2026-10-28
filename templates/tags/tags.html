@@ -20,7 +20,7 @@
     <div class="taglist">
       {% for t in tags %}
       <span class="tagitem">{{ t.name }} <small>{{ t.uses }}</small>
-        {% if t.mine %}<form method="post" action="{% url 'tag-delete' t.pk %}" class="inline-form" data-confirm="Delete the tag “{{ t.name }}”? Recipes keep existing without it.">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon" title="Delete" aria-label="Delete {{ t.name }}">{% icon "close" %}</button></form>{% else %}<span class="chip mine-no">shared</span>{% endif %}
+        {% if t.mine %}<form method="post" action="{% url 'tag-delete' t.pk %}" class="inline-form" data-confirm="Delete the tag “{{ t.name }}”? Recipes keep existing without it.">{% csrf_token %}<button class="btn btn-ghost btn-sm btn-icon" title="Delete" aria-label="Delete {{ t.name }}">{% icon "close" %}</button></form>{% else %}<span class="chip mine-no">read-only</span>{% endif %}
       </span>
       {% empty %}<span class="muted">No tags yet. Add one above, or while writing a recipe.</span>{% endfor %}
     </div>

@@ -11,13 +11,12 @@
       <span class="chip">{% flames recipe.difficulty %}{{ recipe.get_difficulty_display }}</span>
       <span class="chip">{{ recipe.get_meal_type_display }}</span>
       {% for t in recipe.tags.all %}<span class="tagpill">{{ t.name }}</span>{% endfor %}
-      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>
   </div>
   <div class="actions">
     <a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}Add to plan</a>
     {% if can_edit %}<a class="btn" href="{% url 'recipe-update' recipe.pk %}">{% icon "edit" %}Edit</a>{% endif %}
-    {% if mine %}<button type="button" class="btn" data-share="recipe:{{ recipe.pk }}" data-name="{{ recipe.name }}">{% icon "share" %}Share</button>{% endif %}
     {% if mine %}
     <form method="post" action="{% url 'recipe-delete' recipe.pk %}" data-confirm="Delete “{{ recipe.name }}”? It also disappears from the lists you made with it." class="inline-form">{% csrf_token %}
       <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete recipe">{% icon "delete" %}</button>

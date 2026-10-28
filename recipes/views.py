@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Prefetch
@@ -147,43 +146,3 @@ class RecipeDeleteView(LoginRequiredMixin, View):
         return redirect('recipe-list')
 
 
-# ------------------------------------------------------------------ sharing (a dialog on every page)
-
-SHAREABLE = {'recipe': Recipe, 'ingredient': Ingredient, 'shop': Shop, 'grocerylist': SavedGroceryList}
-
-
-def _shared_users(obj):
-    """Two queries instead of a join: the M2M table is in this database, auth_user is in the accounts database shared with Shopping."""
-    through = obj.shared_with.through
-    ids = list(through.objects.filter(**{f'{obj._meta.model_name}_id': obj.pk}).values_list('user_id', flat=True))
-    if not ids:
-        return []
-    users = get_user_model().objects.using('accounts').filter(pk__in=ids).order_by('username')
-    return [{'id': u.pk, 'username': u.username} for u in users]
-
-
-@api
-def share(request, model_type, pk):
-    model = SHAREABLE.get(model_type)
-    if model is None:
-        raise ApiError('Unknown kind of object.', 404)
-    obj = deletable(model, request.user).filter(pk=pk).first()
-    if obj is None:
-        raise ApiError('Only the owner can share this.', 404)
-    if request.method == 'POST':
-        data = body(request)
-        User = get_user_model()
-        if data.get('add_username'):
-            username = str(data['add_username']).strip()
-            user = User.objects.using('accounts').filter(username__iexact=username).first()
-            if user is None:
-                raise ApiError(f'There is no user "{username}".', 404)
-            if user.pk == request.user.pk:
-                raise ApiError("That's you: you already have access.")
-            obj.shared_with.add(user)
-        elif data.get('remove_user_id') is not None:
-            try:
-                obj.shared_with.remove(int(data['remove_user_id']))
-            except (TypeError, ValueError):
-                raise ApiError('Invalid user.')
-    return JsonResponse({'name': str(obj), 'users': _shared_users(obj)})

@@ -9,12 +9,12 @@
     <div class="row" style="margin-top:.7rem">
       <span class="chip">{{ category_label }}</span>
       {% with now=seasons|get_item:month %}<span class="chip season-{{ now|default:'unknown' }}">{% if now == "in" %}in season now{% elif now == "early" %}early season now{% elif now == "late" %}late season now{% elif now == "out" %}out of season now{% else %}season unknown{% endif %}</span>{% endwith %}
-      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>
   </div>
   <div class="actions">
     {% if can_edit %}<a class="btn" href="{% url 'ingredient-update' ingredient.pk %}">{% icon "edit" %}Edit</a>{% endif %}
-    {% if mine %}<button type="button" class="btn" data-share="ingredient:{{ ingredient.pk }}" data-name="{{ ingredient.name }}">{% icon "share" %}Share</button>
+    {% if mine %}
     <form method="post" action="{% url 'ingredient-delete' ingredient.pk %}" class="inline-form" data-confirm="Delete “{{ ingredient.name }}”? It is removed from every recipe and list that uses it.">{% csrf_token %}
       <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete ingredient">{% icon "delete" %}</button>
     </form>{% endif %}

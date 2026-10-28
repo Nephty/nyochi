@@ -3,14 +3,32 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from labauth.catalogue import COMMUNITY_PERMS
+from labauth.models import Community, CommunityGrant, MemberGrant, Membership
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, SeasonalAvailability, Unit
 
 User = get_user_model()
 
 
+def community(name, perms=COMMUNITY_PERMS):
+    c = Community.objects.create(name=name, slug=name.lower())
+    CommunityGrant.objects.bulk_create(CommunityGrant(community=c, perm=p) for p in perms)
+    return c
+
+
+def join(user, c, deny=(), role=Membership.MEMBER):
+    """Put `user` in community `c`, without the permissions in `deny`."""
+    m, _ = Membership.objects.get_or_create(user=user, community=c, defaults={'role': role})
+    for perm in deny:
+        MemberGrant.objects.update_or_create(membership=m, perm=perm, defaults={'allow': False})
+    return user
+
+
 class HubTestCase(TestCase):
-    """Users and sessions live in the 'accounts' database shared with Shopping; everything else in 'default'."""
+    """Users, sessions and labauth live in the 'accounts' database (Home's); everything else in 'default'.
+    alice, bob and carol (superusers: every permission) each have their own community, A, B and C, so by default they
+    don't see each other's rows; join() puts someone in another community."""
     databases = {'default', 'accounts'}
 
     @classmethod
@@ -19,6 +37,10 @@ class HubTestCase(TestCase):
         cls.alice = User.objects.create_user('alice', password='x', is_superuser=True, pk=41)
         cls.bob = User.objects.create_user('bob', password='x', is_superuser=True, pk=42)
         cls.carol = User.objects.create_user('carol', password='x', is_superuser=True, pk=43)
+        cls.a, cls.b, cls.c = community('A'), community('B'), community('C')
+        join(cls.alice, cls.a)
+        join(cls.bob, cls.b)
+        join(cls.carol, cls.c)
         cls.gram = Unit.objects.get(abbreviation='g')
         cls.kilo = Unit.objects.get(abbreviation='kg')
         cls.tsp = Unit.objects.get(abbreviation='tsp')

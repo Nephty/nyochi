@@ -14,7 +14,7 @@
   {% for s in shops %}
   <a class="scard" href="{% url 'shop-detail' s.pk %}">
     <div class="top"><span class="glyph">{% icon "storefront" %}</span><div><h3>{{ s.name }}</h3>{% if s.shopping_store %}<span class="chip store-{{ s.shopping_store }}" style="margin-top:.3rem">{{ s.shopping_store|title }} in Shopping</span>{% endif %}</div></div>
-    <div class="row sm muted"><span>{{ s.locations.all|length }} location{{ s.locations.all|length|pluralize }}</span><span>·</span><span>{{ s.aisles.all|length }} aisle{{ s.aisles.all|length|pluralize }}</span>{% if not s.mine %}<span class="chip mine-no">shared</span>{% endif %}</div>
+    <div class="row sm muted"><span>{{ s.locations.all|length }} location{{ s.locations.all|length|pluralize }}</span><span>·</span><span>{{ s.aisles.all|length }} aisle{{ s.aisles.all|length|pluralize }}</span>{% if not s.mine %}<span class="chip mine-no">read-only</span>{% endif %}</div>
   </a>
   {% endfor %}
   <form method="post" class="scard" novalidate style="border-style:dashed;box-shadow:none">

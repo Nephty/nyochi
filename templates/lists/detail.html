@@ -9,7 +9,7 @@
     <div class="row" style="margin-top:.7rem">
       <span class="chip">{{ saved.created_at|date:"j M Y" }}</span>
       {% if saved.archived %}<span class="chip">archived</span>{% endif %}
-      {% if not mine %}<span class="chip mine-no">shared with you</span>{% endif %}
+      {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>
   </div>
   <div class="actions no-print">
@@ -22,7 +22,7 @@
     <form method="post" action="{% url 'list-action' saved.pk 'archive' %}" class="inline-form">{% csrf_token %}<button class="btn">{% icon "archive" %}Archive</button></form>
     {% endif %}
     {% endif %}
-    {% if mine %}<button type="button" class="btn" data-share="grocerylist:{{ saved.pk }}" data-name="{{ saved.name }}">{% icon "share" %}Share</button>
+    {% if mine %}
     <form method="post" action="{% url 'list-action' saved.pk 'delete' %}" class="inline-form" data-confirm="Delete “{{ saved.name }}”?">{% csrf_token %}
       <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete list">{% icon "delete" %}</button></form>{% endif %}
   </div>

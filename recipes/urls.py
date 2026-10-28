@@ -8,5 +8,4 @@ urlpatterns = [
     path('recipes/<int:pk>/', views.RecipeDetailView.as_view(), name='recipe-detail'),
     path('recipes/<int:pk>/edit/', views.RecipeFormView.as_view(), name='recipe-update'),
     path('recipes/<int:pk>/delete/', views.RecipeDeleteView.as_view(), name='recipe-delete'),
-    path('share/<str:model_type>/<int:pk>/', views.share, name='share-object'),
 ]

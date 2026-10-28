@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block body %}
+<main class="auth">
+  <div class="auth-card">
+    <div class="receipt lab-msg">
+      <h1>{{ title }}</h1>
+      <p class="lead">{{ message }}</p>
+      {% if home_url %}<a class="btn btn-primary" href="{{ home_url }}">Go to Home</a>{% endif %}
+    </div>
+  </div>
+</main>
+{% endblock %}

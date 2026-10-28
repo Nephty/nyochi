@@ -9,5 +9,5 @@ def flash(request):
 
 
 def links(request):
-    """Where the sister app lives (the same base the Shopping API calls use) and the hub, for the rail."""
+    """Where the sister app lives (the same base the Shopping API calls use) and Home, for the rail."""
     return {'shopping_url': settings.SHOPPING_API_URL, 'hub_url': settings.HUB_URL}

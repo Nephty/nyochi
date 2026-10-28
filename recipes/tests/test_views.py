@@ -6,7 +6,10 @@ from recipes.models import (
     ShopLocation,
 )
 
-from .base import HubTestCase
+from django.conf import settings
+from labauth.models import MemberGrant
+
+from .base import HubTestCase, community, join
 
 User = get_user_model()
 
@@ -77,14 +80,17 @@ class RecipeViewTests(HubTestCase):
                            ('saved-grocery-list', [])]:
             self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 200, name)
 
-    def test_shared_user_edits_but_cannot_delete(self):
+    def test_member_without_the_permission_reads_only(self):
         recipe = self.make_recipe('Soup', [(self.tomato, 3, self.piece)])
-        recipe.shared_with.add(self.bob)
-        self.login(self.bob)
-        self.assertEqual(self.client.get(reverse('recipe-update', args=[recipe.pk])).status_code, 200)
+        dave = join(User.objects.create_user('dave', password='x', pk=71), self.a, deny=['nyochi.recipes.edit'])
+        self.login(dave)
+        self.assertEqual(self.client.get(reverse('recipe-detail', args=[recipe.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse('recipe-update', args=[recipe.pk])).status_code, 404)
         self.assertEqual(self.client.post(reverse('recipe-delete', args=[recipe.pk])).status_code, 404)
         self.assertTrue(Recipe.objects.filter(pk=recipe.pk).exists())
-        self.login(self.alice)
+        erin = join(User.objects.create_user('erin', password='x', pk=72), self.a)  # with it: edit and delete
+        self.login(erin)
+        self.assertEqual(self.client.get(reverse('recipe-update', args=[recipe.pk])).status_code, 200)
         self.client.post(reverse('recipe-delete', args=[recipe.pk]))
         self.assertFalse(Recipe.objects.filter(pk=recipe.pk).exists())
 
@@ -98,67 +104,64 @@ class RecipeViewTests(HubTestCase):
         self.assertEqual(self.client.get('/grocery/').status_code, 301)
 
 
-class ShareApiTests(HubTestCase):
-    def setUp(self):
-        self.login(self.alice)
-        self.recipe = self.make_recipe('Soup', [(self.make_ingredient('Tomato'), 3, self.piece)])
-        self.url = reverse('share-object', args=['recipe', self.recipe.pk])
-
-    def test_add_list_and_remove(self):
-        r = self.post_json(self.url, {'add_username': 'Bob'})
-        self.assertEqual([u['username'] for u in r.json()['users']], ['bob'])
-        self.assertEqual(self.get_json(self.url).json()['users'][0]['id'], self.bob.pk)
-        r = self.post_json(self.url, {'remove_user_id': self.bob.pk})
-        self.assertEqual(r.json()['users'], [])
-
-    def test_errors(self):
-        self.assertEqual(self.post_json(self.url, {'add_username': 'nobody'}).status_code, 404)
-        self.assertEqual(self.post_json(self.url, {'add_username': 'alice'}).status_code, 400)
-        self.assertEqual(self.post_json(self.url, {'remove_user_id': 'x'}).status_code, 400)
-        self.assertEqual(self.client.post(self.url, 'not json', content_type='application/json').status_code, 400)
-
-    def test_only_the_owner_can_share(self):
-        self.recipe.shared_with.add(self.bob)
-        self.login(self.bob)
-        self.assertEqual(self.post_json(self.url, {'add_username': 'carol'}).status_code, 404)
-
-
 class LoginTests(HubTestCase):
     def test_signed_out_json_gets_a_login_link(self):
         r = self.get_json(reverse('plan-receipt'))
         self.assertEqual(r.status_code, 403)
-        self.assertIn('/login/', r.json()['login'])
+        self.assertTrue(r.json()['login'].startswith(settings.LOGIN_URL + '?next=http'))
 
-    def test_signed_out_page_redirects_to_the_login_with_next(self):
+    def test_signed_out_page_redirects_to_homes_login_with_next(self):
         r = self.client.get('/plan/?recipe=1')
-        self.assertRedirects(r, '/login/?next=/plan/%3Frecipe%3D1', fetch_redirect_response=False)
+        self.assertTrue(r['Location'].startswith(settings.LOGIN_URL + '?next=http'))
+        self.assertIn('plan/%3Frecipe%3D1', r['Location'])
 
-    def test_login_page_is_open_and_signs_in_then_out(self):
-        self.assertEqual(self.client.get('/login/').status_code, 200)
-        r = self.client.post('/login/', {'username': 'alice', 'password': 'x', 'next': '/plan/'})
-        self.assertRedirects(r, '/plan/', fetch_redirect_response=False)
-        self.assertEqual(self.client.get('/').status_code, 200)
+    def test_login_is_homes(self):
+        self.assertTrue(self.client.get('/login/?next=/plan/')['Location'].startswith(settings.LOGIN_URL))
+        self.login(self.alice)
         self.client.post('/logout/')
         self.assertEqual(self.client.get('/').status_code, 302)
 
-    def test_wrong_password_and_throttle(self):
-        for _ in range(5):
-            r = self.client.post('/login/', {'username': 'alice', 'password': 'nope'})
-            self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Wrong username or password')
-        r = self.client.post('/login/', {'username': 'alice', 'password': 'x'})
-        self.assertEqual(r.status_code, 429)
-
-    def test_any_account_may_use_the_app(self):
+    def test_the_community_opens_the_app(self):
         user = User.objects.create_user('plain', password='x', pk=70)   # not staff, not superuser
         self.login(user)
+        self.assertEqual(self.client.get('/').status_code, 403)  # no community yet
+        join(user, community('Shops only', perms=['shopping.view']))
+        self.assertEqual(self.client.get('/').status_code, 403)  # a community without Nyochi
+        join(user, self.a)
+        self.client.post('/community/switch/', {'community': self.a.pk})
         self.assertEqual(self.client.get('/').status_code, 200)
 
     def test_session_cookie_is_the_shared_one(self):
-        from django.conf import settings
-        self.client.post('/login/', {'username': 'alice', 'password': 'x'})
+        self.login(self.alice)
         self.assertIn(settings.SESSION_COOKIE_NAME, self.client.cookies)
         self.assertEqual(settings.SESSION_COOKIE_NAME, 'nyoshop_session')
+
+
+class CommunityTests(HubTestCase):
+    def test_a_community_sees_its_own_rows(self):
+        recipe = self.make_recipe('Soup', [(self.make_ingredient('Tomato'), 3, self.piece)])
+        self.assertEqual(recipe.community_id, self.a.pk)
+        self.login(self.bob)
+        self.assertEqual(self.client.get(reverse('recipe-detail', args=[recipe.pk])).status_code, 404)
+        join(self.bob, self.a)
+        self.client.post('/community/switch/', {'community': self.a.pk})
+        self.assertEqual(self.client.get(reverse('recipe-detail', args=[recipe.pk])).status_code, 200)
+        self.client.post('/community/switch/', {'community': self.b.pk})
+        self.assertEqual(self.client.get(reverse('recipe-detail', args=[recipe.pk])).status_code, 404)
+
+    def test_rows_made_in_a_request_belong_to_the_active_community(self):
+        join(self.alice, self.b)
+        self.login(self.alice)
+        self.client.post('/community/switch/', {'community': self.b.pk})
+        self.post_json(reverse('ingredient-quick'), {'name': 'Saffron'})
+        from recipes.models import Ingredient
+        self.assertEqual(Ingredient.objects.get(name='Saffron').community_id, self.b.pk)
+
+    def test_same_name_in_two_communities(self):
+        self.make_ingredient('Tomato')
+        self.make_ingredient('Tomato', owner=self.bob)  # B: no clash
+        self.login(self.alice)
+        self.assertEqual(self.post_json(reverse('ingredient-quick'), {'name': 'tomato'}).json()['existing'], True)
 
 
 class PlanAndListTests(HubTestCase):
@@ -234,14 +237,20 @@ class PlanAndListTests(HubTestCase):
         saved.refresh_from_db()
         self.assertFalse(saved.archived)
 
-    def test_shared_user_can_tick_but_not_delete(self):
+    def test_member_without_lists_edit_cannot_tick_or_delete(self):
         saved = SavedGroceryList.objects.create(name='L', owner=self.alice)
         item = SavedGroceryItem.objects.create(grocery_list=saved, ingredient=self.flour, quantity=100, unit=self.gram)
         self.login(self.bob)
+        self.assertEqual(self.post_json(reverse('list-check-item', args=[item.pk]), {'checked': True}).status_code, 404)  # B
+        dave = join(User.objects.create_user('dave', password='x', pk=71), self.a, deny=['nyochi.lists.edit'])
+        self.login(dave)
+        self.assertEqual(self.client.get(reverse('saved-grocery-detail', args=[saved.pk])).status_code, 200)
         self.assertEqual(self.post_json(reverse('list-check-item', args=[item.pk]), {'checked': True}).status_code, 404)
-        saved.shared_with.add(self.bob)
-        self.assertEqual(self.post_json(reverse('list-check-item', args=[item.pk]), {'checked': True}).status_code, 200)
         self.assertEqual(self.client.post(reverse('list-action', args=[saved.pk, 'delete'])).status_code, 404)
+        join(self.bob, self.a)
+        self.login(self.bob)
+        self.client.post('/community/switch/', {'community': self.a.pk})
+        self.assertEqual(self.post_json(reverse('list-check-item', args=[item.pk]), {'checked': True}).status_code, 200)
 
     def test_list_follows_a_chosen_location(self):
         shop = Shop.objects.create(name='Mart', owner=self.alice)
@@ -324,11 +333,13 @@ class ShopLayoutTests(HubTestCase):
         self.client.post(reverse('shop-delete', args=[self.shop.pk]))
         self.assertFalse(Shop.objects.filter(pk=self.shop.pk).exists())
 
-    def test_shared_shop_is_editable_but_not_deletable(self):
-        self.shop.shared_with.add(self.bob)
-        self.login(self.bob)
-        self.assertEqual(self.post_json(self.url, {'route': [self.a1.pk]}).status_code, 200)
+    def test_shops_edit_permission(self):
+        dave = join(User.objects.create_user('dave', password='x', pk=71), self.a, deny=['nyochi.shops.edit'])
+        self.login(dave)
+        self.assertEqual(self.post_json(self.url, {'route': [self.a1.pk]}).status_code, 404)
         self.assertEqual(self.client.post(reverse('shop-delete', args=[self.shop.pk])).status_code, 404)
+        MemberGrant.objects.all().delete()
+        self.assertEqual(self.post_json(self.url, {'route': [self.a1.pk]}).status_code, 200)
 
 
 class QuickCreateTests(HubTestCase):
@@ -356,10 +367,7 @@ class AdminSmokeTests(HubTestCase):
         self.login(self.alice)
         ing = self.make_ingredient('Tomato')
         recipe = self.make_recipe('Soup', [(ing, 3, self.piece)])
-        recipe.shared_with.add(self.bob)
-        ing.shared_with.add(self.bob)
         shop = Shop.objects.create(name='Mart', owner=self.alice)
-        shop.shared_with.add(self.bob)
         loc = ShopLocation.objects.create(shop=shop, name='Main', owner=self.alice)
         for url in [f'/admin/recipes/ingredient/{ing.pk}/change/', f'/admin/recipes/recipe/{recipe.pk}/change/',
                     f'/admin/recipes/shop/{shop.pk}/change/', f'/admin/recipes/shoplocation/{loc.pk}/change/']:
@@ -369,33 +377,3 @@ class AdminSmokeTests(HubTestCase):
                 url = f'/admin/recipes/{model._meta.model_name}/'
                 self.assertEqual(self.client.get(url).status_code, 200, url)
 
-
-class RemapOwnersTests(HubTestCase):
-    def test_remaps_owners_and_shares_in_one_pass_even_when_ids_swap(self):
-        from io import StringIO
-        from django.core.management import call_command
-        from recipes.models import Ingredient
-        a = Ingredient.objects.create(name='A', owner_id=1)
-        b = Ingredient.objects.create(name='B', owner_id=2)
-        c = Ingredient.objects.create(name='C', owner_id=3)       # not in the map: untouched
-        a.shared_with.add(self.bob)
-        out = StringIO()
-        # old 1 -> alice (41), old 2 -> bob (42), old 41 is not mapped
-        call_command('remap_owners', '--map', '1=alice', '--map', '2=bob', stdout=out)
-        for ing, owner in ((a, self.alice.pk), (b, self.bob.pk), (c, 3)):
-            ing.refresh_from_db()
-            self.assertEqual(ing.owner_id, owner, ing.name)
-        self.assertIn('Not in the map', out.getvalue())
-        # bob (id 42) was a shared_with user id; it maps from old id 42, which is not in the map: left as it was
-        self.assertTrue(a.shared_with.through.objects.filter(user_id=self.bob.pk).exists())
-
-    def test_dry_run_changes_nothing_and_unknown_user_fails(self):
-        from django.core.management import CommandError, call_command
-        from io import StringIO
-        from recipes.models import Ingredient
-        a = Ingredient.objects.create(name='A', owner_id=1)
-        call_command('remap_owners', '--map', '1=alice', '--dry-run', stdout=StringIO())
-        a.refresh_from_db()
-        self.assertEqual(a.owner_id, 1)
-        with self.assertRaises(CommandError):
-            call_command('remap_owners', '--map', '1=ghost', stdout=StringIO())

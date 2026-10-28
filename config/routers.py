@@ -1,11 +1,12 @@
-ACCOUNT_LABELS = {"auth", "sessions", "contenttypes", "admin"}
+ACCOUNT_LABELS = {"auth", "sessions", "contenttypes", "admin", "labauth"}
 
 
 class AccountsRouter:
-    """Users, sessions, content types and the admin log live in the accounts database that Nyochi shares with
-    Shopping (one login for both, not the hub); everything else is this app's own database.
+    """Users, sessions, content types, the admin log and labauth (communities, permissions) live in the lab-auth
+    database every house app shares; everything else is this app's own database.
 
-    Shopping owns the schema of that database (it runs `migrate --database accounts`); Nyochi never does."""
+    Home owns the schema of that database (its home-accounts unit migrates it); Nyochi never runs
+    `migrate --database accounts` in production (the tests do, on their own copy)."""
 
     def db_for_read(self, model, **hints):
         return "accounts" if model._meta.app_label in ACCOUNT_LABELS else "default"

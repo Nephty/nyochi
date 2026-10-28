@@ -7,12 +7,22 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from recipes import categories as cats
+from recipes.community import can_edit, community_of
 from recipes.models import Category, CategoryAisleMapping, Ingredient
 
 
 def _mine(request):
+    """The community's categories."""
     cats.user_categories(request.user)          # seeds the defaults on first use
-    return Category.objects.filter(owner_id=request.user.pk)
+    return Category.objects.filter(community_id=community_of(request.user))
+
+
+def _refused(request):
+    """Changing categories needs nyochi.ingredients.edit; True (and a message) when the user lacks it."""
+    if can_edit(request.user, Category):
+        return False
+    messages.error(request, 'Your community lets you read its categories, not change them.')
+    return True
 
 
 def _clean(raw):
@@ -23,7 +33,7 @@ class CategoryListView(LoginRequiredMixin, View):
     def get(self, request):
         rows = list(_mine(request))
         counts = dict(
-            Ingredient.objects.filter(owner_id=request.user.pk).values_list('category')
+            Ingredient.objects.filter(community_id=community_of(request.user)).values_list('category')
             .annotate(n=Count('pk')).values_list('category', 'n')
         )
         for c in rows:
@@ -33,18 +43,21 @@ class CategoryListView(LoginRequiredMixin, View):
         orphans = {k: n for k, n in counts.items() if k not in known}
         return render(request, 'categories/list.html', {
             'categories': rows, 'orphans': [(k, cats.pretty(k), n) for k, n in orphans.items()], 'page': 'categories',
+            'can_edit': can_edit(request.user, Category),
         })
 
     def post(self, request):
+        if _refused(request):
+            return redirect("category-list")
         name = _clean(request.POST.get('name'))
         if not name:
             messages.error(request, 'Give the category a name.')
             return redirect('category-list')
         mine = _mine(request)
         if mine.filter(name__iexact=name).exists():
-            messages.error(request, f'You already have a category called “{name}”.')
+            messages.error(request, f'Your community already has a category called “{name}”.')
             return redirect('category-list')
-        Category.objects.create(owner_id=request.user.pk, name=name, key=cats.new_key(request.user, name),
+        Category.objects.create(owner_id=request.user.pk, community_id=community_of(request.user), name=name, key=cats.new_key(request.user, name),
                                 position=mine.count())
         messages.success(request, f'Added the category “{name}”.')
         return redirect('category-list')
@@ -52,12 +65,14 @@ class CategoryListView(LoginRequiredMixin, View):
 
 class CategoryRenameView(LoginRequiredMixin, View):
     def post(self, request, pk):
+        if _refused(request):
+            return redirect("category-list")
         category = get_object_or_404(_mine(request), pk=pk)
         name = _clean(request.POST.get('name'))
         if not name:
             messages.error(request, 'A category needs a name.')
         elif _mine(request).filter(name__iexact=name).exclude(pk=category.pk).exists():
-            messages.error(request, f'You already have a category called “{name}”.')
+            messages.error(request, f'Your community already has a category called “{name}”.')
         else:
             category.name = name
             category.save(update_fields=['name'])
@@ -67,6 +82,8 @@ class CategoryRenameView(LoginRequiredMixin, View):
 
 class CategoryMoveView(LoginRequiredMixin, View):
     def post(self, request, pk, direction):
+        if _refused(request):
+            return redirect("category-list")
         if direction not in ('up', 'down'):
             raise Http404
         category = get_object_or_404(_mine(request), pk=pk)
@@ -87,12 +104,14 @@ class CategoryDeleteView(LoginRequiredMixin, View):
     and forgets where the category sat in your shops."""
 
     def post(self, request, pk):
+        if _refused(request):
+            return redirect("category-list")
         category = get_object_or_404(_mine(request), pk=pk)
         others = _mine(request).exclude(pk=category.pk)
         if not others.exists():
             messages.error(request, 'You need at least one category.')
             return redirect('category-list')
-        ingredients = Ingredient.objects.filter(owner_id=request.user.pk, category=category.key)
+        ingredients = Ingredient.objects.filter(community_id=community_of(request.user), category=category.key)
         target_key = request.POST.get('move_to') or ''
         target = others.filter(key=target_key).first()
         if ingredients.exists() and target is None:
@@ -101,7 +120,7 @@ class CategoryDeleteView(LoginRequiredMixin, View):
         with transaction.atomic():
             moved = ingredients.update(category=target.key) if target else 0
             CategoryAisleMapping.objects.filter(
-                category=category.key, location__shop__owner_id=request.user.pk).delete()
+                category=category.key, location__shop__community_id=community_of(request.user)).delete()
             name = category.name
             category.delete()
             cats.renumber(request.user)

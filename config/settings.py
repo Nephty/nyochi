@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'grocery',
     'find_recipes',
     'accounts',
+    'labauth',  # synced from home/labauth (scripts/sync_labauth.sh there)
 ]
 
 # One login for Nyochi and Shopping (not the hub): the same session cookie name, domain and SECRET_KEY, and the same
@@ -36,9 +37,16 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 CSRF_TRUSTED_ORIGINS = ['https://*.nephty.top', 'https://nephty.top']
 
-LOGIN_URL = '/login/'
+# Signing in happens on Home (one login for the house apps), which sends people back here with ?next=.
+HOME_URL = os.environ.get('HOME_URL', 'https://home.nephty.top/')
+ADMIN_URL = os.environ.get('ADMIN_URL', 'https://admin.nephty.top/')
+LOGIN_URL = HOME_URL.rstrip('/') + '/login/'
 LOGIN_REDIRECT_URL = 'recipe-list'
-LOGOUT_REDIRECT_URL = '/login/'
+LOGOUT_REDIRECT_URL = HOME_URL
+
+# labauth: this app's permission codes start with "nyochi."; logout skips the community door.
+LABAUTH_APP = 'nyochi'
+LABAUTH_OPEN_PATHS = ('/logout/', '/login/')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -48,6 +56,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'config.middleware.LoginRequiredMiddleware',
+    'labauth.middleware.CommunityMiddleware',
+    'labauth.middleware.AppAccessMiddleware',
+    'recipes.community.CommunityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -66,6 +77,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'config.context.flash',
+                'labauth.context.lab',
                 'config.context.links',
             ],
         },
@@ -116,6 +128,6 @@ STORAGES = {
 
 # The Shopping app (prices, promotions): a read-only JSON API with a bearer token. Only this server calls it.
 SHOPPING_API_URL = os.environ.get('SHOPPING_API_URL', 'https://shopping.nephty.top')
-HUB_URL = os.environ.get('HUB_URL', 'https://nephty.top/')
+HUB_URL = os.environ.get('HUB_URL', HOME_URL)
 SHOPPING_API_TOKEN_FILE = os.environ.get('SHOPPING_API_TOKEN_FILE', '')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

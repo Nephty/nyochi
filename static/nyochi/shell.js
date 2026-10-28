@@ -1,4 +1,4 @@
-// Every page: the phone "More" sheet, server messages as toasts, confirm-before-submit, the share dialog.
+// Every page: the phone "More" sheet, server messages as toasts, confirm-before-submit.
 import { api, confirmDialog, dialog, h, icon, readJson, toast } from "./ui.js";
 
 const sheet = document.querySelector("[data-more-sheet]");
@@ -24,46 +24,6 @@ document.addEventListener("submit", async (e) => {
     form.requestSubmit(e.submitter || undefined);
   }
 });
-
-// <button data-share="recipe:12" data-name="Soup">
-document.addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-share]");
-  if (btn) openShare(btn.dataset.share, btn.dataset.name || "");
-});
-
-function openShare(spec, name) {
-  const [kind, id] = spec.split(":");
-  const url = `/share/${kind}/${id}/`;
-  const list = h("div");
-  const input = h("input.input", { type: "text", placeholder: "Username", autocomplete: "off", "aria-label": "Username" });
-  const error = h("div.formerr.hidden");
-  const draw = (users) => {
-    list.replaceChildren(...(users.length
-      ? users.map((u) => h("div.userrow", {}, h("span.avatar", {}, u.username[0].toUpperCase()), h("b", {}, u.username),
-          h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", style: { marginLeft: "auto" }, title: "Stop sharing", "aria-label": `Stop sharing with ${u.username}`,
-            onclick: () => act({ remove_user_id: u.id }) }, icon("close"))))
-      : [h("p.muted", {}, "Not shared with anyone yet. People you add can see and edit it, but only you can delete it.")]));
-  };
-  const act = async (payload) => {
-    error.classList.add("hidden");
-    try {
-      const data = await api(url, { method: "POST", body: payload });
-      draw(data.users);
-      input.value = "";
-    } catch (err) {
-      error.replaceChildren(icon("error"), err.message);
-      error.classList.remove("hidden");
-    }
-  };
-  const add = () => input.value.trim() && act({ add_username: input.value.trim() });
-  input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); add(); } });
-  dialog({
-    title: `Share${name ? ` “${name}”` : ""}`,
-    body: [list, h("div.row", {}, input, h("button.btn.btn-primary", { type: "button", onclick: add }, icon("person_add"), "Add")), error],
-  });
-  api(url).then((data) => draw(data.users)).catch((err) => { error.replaceChildren(icon("error"), err.message); error.classList.remove("hidden"); });
-  setTimeout(() => input.focus(), 50);
-}
 
 // <form data-rename="Current name" data-rename-title="Rename aisle"> with a hidden name field and a [data-rename-btn]
 document.addEventListener("click", (e) => {

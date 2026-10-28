@@ -7,8 +7,8 @@ from django.db import models
 from django.db.models.functions import Lower
 
 
-# auth_user lives in the hub's SQLite file, so no foreign key to it can be enforced by this
-# database: every owner / shared_with link is declared with db_constraint=False.
+# auth_user lives in the lab-auth SQLite file (Home's), so no foreign key to it can be enforced by this
+# database: every owner link is declared with db_constraint=False. The owner is who made the row.
 def owner_field():
     return models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -16,20 +16,21 @@ def owner_field():
     )
 
 
-def shared_field(related_name):
-    return models.ManyToManyField(
-        settings.AUTH_USER_MODEL, blank=True, related_name=related_name, db_constraint=False,
-    )
+# The labauth community the row belongs to (an id in the lab-auth database, so a plain integer). Filled on save
+# (recipes/community.py); empty = a global row (seeded ones), everyone's to read, a superuser's to change.
+def community_field():
+    return models.PositiveIntegerField(null=True, blank=True, db_index=True)
 
 
 class Tag(models.Model):
     name = models.CharField(max_length=50)
     owner = owner_field()
+    community_id = community_field()
 
     class Meta:
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(Lower('name'), 'owner', name='tag_name_per_owner'),
+            models.UniqueConstraint(Lower('name'), 'community_id', name='tag_name_per_community'),
         ]
 
     def __str__(self):
@@ -54,6 +55,7 @@ class Category(models.Model):
     """An ingredient category of one account. `key` is stable (ingredients and shop layouts store it) and `name` is
     what is shown; renaming never touches ingredients. Accounts get the defaults on first use."""
     owner = owner_field()
+    community_id = community_field()
     key = models.SlugField(max_length=40)
     name = models.CharField(max_length=60)
     position = models.PositiveIntegerField(default=0)
@@ -62,8 +64,8 @@ class Category(models.Model):
         ordering = ['position', 'id']
         verbose_name_plural = 'categories'
         constraints = [
-            models.UniqueConstraint('owner', 'key', name='category_key_per_owner'),
-            models.UniqueConstraint(Lower('name'), 'owner', name='category_name_per_owner'),
+            models.UniqueConstraint('community_id', 'key', name='category_key_per_community'),
+            models.UniqueConstraint(Lower('name'), 'community_id', name='category_name_per_community'),
         ]
 
     def __str__(self):
@@ -103,12 +105,12 @@ class Ingredient(models.Model):
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=40, default=IngredientCategory.OTHER)   # a Category.key
     owner = owner_field()
-    shared_with = shared_field('shared_ingredients')
+    community_id = community_field()
 
     class Meta:
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(Lower('name'), 'owner', name='ingredient_name_per_owner'),
+            models.UniqueConstraint(Lower('name'), 'community_id', name='ingredient_name_per_community'),
         ]
 
     def __str__(self):
@@ -155,12 +157,12 @@ class Shop(models.Model):
     # prefer an ingredient's product from that store.
     shopping_store = models.CharField(max_length=30, blank=True)
     owner = owner_field()
-    shared_with = shared_field('shared_shops')
+    community_id = community_field()
 
     class Meta:
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(Lower('name'), 'owner', name='shop_name_per_owner'),
+            models.UniqueConstraint(Lower('name'), 'community_id', name='shop_name_per_community'),
         ]
 
     def __str__(self):
@@ -171,7 +173,7 @@ class ShopLocation(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='locations')
     name = models.CharField(max_length=100)
     owner = owner_field()
-    shared_with = shared_field('shared_shop_locations')
+    community_id = community_field()
 
     class Meta:
         ordering = ['shop', 'name']
@@ -185,7 +187,7 @@ class Aisle(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='aisles')
     name = models.CharField(max_length=100)
     owner = owner_field()
-    shared_with = shared_field('shared_aisles')
+    community_id = community_field()
 
     class Meta:
         ordering = ['shop', 'name']
@@ -200,7 +202,7 @@ class AisleOrder(models.Model):
     location = models.ForeignKey(ShopLocation, on_delete=models.CASCADE, related_name='aisle_orders')
     order = models.PositiveIntegerField()
     owner = owner_field()
-    shared_with = shared_field('shared_aisle_orders')
+    community_id = community_field()
 
     class Meta:
         ordering = ['location', 'order']
@@ -220,7 +222,7 @@ class CategoryAisleMapping(models.Model):
     category = models.CharField(max_length=40)   # a Category.key
     aisle = models.ForeignKey(Aisle, on_delete=models.CASCADE, related_name='category_mappings')
     owner = owner_field()
-    shared_with = shared_field('shared_category_mappings')
+    community_id = community_field()
 
     class Meta:
         unique_together = ('location', 'category')
@@ -259,7 +261,7 @@ class ShopLink(models.Model):
     name = models.CharField(max_length=200, blank=True)
     url = models.URLField()
     owner = owner_field()
-    shared_with = shared_field('shared_shop_links')
+    community_id = community_field()
 
     class Meta:
         ordering = ['shop__name']
@@ -338,7 +340,7 @@ class Recipe(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     ingredients = models.ManyToManyField(Ingredient, through='RecipeIngredient', blank=True)
     owner = owner_field()
-    shared_with = shared_field('shared_recipes')
+    community_id = community_field()
 
     class Meta:
         ordering = ['name']
@@ -360,7 +362,7 @@ class SavedGroceryList(models.Model):
         ShopLocation, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
     )
     owner = owner_field()
-    shared_with = shared_field('shared_grocery_lists')
+    community_id = community_field()
 
     class Meta:
         ordering = ['-created_at']
@@ -382,7 +384,7 @@ class SavedGroceryItem(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT, null=True, blank=True)
     in_cart = models.BooleanField(default=False)
     owner = owner_field()
-    shared_with = shared_field('shared_grocery_items')
+    community_id = community_field()
 
     class Meta:
         ordering = ['ingredient__category', 'ingredient__name', 'custom_name']
@@ -404,7 +406,7 @@ class RecipeIngredient(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
     is_main = models.BooleanField(default=False)
     owner = owner_field()
-    shared_with = shared_field('shared_recipe_ingredients')
+    community_id = community_field()
 
     class Meta:
         unique_together = ('recipe', 'ingredient')

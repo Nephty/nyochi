@@ -21,8 +21,8 @@ class StyledFormMixin:
 
 
 class UniqueNameMixin(StyledFormMixin):
-    """Names are unique per owner, ignoring case. The owner isn't a form field, so the model's constraint
-    isn't checked by ModelForm: do it here."""
+    """Names are unique per community, ignoring case. The community isn't a form field, so the model's constraint
+    isn't checked by ModelForm: do it here. `owner` is the user making the change (it carries the community)."""
     owner_label = 'one'
 
     def __init__(self, *args, owner=None, **kwargs):
@@ -31,12 +31,14 @@ class UniqueNameMixin(StyledFormMixin):
 
     def clean_name(self):
         name = ' '.join(self.cleaned_data['name'].split())
-        owner_id = self.instance.owner_id if self.instance.pk else getattr(self.owner, 'pk', None)
-        clash = type(self.instance).objects.filter(owner_id=owner_id, name__iexact=name)
+        from .community import community_of
+
+        cid = self.instance.community_id if self.instance.pk else (community_of(self.owner) if self.owner else None)
+        clash = type(self.instance).objects.filter(community_id=cid, name__iexact=name)
         if self.instance.pk:
             clash = clash.exclude(pk=self.instance.pk)
         if clash.exists():
-            raise forms.ValidationError(f'You already have {self.owner_label} called "{name}".')
+            raise forms.ValidationError(f'Your community already has {self.owner_label} called "{name}".')
         return name
 
 
