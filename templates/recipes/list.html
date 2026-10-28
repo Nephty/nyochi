@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Recipes · Nyochi{% endblock %}
 {% block phone_title %}Recipes{% endblock %}
-{% block phone_actions %}<a class="btn btn-ghost btn-icon" href="{% url 'recipe-create' %}" aria-label="New recipe">{% icon "add" %}</a>{% endblock %}
+{% block phone_actions %}{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-ghost btn-icon" href="{% url 'recipe-create' %}" aria-label="New recipe">{% icon "add" %}</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -10,7 +10,7 @@
   </div>
   <div class="actions">
     <a class="btn" href="{% url 'plan' %}">{% icon "checklist" %}Plan a shop</a>
-    <a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>
+    {% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}
   </div>
 </div>
 
@@ -77,7 +77,7 @@
   <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Try fewer words, or clear the filters.</span></div>
 </div>
 {% else %}
-<div class="panel"><div class="empty">{% icon "menu_book" %}<b>No recipes yet</b><span>Write the community’s first recipe.</span><a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a></div></div>
+<div class="panel"><div class="empty">{% icon "menu_book" %}<b>No recipes yet</b><span>Write the community’s first recipe.</span>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/filter.js' %}"></script>{% endblock %}

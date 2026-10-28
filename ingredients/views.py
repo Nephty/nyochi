@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from recipes import shopping
 from recipes.access import deletable, is_owner, readable, writable
+from recipes.community import can_edit
 from recipes.http import ApiError, api, body
 from recipes import categories
 from recipes.models import Ingredient, Recipe, ShoppingLink
@@ -97,6 +98,8 @@ class IngredientFormView(LoginRequiredMixin, View):
     template_name = 'ingredients/form.html'
 
     def _ingredient(self, request, pk):
+        if not pk and not can_edit(request.user, Ingredient):
+            raise Http404('Your community does not let you add ingredients.')
         return get_object_or_404(writable(Ingredient, request.user), pk=pk) if pk else None
 
     def _render(self, request, ingredient, form):
@@ -150,6 +153,8 @@ def quick_create(request):
     """POST {name, category?} -> the user's ingredient of that name (created if needed)."""
     if request.method != 'POST':
         raise ApiError('POST only.', 405)
+    if not can_edit(request.user, Ingredient):
+        raise ApiError('Your community does not let you add ingredients.', 403)
     data = body(request)
     name = ' '.join(str(data.get('name', '')).split())[:100]
     if not name:

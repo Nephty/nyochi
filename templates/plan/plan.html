@@ -32,7 +32,7 @@
       <datalist id="plan-ings"></datalist>
     </div>
     <div data-list></div>
-    <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Loosen a filter, or write a new recipe.</span><a class="btn" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a></div>
+    <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Loosen a filter, or write a new recipe.</span>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div>
   </div>
 
   <div class="plan-right">
@@ -44,7 +44,7 @@
       <div data-receipt></div>
       <div class="plan-bar no-print" style="margin-top:1rem" data-actions hidden>
         <input class="input" style="flex:1 1 10rem" type="text" maxlength="200" placeholder="List name (optional)" data-name aria-label="List name">
-        <button class="btn btn-primary" type="button" data-save>{% icon "check" %}Save list</button>
+        {% if "nyochi.lists.edit" in lab.perms %}<button class="btn btn-primary" type="button" data-save>{% icon "check" %}Save list</button>{% endif %}
         <button class="btn btn-icon" type="button" data-copy title="Copy as text" aria-label="Copy the list as text">{% icon "content_copy" %}</button>
         <button class="btn btn-icon" type="button" data-print title="Print" aria-label="Print">{% icon "print" %}</button>
       </div>

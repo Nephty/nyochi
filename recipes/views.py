@@ -2,12 +2,13 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import Prefetch
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from . import shopping
 from .access import deletable, is_owner, readable, writable
+from .community import can_edit
 from .costing import recipe_costing
 from .forms import RecipeForm, RecipeIngredientFormSet
 from .http import ApiError, api, body
@@ -97,6 +98,8 @@ class RecipeFormView(LoginRequiredMixin, View):
     template_name = 'recipes/form.html'
 
     def _recipe(self, request, pk):
+        if not pk and not can_edit(request.user, Recipe):
+            raise Http404('Your community does not let you add recipes.')
         return get_object_or_404(writable(Recipe, request.user), pk=pk) if pk else None
 
     def _render(self, request, recipe, form, formset):

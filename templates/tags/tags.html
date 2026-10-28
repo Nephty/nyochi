@@ -9,13 +9,13 @@
   </div>
 </div>
 <div class="stack">
-  <section class="panel form-card"><div class="panel-body">
+  {% if "nyochi.recipes.edit" in lab.perms %}<section class="panel form-card"><div class="panel-body">
     <form method="post" class="row" novalidate>
       {% csrf_token %}
       <div class="field" style="flex:1;min-width:14rem"><label class="label" for="{{ form.name.id_for_label }}">New tag</label>{{ form.name }}{{ form.name.errors }}</div>
       <button class="btn btn-primary" type="submit" style="align-self:flex-end">{% icon "add" %}Add tag</button>
     </form>
-  </div></section>
+  </div></section>{% endif %}
   <section class="panel form-card"><div class="panel-body">
     <div class="taglist">
       {% for t in tags %}

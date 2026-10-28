@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from recipes.access import deletable, is_owner, readable, writable
+from recipes.community import can_edit
 from recipes.http import ApiError, api, body, positive_int
 from recipes import categories
 from recipes.models import (
@@ -32,6 +33,9 @@ class ShopListView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
+        if not can_edit(request.user, Shop):
+            messages.error(request, 'Your community does not let you add shops.')
+            return redirect('shop-list')
         form = ShopForm(request.POST, owner=request.user)
         if form.is_valid():
             shop = form.save(commit=False)

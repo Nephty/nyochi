@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Ingredients · Nyochi{% endblock %}
 {% block phone_title %}Ingredients{% endblock %}
-{% block phone_actions %}<a class="btn btn-ghost btn-icon" href="{% url 'ingredient-create' %}" aria-label="New ingredient">{% icon "add" %}</a>{% endblock %}
+{% block phone_actions %}{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-ghost btn-icon" href="{% url 'ingredient-create' %}" aria-label="New ingredient">{% icon "add" %}</a>{% endif %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -9,7 +9,7 @@
     <h1>Ingredients</h1>
     <div class="sub">{{ ingredients|length }} ingredient{{ ingredients|length|pluralize }} · {{ in_season_count }} in season right now</div>
   </div>
-  <div class="actions"><a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a></div>
+  <div class="actions">{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div>
 </div>
 
 {% if ingredients %}
@@ -49,7 +49,7 @@
   <div class="empty hidden" data-empty>{% icon "search" %}<b>No ingredient matches</b><span>Try fewer words, or clear the filters.</span></div>
 </div>
 {% else %}
-<div class="panel"><div class="empty">{% icon "eco" %}<b>No ingredients yet</b><span>They are created as you write recipes, or here.</span><a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a></div></div>
+<div class="panel"><div class="empty">{% icon "eco" %}<b>No ingredients yet</b><span>They are created as you write recipes, or here.</span>{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/filter.js' %}"></script>{% endblock %}

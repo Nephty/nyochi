@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
 from recipes.access import deletable, is_owner, readable
+from recipes.community import can_edit
 from recipes.models import Tag
 
 from .forms import TagForm
@@ -19,6 +20,9 @@ class TagListView(LoginRequiredMixin, View):
                                                   'page': 'tags'})
 
     def post(self, request):
+        if not can_edit(request.user, Tag):
+            messages.error(request, 'Your community does not let you add tags.')
+            return redirect('tag-list')
         form = TagForm(request.POST, owner=request.user)
         if form.is_valid():
             tag = form.save(commit=False)

@@ -157,6 +157,21 @@ class CommunityTests(HubTestCase):
         from recipes.models import Ingredient
         self.assertEqual(Ingredient.objects.get(name='Saffron').community_id, self.b.pk)
 
+    def test_creating_needs_the_permission_too(self):
+        dave = join(User.objects.create_user('dave', password='x', pk=71), self.a,
+                    deny=['nyochi.recipes.edit', 'nyochi.ingredients.edit', 'nyochi.shops.edit', 'nyochi.lists.edit'])
+        self.login(dave)
+        self.assertEqual(self.client.get(reverse('recipe-create')).status_code, 404)
+        self.assertEqual(self.client.get(reverse('ingredient-create')).status_code, 404)
+        self.assertEqual(self.post_json(reverse('ingredient-quick'), {'name': 'Saffron'}).status_code, 403)
+        self.client.post(reverse('shop-list'), {'name': 'Mart'})
+        self.client.post(reverse('tag-list'), {'name': 'quick'})
+        from recipes.models import Ingredient, Shop, Tag
+        self.assertFalse(Ingredient.objects.filter(name='Saffron').exists() or Shop.objects.exists() or Tag.objects.exists())
+        page = self.client.get(reverse('recipe-list'))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, reverse('recipe-create'))
+
     def test_same_name_in_two_communities(self):
         self.make_ingredient('Tomato')
         self.make_ingredient('Tomato', owner=self.bob)  # B: no clash

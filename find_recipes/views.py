@@ -12,6 +12,7 @@ from django.views import View
 
 from recipes import grocery
 from recipes.access import readable, readable_locations
+from recipes.community import can_edit
 from recipes.costing import recipe_costing
 from recipes.http import ApiError, api, body, positive_int
 from recipes.models import Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList, Tag
@@ -117,6 +118,8 @@ def receipt(request):
 def save(request):
     if request.method != 'POST':
         raise ApiError('POST only.', 405)
+    if not can_edit(request.user, SavedGroceryList):
+        raise ApiError('Your community does not let you save lists.', 403)
     data, picks, location = _selection(request)
     lines = grocery.merge_recipes(picks)
     if not lines:

@@ -17,13 +17,13 @@
     <div class="row sm muted"><span>{{ s.locations.all|length }} location{{ s.locations.all|length|pluralize }}</span><span>·</span><span>{{ s.aisles.all|length }} aisle{{ s.aisles.all|length|pluralize }}</span>{% if not s.mine %}<span class="chip mine-no">read-only</span>{% endif %}</div>
   </a>
   {% endfor %}
-  <form method="post" class="scard" novalidate style="border-style:dashed;box-shadow:none">
+  {% if "nyochi.shops.edit" in lab.perms %}<form method="post" class="scard" novalidate style="border-style:dashed;box-shadow:none">
     {% csrf_token %}
     <div class="top"><span class="glyph">{% icon "add" %}</span><h3>Add a shop</h3></div>
     <div class="field"><label class="label" for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
     <div class="field"><label class="label" for="{{ form.shopping_store.id_for_label }}">Shopping store</label>{{ form.shopping_store }}
       <span class="help">When set, lists for this shop prefer that store’s products.</span></div>
     <button class="btn btn-primary" type="submit">{% icon "add" %}Add shop</button>
-  </form>
+  </form>{% endif %}
 </div>
 {% endblock %}

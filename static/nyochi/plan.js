@@ -154,7 +154,7 @@ if (P && root) {
   }
   const loadSoon = debounce(loadReceipt, 150);
 
-  $("[data-save]").addEventListener("click", async (e) => {
+  $("[data-save]")?.addEventListener("click", async (e) => {
     e.currentTarget.disabled = true;
     try {
       const made = await api(P.urls.save, { method: "POST", body: { recipes: [...sel].map(([id, mult]) => ({ id, mult })), location, name: $("[data-name]").value } });
