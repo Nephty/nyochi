@@ -25,7 +25,6 @@ function line(l, opts) {
       l.season && l.season !== "unknown" ? h(`span.chip.season-${l.season}`, {}, SEASON_TEXT[l.season]) : null,
       opts.onDelete && l.id ? h("button.btn.btn-ghost.btn-sm.btn-icon.del", { type: "button", "aria-label": `Remove ${l.name}`, onclick: () => opts.onDelete(l) }, icon("close")) : null),
     h("div.qty", {}, l.amount != null ? `${num(l.amount)} ${l.unit}` : ""),
-    l.sources?.length ? h("div.src", {}, `for ${l.sources.join(", ")}`) : null,
     buy ? h("div.buy", {},
       storeChip(buy.store, buy.store_label),
       h("span.pn", { title: buy.name }, `${buy.packs > 1 ? `${buy.packs} × ` : ""}${buy.name}`),

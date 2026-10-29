@@ -21,8 +21,7 @@
     {% csrf_token %}
     <div class="top"><span class="glyph">{% icon "add" %}</span><h3>Add a shop</h3></div>
     <div class="field"><label class="label" for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{{ form.name.errors }}</div>
-    <div class="field"><label class="label" for="{{ form.shopping_store.id_for_label }}">Shopping store</label>{{ form.shopping_store }}
-      <span class="help">When set, lists for this shop prefer that store’s products.</span></div>
+    <div class="field"><label class="label" for="{{ form.shopping_store.id_for_label }}">Shopping store</label>{{ form.shopping_store }}</div>
     <button class="btn btn-primary" type="submit">{% icon "add" %}Add shop</button>
   </form>{% endif %}
 </div>

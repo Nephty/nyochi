@@ -22,13 +22,12 @@
       <div class="field">
         <label class="label" for="{{ form.category.id_for_label }}">Category</label>
         {{ form.category }}{{ form.category.errors }}
-        <span class="help">Used to sort the shopping list when a shop has no exact place for the ingredient.</span>
       </div>
     </div>
   </div></section>
 
   <section class="panel form-card"><div class="panel-body">
-    <div class="section-h"><h2>Season</h2><span class="hint">when is it at its best where you live?</span></div>
+    <div class="section-h"><h2>Season</h2></div>
     <div class="brush no-print" data-brushbar hidden>
       <div class="seg" role="group" aria-label="Paint with">
         <button type="button" data-brush="in" aria-pressed="true"><i class="m-in"></i>In season</button>
@@ -38,7 +37,6 @@
       </div>
       <button type="button" class="btn btn-sm" data-fill="in">All year</button>
       <button type="button" class="btn btn-sm" data-fill="out">Clear</button>
-      <span class="muted sm">Pick a colour, then click or drag over the months.</span>
     </div>
     <div class="ribbon big edit" data-ribbon>
       {% for number, label, field in form.season_cells %}
@@ -49,7 +47,7 @@
   </div></section>
 
   <section class="panel form-card"><div class="panel-body picker" data-picker data-store-hint="">
-    <div class="section-h"><h2>Products in Shopping</h2><span class="hint">gives this ingredient a price, promotions and a link to the shop’s page</span></div>
+    <div class="section-h"><h2>Products in Shopping</h2></div>
     {% if shopping_on %}
       <div class="linkcards" data-chosen></div>
       <div class="search" style="margin-top:.9rem">{% icon "search" %}<input class="input" type="search" placeholder="Search Shopping: “penne”, “tomates pelées”…" data-search autocomplete="off" aria-label="Search Shopping products"></div>
