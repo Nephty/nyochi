@@ -15,6 +15,7 @@
     </div>
   </div>
   <div class="actions">
+    {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}
     <a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}Add to plan</a>
     {% if can_edit %}<a class="btn" href="{% url 'recipe-update' recipe.pk %}">{% icon "edit" %}Edit</a>{% endif %}
     {% if mine %}
@@ -53,21 +54,57 @@
       </div>
     </section>
 
-    {% if recipe.description %}
     <section class="panel">
-      <div class="panel-head"><h2>Method</h2></div>
-      <div class="panel-body desc">{{ recipe.description }}</div>
+      <div class="panel-head"><h2>Steps</h2><span class="muted sm">{{ recipe.steps|length }}</span>
+        {% if recipe.steps %}<a class="btn btn-sm more" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}</div>
+      <div class="panel-body">
+        {% for key, label, steps in phases %}
+        <div class="phase phase-{{ key }}">
+          <h3 class="phase-h">{{ label }}</h3>
+          <ol class="steps-d">
+            {% for s in steps %}
+            <li class="step-d">
+              <span class="n">{{ s.n }}</span>
+              <div class="tx">{{ s.text|linebreaksbr }}
+                {% if s.appliance or s.minutes %}<div class="step-meta">
+                  {% if s.appliance %}<span class="chip ware ware-{{ s.appliance }}">{% icon s.appliance_icon %}{{ s.appliance_label }}</span>{% endif %}
+                  {% if s.minutes %}<span class="chip">{% icon "timer" %}{{ s.minutes }} min</span>{% endif %}
+                </div>{% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% empty %}
+        <p class="muted" style="margin:0">No steps yet.{% if can_edit %} <a href="{% url 'recipe-update' recipe.pk %}">Write them</a>.{% endif %}</p>
+        {% endfor %}
+      </div>
     </section>
-    {% endif %}
   </div>
 
   <div>
+    {% if kitchenware or recipe.tools %}
+    <section class="panel kit">
+      <div class="panel-head"><h2>What you need</h2></div>
+      <div class="panel-body">
+        {% if kitchenware %}
+        <h3 class="kit-h">Kitchenware</h3>
+        <ul class="ware-list">
+          {% for k in kitchenware %}<li class="ware ware-{{ k.key }}"><span class="ware-ic">{% icon k.icon %}</span><span class="nm">{{ k.label }}</span>{% if k.setting %}<span class="set">{{ k.setting }}</span>{% endif %}</li>{% endfor %}
+        </ul>
+        {% endif %}
+        {% if recipe.tools %}
+        <h3 class="kit-h">Tools</h3>
+        <ul class="tool-list">{% for t in recipe.tools %}<li>{{ t }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
     <section class="receipt">
       <div class="estimate">
         <div class="rcpt-head"><span>Estimate</span><span>{{ costing.priced }}/{{ costing.total }} priced</span></div>
         {% if costing.cost %}
           <div class="big" style="margin-top:.7rem">≈ {{ costing.cost|euro }}</div>
-          <div class="cap">for what this recipe uses, from the linked Shopping products</div>
           {% if costing.saving %}<div class="saving">{% icon "savings" %} up to {{ costing.saving|euro }} saved by current promotions</div>{% endif %}
           {% if costing.promos %}<div class="sm muted" style="margin-top:.3rem">{{ costing.promos }} ingredient{{ costing.promos|pluralize }} on promotion right now</div>{% endif %}
         {% else %}

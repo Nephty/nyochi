@@ -1,6 +1,9 @@
 from django import forms
 from django.forms import inlineformset_factory
 
+import json
+
+from . import kitchen
 from .access import readable
 from .models import Ingredient, Recipe, RecipeIngredient, Tag
 
@@ -48,9 +51,8 @@ class RecipeForm(StyledFormMixin, forms.ModelForm):
 
     class Meta:
         model = Recipe
-        fields = ['name', 'difficulty', 'meal_type', 'description', 'prep_time', 'cook_time', 'tags']
+        fields = ['name', 'difficulty', 'meal_type', 'prep_time', 'cook_time', 'tags']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 4}),
             'tags': forms.CheckboxSelectMultiple(),
             'difficulty': forms.RadioSelect(),
             'meal_type': forms.RadioSelect(),
@@ -65,6 +67,29 @@ class RecipeForm(StyledFormMixin, forms.ModelForm):
         self.fields['meal_type'].choices = Recipe.MealType.choices
         for f in ('prep_time', 'cook_time'):
             self.fields[f].widget.attrs.update(min=0, inputmode='numeric')
+        # steps, tools and kitchenware come from the editor (static/nyochi/steps.js) as JSON
+        for name in ('steps', 'tools', 'kitchenware'):
+            self.fields[f'{name}_json'] = forms.CharField(required=False, widget=forms.HiddenInput())
+            if not self.is_bound:
+                self.initial[f'{name}_json'] = json.dumps(getattr(self.instance, name) or [])
+
+    def _json(self, name):
+        try:
+            return json.loads(self.cleaned_data.get(f'{name}_json') or '[]')
+        except ValueError:
+            raise forms.ValidationError('The steps could not be read: reload the page and try again.')
+
+    def clean(self):
+        data = super().clean()
+        data['steps'] = kitchen.clean_steps(self._json('steps'))
+        data['tools'] = kitchen.clean_tools(self._json('tools'))
+        data['kitchenware'] = kitchen.clean_kitchenware(self._json('kitchenware'))
+        return data
+
+    def save(self, commit=True):
+        for name in ('steps', 'tools', 'kitchenware'):
+            setattr(self.instance, name, self.cleaned_data[name])
+        return super().save(commit)
 
     def save_tags(self, recipe):
         names = []

@@ -39,10 +39,6 @@
         {{ form.cook_time }}{{ form.cook_time.errors }}
       </div>
       <div class="field wide">
-        <label class="label" for="{{ form.description.id_for_label }}">Method / notes</label>
-        {{ form.description }}{{ form.description.errors }}
-      </div>
-      <div class="field wide">
         <label class="label">Tags</label>
         <div class="choices">{% for cb in form.tags %}<label class="choice">{{ cb.tag }}<span>{{ cb.choice_label }}</span></label>{% empty %}<span class="muted sm">No tags yet — add some below.</span>{% endfor %}</div>
         {{ form.tags.errors }}
@@ -62,10 +58,26 @@
     <button type="button" class="btn" style="margin-top:.8rem" data-add-row>{% icon "add" %}Add an ingredient</button>
   </div></section>
 
+  <section class="panel form-card"><div class="panel-body" data-steps-editor>
+    <div class="section-h"><h2>Steps</h2></div>
+    {{ form.steps_json }}
+    <div class="phases-e" data-phases></div>
+  </div></section>
+
+  <section class="panel form-card"><div class="panel-body" data-kit-editor>
+    <div class="section-h"><h2>What you need</h2></div>
+    {{ form.kitchenware_json }}{{ form.tools_json }}
+    <h3 class="kit-h">Kitchenware</h3>
+    <div class="ware-pick" data-ware></div>
+    <h3 class="kit-h" style="margin-top:1.1rem">Tools</h3>
+    <div class="tool-edit" data-tools></div>
+  </div></section>
+  {{ kitchen|json_script:"kitchen" }}
+
   <div class="form-actions" style="max-width:60rem">
     <button class="btn btn-primary" type="submit">{% icon "check" %}Save recipe</button>
     <a class="btn btn-ghost" href="{% if recipe %}{% url 'recipe-detail' recipe.pk %}{% else %}{% url 'recipe-list' %}{% endif %}">Cancel</a>
   </div>
 </form>
 {% endblock %}
-{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/recipeform.js' %}"></script>{% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/recipeform.js' %}"></script><script type="module" src="{% static 'nyochi/steps.js' %}"></script>{% endblock %}

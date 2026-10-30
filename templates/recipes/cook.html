@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Cooking {{ recipe.name }} · Nyochi{% endblock %}
+{% block body_class %}cooking{% endblock %}
+{% block body %}
+<div class="cook" data-cook>
+  <header class="cook-top">
+    <a class="btn btn-ghost btn-icon" href="{% url 'recipe-detail' recipe.pk %}" title="Back to the recipe" aria-label="Back to the recipe">{% icon "close" %}</a>
+    <div class="cook-title"><span class="eyebrow">Cooking</span><h1>{{ recipe.name }}</h1></div>
+    <div class="cook-timers" data-timers></div>
+    {% include "partials/theme_btn.html" %}
+  </header>
+  <div class="cook-progress" data-progress></div>
+  <main class="cook-main" data-stage></main>
+  <footer class="cook-foot">
+    <button class="btn cook-prev" type="button" data-prev>{% icon "chevron_left" %}<span>Previous</span></button>
+    <div class="cook-count" data-count></div>
+    <button class="btn btn-primary cook-next" type="button" data-next><span>Next</span>{% icon "chevron_right" %}</button>
+  </footer>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+{{ boot|json_script:"cook" }}
+{% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/cook.js' %}"></script>{% endblock %}

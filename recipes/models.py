@@ -324,7 +324,10 @@ class Recipe(models.Model):
         DESERT     = 'desert',     'Dessert'
 
     name = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
+    # the method and what it needs (recipes/kitchen.py has the shapes; written through its clean_* helpers)
+    steps = models.JSONField(default=list, blank=True)
+    tools = models.JSONField(default=list, blank=True)
+    kitchenware = models.JSONField(default=list, blank=True)
     prep_time = models.PositiveIntegerField(help_text='Minutes')
     cook_time = models.PositiveIntegerField(help_text='Minutes')
     difficulty = models.CharField(

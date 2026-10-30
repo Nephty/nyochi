@@ -34,7 +34,7 @@ class RecipeViewTests(HubTestCase):
 
     def recipe_post(self, rows, **extra):
         return {'name': 'Soup', 'meal_type': 'full_meal', 'difficulty': 'easy', 'prep_time': 5, 'cook_time': 10,
-                'description': '', 'new_tags': 'Quick, Winter', **formset(rows), **extra}
+'new_tags': 'Quick, Winter', **formset(rows), **extra}
 
     def test_create_with_ingredients_and_new_tags(self):
         r = self.client.post(reverse('recipe-create'), self.recipe_post([(self.tomato, '3', self.piece, True)]))
@@ -66,7 +66,7 @@ class RecipeViewTests(HubTestCase):
         recipe = self.make_recipe('Soup', [(self.tomato, 3, self.piece)])
         ri = recipe.recipeingredient_set.get()
         data = {'name': 'Soup', 'meal_type': 'full_meal', 'difficulty': 'easy', 'prep_time': 5, 'cook_time': 10,
-                'description': '', **formset([(self.tomato, '4', self.piece), (self.basil, '1', self.piece)], initial=1)}
+**formset([(self.tomato, '4', self.piece), (self.basil, '1', self.piece)], initial=1)}
         data['ing-0-id'] = ri.pk
         data['ing-0-recipe'] = recipe.pk
         r = self.client.post(reverse('recipe-update', args=[recipe.pk]), data)

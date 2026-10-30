@@ -4,9 +4,10 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views import View
 
-from . import shopping
+from . import kitchen, shopping
 from .access import deletable, is_owner, readable, writable
 from .community import can_edit
 from .costing import recipe_costing
@@ -87,10 +88,32 @@ class RecipeDetailView(LoginRequiredMixin, View):
             })
         return render(request, 'recipes/detail.html', {
             'recipe': recipe, 'rows': rows, 'costing': recipe_costing(ris),
+            'phases': kitchen.grouped_steps(recipe), 'kitchenware': kitchen.needed_kitchenware(recipe),
             'reachable': reachable, 'shopping_on': shopping.configured(),
             'mine': is_owner(recipe, request.user),
             'can_edit': writable(Recipe, request.user).filter(pk=recipe.pk).exists(),
             'page': 'recipes',
+        })
+
+
+class RecipeCookView(LoginRequiredMixin, View):
+    """The cooking guide: the recipe's steps one at a time (static/nyochi/cook.js)."""
+
+    def get(self, request, pk):
+        recipe = get_object_or_404(readable(Recipe, request.user), pk=pk)
+        ris = recipe.recipeingredient_set.select_related('ingredient', 'unit').order_by('-is_main', 'ingredient__name')
+        ware = {k['key']: k for k in kitchen.needed_kitchenware(recipe)}
+        steps = [{
+            'phase': s['phase'], 'phase_label': kitchen.PHASE_LABELS[s['phase']], 'text': s['text'],
+            'minutes': s.get('minutes'), 'appliance': ware.get(s.get('appliance') or ''),
+        } for s in recipe.steps or []]
+        return render(request, 'recipes/cook.html', {
+            'recipe': recipe, 'page': 'recipes', 'boot': {
+                'id': recipe.pk, 'name': recipe.name, 'steps': steps, 'url': reverse('recipe-detail', args=[recipe.pk]),
+                'ingredients': [{'name': ri.ingredient.name, 'amount': float(ri.quantity) if ri.quantity else None,
+                                 'unit': ri.unit.abbreviation if ri.unit else '', 'main': ri.is_main} for ri in ris],
+                'tools': recipe.tools or [], 'kitchenware': list(ware.values()),
+            },
         })
 
 
@@ -107,6 +130,11 @@ class RecipeFormView(LoginRequiredMixin, View):
             'form': form, 'formset': formset, 'recipe': recipe, 'page': 'recipes',
             'title': f'Edit {recipe.name}' if recipe else 'New recipe',
             'units': Unit.objects.all(),
+            'kitchen': {
+                'phases': [{'key': k, 'label': label, 'help': help} for k, label, help in kitchen.PHASES],
+                'kitchenware': [{'key': k} | v for k, v in kitchen.KITCHENWARE.items()],
+                'tools': kitchen.TOOL_SUGGESTIONS,
+            },
         })
 
     def get(self, request, pk=None):

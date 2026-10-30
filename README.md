@@ -10,6 +10,16 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
 
 - **Recipes**: index cards with prep/cook time, difficulty, meal type, tags, ingredients (quantity + unit, a star for
   the *main* ones). Client-side search and filters; an estimated cost and "N on sale" from Shopping.
+- **Steps and what you need** (`recipes/kitchen.py`, JSON on `Recipe`: `steps`, `tools`, `kitchenware`): steps in two
+  phases, *Ingredient set-up* (getting the ingredients ready) then *Preparation*, each with an optional appliance and
+  timer; manual tools (free text with suggestions) and kitchenware from a fixed list (oven, stove, fridge, freezer,
+  microwave, grill, blender, kettle) with a setting ("200 °C, fan"). Edited in the recipe form (`static/nyochi/steps.js`,
+  hidden `*_json` fields, cleaned server-side; ↑↓ past a phase's edge moves the step to the other phase, Ctrl+Enter adds
+  the next step). The old free-text Method became preparation steps, one per line (migration 0018).
+- **Cooking guide** (`/recipes/<id>/cook/`, `static/nyochi/cook.js`): get-ready page (ingredients to tick, kitchenware,
+  tools), then one step at a time with the appliance and its setting, a timer (keeps running when you move on, beeps),
+  previous / next summaries, a progress bar with a flag over every step that uses an appliance; ←/→ or swipe; the screen
+  stays on; the position is remembered per recipe in the browser.
 - **Ingredients**: a category (**Categories** page: each account edits its own list: add, rename, reorder, delete with a move target; the defaults are created on first use) and a **season ribbon** (12 months: out / early / in / late, painted with a brush),
   plus **products in Shopping** (see below).
 - **Plan**: tick recipes (filters: text, meal, tags, must-include / leave-out ingredients, max times, in-season first,
