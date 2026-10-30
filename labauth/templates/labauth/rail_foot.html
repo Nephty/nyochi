@@ -1,0 +1,8 @@
+{% load lab_ui %}{# The rail's foot, same in every app. The app passes its theme button: include with theme_btn="..." #}
+<div class="rail-foot">
+  <span class="who">{{ user.get_username }}</span>
+  {% include theme_btn %}
+  {% if lab.django_admin and user.is_staff %}<a class="btn btn-ghost btn-icon" href="{{ lab.django_admin }}" title="Django admin (raw tables)" aria-label="Django admin">{% lab_icon "admin_panel_settings" %}</a>{% endif %}
+  <a class="btn btn-ghost btn-icon" href="{{ lab.hub_url }}" title="Back to Nephty Lab" aria-label="Back to Nephty Lab">{% lab_icon "public" %}</a>
+  <form method="post" action="{{ lab.logout_url }}">{% csrf_token %}<button class="btn btn-ghost btn-icon" title="Sign out" aria-label="Sign out">{% lab_icon "logout" %}</button></form>
+</div>

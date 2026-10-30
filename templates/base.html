@@ -42,17 +42,9 @@
       <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
       <a href="{% url 'category-list' %}" {% if page == "categories" %}aria-current="page"{% endif %} title="Categories">{% icon "category" %}<span>Categories</span></a>
       <a href="{% url 'tag-list' %}" {% if page == "tags" %}aria-current="page"{% endif %} title="Tags">{% icon "sell" %}<span>Tags</span></a>
-      {% if shopping_url and "shopping.view" in lab.perms %}<div class="nav-sep"></div>
-      <a class="sister" href="{{ shopping_url }}" title="Shopping: prices and promotions, same account and community">{% icon "shopping_cart" %}<span>Shopping</span><small>prices</small></a>{% endif %}
+      {% include "labauth/rail_apps.html" %}
     </nav>
-    <div class="rail-foot">
-      <span class="who">{{ user.get_username }}</span>
-      {% include "partials/theme_btn.html" %}
-      <a class="btn btn-ghost btn-icon" href="{{ lab.home_url }}" title="Home: your apps and communities" aria-label="Home">{% icon "home" %}</a>
-      {% if lab.manages %}<a class="btn btn-ghost btn-icon" href="{{ lab.admin_url }}" title="Admin: members and permissions" aria-label="Admin">{% icon "key" %}</a>{% endif %}
-      {% if user.is_staff %}<a class="btn btn-ghost btn-icon" href="/admin/" title="Django admin" aria-label="Django admin">{% icon "admin_panel_settings" %}</a>{% endif %}
-      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost btn-icon" title="Sign out" aria-label="Sign out">{% icon "logout" %}</button></form>
-    </div>
+    {% include "labauth/rail_foot.html" with theme_btn="partials/theme_btn.html" %}
   </aside>
   <main class="main">{% block main %}<div class="page">{% block content %}{% endblock %}</div>{% endblock %}</main>
   <nav class="tabbar" aria-label="Main">
@@ -69,11 +61,7 @@
   <a href="{% url 'shop-list' %}">{% icon "storefront" %}Shops</a>
   <a href="{% url 'category-list' %}">{% icon "category" %}Categories</a>
   <a href="{% url 'tag-list' %}">{% icon "sell" %}Tags</a>
-  {% if shopping_url and "shopping.view" in lab.perms %}<a href="{{ shopping_url }}">{% icon "shopping_cart" %}Shopping (prices)</a>{% endif %}
-  <a href="{{ lab.home_url }}">{% icon "home" %}Home ({{ lab.community.name }})</a>
-  {% if lab.manages %}<a href="{{ lab.admin_url }}">{% icon "key" %}Admin</a>{% endif %}
-  {% if user.is_staff %}<a href="/admin/">{% icon "admin_panel_settings" %}Django admin</a>{% endif %}
-  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>{% icon "logout" %}Sign out</button></form>
+  {% include "labauth/sheet_apps.html" %}
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 {% endblock %}

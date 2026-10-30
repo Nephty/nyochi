@@ -1,0 +1,8 @@
+{% load lab_ui %}{# The end of a phone "More" sheet: the same family links and foot as the rail (labauth/rail_apps.html, rail_foot.html). #}
+{% if lab.app != "home" %}<a href="{{ lab.home_url }}">{% lab_icon "grid_view" %}Home</a>{% endif %}
+{% if lab.app != "shopping" and "shopping.view" in lab.perms %}<a href="{{ lab.shopping_url }}">{% lab_icon "shopping_cart" %}Shopping</a>{% endif %}
+{% if lab.app != "nyochi" and "nyochi.view" in lab.perms %}<a href="{{ lab.nyochi_url }}">{% lab_icon "menu_book" %}Nyochi</a>{% endif %}
+{% if lab.app != "admin" and lab.manages %}<a href="{{ lab.admin_url }}">{% lab_icon "key" %}Admin</a>{% endif %}
+{% if lab.django_admin and user.is_staff %}<a href="{{ lab.django_admin }}">{% lab_icon "admin_panel_settings" %}Django admin</a>{% endif %}
+<a href="{{ lab.hub_url }}">{% lab_icon "public" %}Nephty Lab</a>
+<form method="post" action="{{ lab.logout_url }}">{% csrf_token %}<button>{% lab_icon "logout" %}Sign out</button></form>

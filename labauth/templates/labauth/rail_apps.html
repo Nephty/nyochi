@@ -1,0 +1,6 @@
+{% load lab_ui %}{# The family's apps, same order and icons in every rail; the app you're in is left out. #}
+<div class="nav-sep"></div>
+{% if lab.app != "home" %}<a class="sister" href="{{ lab.home_url }}" title="Home: your apps and communities">{% lab_icon "grid_view" %}<span>Home</span></a>{% endif %}
+{% if lab.app != "shopping" and "shopping.view" in lab.perms %}<a class="sister" href="{{ lab.shopping_url }}" title="Shopping">{% lab_icon "shopping_cart" %}<span>Shopping</span></a>{% endif %}
+{% if lab.app != "nyochi" and "nyochi.view" in lab.perms %}<a class="sister" href="{{ lab.nyochi_url }}" title="Nyochi">{% lab_icon "menu_book" %}<span>Nyochi</span></a>{% endif %}
+{% if lab.app != "admin" and lab.manages %}<a class="sister" href="{{ lab.admin_url }}" title="Admin: members and permissions">{% lab_icon "key" %}<span>Admin</span></a>{% endif %}
