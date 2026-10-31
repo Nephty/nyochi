@@ -1,0 +1,16 @@
+/* The family's app bar (labauth/appbar.html): a row across the top of .shell, above the rail and the page.
+   Uses the tokens every family app shares (Shopping's). Linked after the app's own stylesheet. */
+.shell { grid-template-rows: auto minmax(0, 1fr); }
+.appbar { grid-column: 1 / -1; display: flex; align-items: center; gap: .25rem; padding: .35rem .8rem; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 80%, transparent); backdrop-filter: blur(10px); overflow-x: auto; scrollbar-width: none; }
+.appbar a { display: inline-flex; align-items: center; gap: .45rem; flex: none; height: 2.1rem; padding: 0 .85rem; border-radius: 999px; text-decoration: none; color: var(--ink-2); font-weight: 650; font-size: .9rem; transition: background .15s, color .15s; }
+.appbar a .ic { width: 1.15rem; height: 1.15rem; flex: none; }
+.appbar a:hover { background: var(--paper-2); color: var(--ink); }
+.appbar a[aria-current="page"] { background: var(--tag); color: var(--tag-ink); box-shadow: var(--glow); }
+.appbar a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 760px) {
+  .shell { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  .appbar { justify-content: space-between; padding: calc(env(safe-area-inset-top) + .3rem) .5rem .3rem; }
+  .appbar a { flex: 1 1 0; justify-content: center; gap: .3rem; padding: 0 .4rem; font-size: .8rem; min-width: 0; }
+  .appbar ~ .phone-head { padding-top: .5rem; }
+}
+@media print { .appbar { display: none !important; } }

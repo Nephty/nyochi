@@ -10,6 +10,7 @@
   <link rel="preload" href="{% static 'nyochi/fonts/Figtree-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="{% static 'nyochi/fonts/BricolageGrotesque-latin.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'nyochi/nyochi.css' %}">
+  <link rel="stylesheet" href="{% static 'labauth/appbar.css' %}">
   <script>
     (function () {
       var t = null;
@@ -25,6 +26,7 @@
 <body class="app {% block body_class %}{% endblock %}">
 {% block body %}
 <div class="shell">
+  {% include "labauth/appbar.html" %}
   <header class="phone-head">
     <a class="brand" href="{% url 'recipe-list' %}" aria-label="Recipes">{% include "partials/mark.html" %}</a>
     <span class="ttl">{% block phone_title %}Nyochi{% endblock %}</span>
@@ -42,7 +44,6 @@
       <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
       <a href="{% url 'category-list' %}" {% if page == "categories" %}aria-current="page"{% endif %} title="Categories">{% icon "category" %}<span>Categories</span></a>
       <a href="{% url 'tag-list' %}" {% if page == "tags" %}aria-current="page"{% endif %} title="Tags">{% icon "sell" %}<span>Tags</span></a>
-      {% include "labauth/rail_apps.html" %}
     </nav>
     {% include "labauth/rail_foot.html" with theme_btn="partials/theme_btn.html" %}
   </aside>

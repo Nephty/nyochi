@@ -1,0 +1,7 @@
+{% load lab_ui %}{# The family's apps as a bar across the top of every app: same order everywhere, the app you're in stays and is highlighted. Styles: labauth/appbar.css #}
+<nav class="appbar" aria-label="Apps">
+  <a href="{{ lab.home_url }}" {% if lab.app == "home" %}aria-current="page"{% endif %} title="Home: your apps and communities">{% lab_icon "grid_view" %}<span>Home</span></a>
+  {% if "shopping.view" in lab.perms %}<a href="{{ lab.shopping_url }}" {% if lab.app == "shopping" %}aria-current="page"{% endif %} title="Shopping">{% lab_icon "shopping_cart" %}<span>Shopping</span></a>{% endif %}
+  {% if "nyochi.view" in lab.perms %}<a href="{{ lab.nyochi_url }}" {% if lab.app == "nyochi" %}aria-current="page"{% endif %} title="Nyochi">{% lab_icon "menu_book" %}<span>Nyochi</span></a>{% endif %}
+  {% if lab.manages %}<a href="{{ lab.admin_url }}" {% if lab.app == "admin" %}aria-current="page"{% endif %} title="Admin: members and permissions">{% lab_icon "key" %}<span>Admin</span></a>{% endif %}
+</nav>
