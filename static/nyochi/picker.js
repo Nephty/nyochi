@@ -23,9 +23,12 @@ if (root && chosen && search && results) {
         promo?.until ? h("span", {}, untilText(promo.until)) : null),
       h("div.acts", {},
         h("label.switch", {}, h("input", { type: "radio", name: "preferred", value: l.key, checked: !!l.preferred }), h("span.track"), h("span.txt", {}, "Preferred")),
-        h("button.btn.btn-sm.btn-danger", { type: "button", onclick: () => { items.delete(l.key); draw(); } }, icon("link_off"), "Remove")));
+        h("button.btn.btn-sm.btn-danger", { type: "button", onclick: () => { items.delete(l.key); draw(); if (shown.length) drawResults(); } }, icon("link_off"), "Remove")));
   }
   function draw() {
+    // keep the preferred pick across redraws
+    const picked = chosen.querySelector('input[name="preferred"]:checked')?.value;
+    if (picked) for (const l of items.values()) l.preferred = l.key === picked;
     chosen.replaceChildren(...(items.size ? [...items.values()].map(card)
       : [h("p.muted", { style: { margin: 0 } }, "No product linked yet.")]));
     // exactly one preferred when there are links
@@ -33,29 +36,43 @@ if (root && chosen && search && results) {
     if (radios.length && !radios.some((r) => r.checked)) radios[0].checked = true;
   }
 
+  // The results stay open: each row is a toggle (linked or not), so several products can be picked from one search.
+  let shown = []; // the rows of the last search
+  const asLink = (r) => ({
+    key: r.key, store: r.store, store_label: r.store_label, name: r.name, package_size: r.package_size, price: r.price,
+    preferred: items.size === 0, url: r.url,
+    promo: r.on_promotion ? { titles: r.promo_titles, until: r.promo_until, verdict: r.real_percent == null ? "" : r.real_percent >= 10 ? "real" : r.real_percent < 3 ? "usual" : "some", real_percent: r.real_percent, usual_price: r.usual_price } : null,
+  });
+  function toggle(r) {
+    if (items.has(r.key)) items.delete(r.key);
+    else items.set(r.key, asLink(r));
+    draw();
+    drawResults(r.key);
+  }
+  function drawResults(focusKey = null) {
+    results.replaceChildren(...(shown.length ? shown.map((r) => {
+      const added = items.has(r.key);
+      return h("button" + (added ? ".added" : ""), {
+        type: "button", "aria-pressed": String(added), dataset: { key: r.key },
+        title: added ? "Linked: click to unlink" : "Click to link", onclick: () => toggle(r) },
+        h("span.tick", {}, icon(added ? "check" : "add")),
+        h("span.nm", {}, r.name),
+        h("b", {}, r.price != null ? money(r.price) : "–"),
+        h("span.sub", {}, storeChip(r.store, r.store_label), r.package_size ? h("span", {}, r.package_size) : null,
+          r.on_promotion ? h("span.tag", {}, (r.promo_titles || "Promotion").slice(0, 36)) : null, added ? h("span", {}, "linked") : null));
+    }) : [h("div.picker-empty", {}, "Nothing found. Shopping searches the names of products it has fetched.")]));
+    if (focusKey) results.querySelector(`button[data-key="${CSS.escape(focusKey)}"]`)?.focus({ preventScroll: true });
+  }
+
   async function run() {
     const q = search.value.trim();
-    if (q.length < 2) { results.replaceChildren(); return; }
+    if (q.length < 2) { shown = []; results.replaceChildren(); return; }
     results.replaceChildren(h("div.picker-empty", {}, "Searching…"));
     try {
       const { rows } = await api("/shopping/search/", { query: { q } });
       if (search.value.trim() !== q) return;
-      results.replaceChildren(...(rows.length ? rows.map((r) => {
-        const added = items.has(r.key);
-        return h("button" + (added ? ".added" : ""), { type: "button", disabled: added,
-          onclick: () => {
-            items.set(r.key, {
-              key: r.key, store: r.store, store_label: r.store_label, name: r.name, package_size: r.package_size, price: r.price,
-              preferred: items.size === 0, url: r.url,
-              promo: r.on_promotion ? { titles: r.promo_titles, until: r.promo_until, verdict: r.real_percent == null ? "" : r.real_percent >= 10 ? "real" : r.real_percent < 3 ? "usual" : "some", real_percent: r.real_percent, usual_price: r.usual_price } : null,
-            });
-            draw(); results.replaceChildren(); search.value = ""; search.focus();
-          } },
-          h("span.nm", {}, r.name),
-          h("b", {}, r.price != null ? money(r.price) : "–"),
-          h("span.sub", {}, storeChip(r.store, r.store_label), r.package_size ? h("span", {}, r.package_size) : null,
-            r.on_promotion ? h("span.tag", {}, (r.promo_titles || "Promotion").slice(0, 36)) : null, added ? h("span", {}, "already linked") : null));
-      }) : [h("div.picker-empty", {}, "Nothing found. Shopping searches the names of products it has fetched.")]));
+      shown = rows;
+      drawResults();
     } catch (err) {
       results.replaceChildren(h("div.notice.bad", {}, icon("cloud_off"), h("span", {}, err.message)));
     }

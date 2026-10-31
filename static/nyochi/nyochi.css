@@ -464,11 +464,14 @@ dialog[open] .dlg { animation: rise .22s cubic-bezier(.2,.8,.2,1); }
 
 /* link picker */
 .picker .results { display: grid; gap: .3rem; max-height: 16rem; overflow: auto; margin-top: .5rem; }
-.picker .results button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .1rem .8rem; padding: .55rem .7rem; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+.picker .results button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .1rem .8rem; padding: .55rem .7rem; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
 .picker .results button:hover, .picker .results button:focus-visible { background: var(--paper-2); border-color: var(--line); }
 .picker .results .nm { font-weight: 620; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.picker .results .sub { grid-column: 1 / -1; font-size: .78rem; color: var(--muted); display: flex; gap: .4rem; align-items: center; min-width: 0; }
-.picker .results .added { opacity: .5; }
+.picker .results .sub { grid-column: 2 / -1; font-size: .78rem; color: var(--muted); display: flex; gap: .4rem; align-items: center; min-width: 0; }
+.picker .results .tick { grid-row: 1 / span 2; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 8px; border: 1.5px solid var(--line-2); color: var(--muted); }
+.picker .results .tick .ic { width: 1.1rem; height: 1.1rem; }
+.picker .results .added { background: color-mix(in srgb, var(--tag) 14%, transparent); border-color: color-mix(in srgb, var(--tag) 45%, transparent); }
+.picker .results .added .tick { background: var(--tag); border-color: var(--tag); color: var(--tag-ink); }
 .picker-empty { color: var(--muted); font-size: .88rem; padding: .6rem .2rem; }
 
 /* ------------------------------------------------------------------ the receipt (plan + saved lists) */
