@@ -34,6 +34,15 @@ if (root && chosen && search && results) {
     // exactly one preferred when there are links
     const radios = [...chosen.querySelectorAll('input[name="preferred"]')];
     if (radios.length && !radios.some((r) => r.checked)) radios[0].checked = true;
+    drawCompare();
+  }
+  // "Compare in Shopping": the picked products in Shopping's comparator (it takes ?kind=products&k=<key>..., 8 at most)
+  const compare = root.querySelector("[data-compare]");
+  function drawCompare() {
+    if (!compare || !root.dataset.compareUrl) return;
+    const keys = [...items.keys()].slice(0, 8);
+    compare.classList.toggle("hidden", keys.length < 2);
+    compare.href = `${root.dataset.compareUrl}?kind=products&${keys.map((k) => `k=${encodeURIComponent(k)}`).join("&")}`;
   }
 
   // The results stay open: each row is a toggle (linked or not), so several products can be picked from one search.

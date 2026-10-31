@@ -41,6 +41,8 @@ API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/
   a **snapshot** (name, pack size, price, promotion, deal and real-deal figures, store page URL) refreshed in one batch
   call when older than 6 h, on any page that shows it (`recipes/shopping.py`). Shopping down = the last snapshot is shown
   and the pages say so. The old free-text web links (`ShopLink`) are kept in the database but no longer shown.
+- With 2+ products linked, "Compare in Shopping" (ingredient page and form, `picker.js`) opens them in Shopping's
+  comparator through its shared-set link (`/compare/?kind=products&k=store|code...`, 8 at most; it replaces the picks there).
 - `recipes/pricing` logic: pack sizes ("500 g", "6 x 33 cl") are parsed to grams / millilitres / pieces. A recipe's cost is
   proportional (a quarter of a 1 kg pack = a quarter of its price); a list line counts **whole packs**, minus the saving
   of the current promotion on those packs. Amounts and packs that can't be compared (clove vs grams) count as one pack and

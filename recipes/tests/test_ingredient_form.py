@@ -78,3 +78,19 @@ class IngredientFormTests(HubTestCase):
         for name, args in [('ingredient-list', []), ('ingredient-detail', [ing.pk]),
                            ('ingredient-update', [ing.pk]), ('ingredient-create', [])]:
             self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 200, name)
+
+
+class CompareInShoppingTests(HubTestCase):
+    def setUp(self):
+        self.login(self.alice)
+
+    def test_two_links_open_shoppings_comparator(self):
+        ing = self.make_ingredient('Penne')
+        page = lambda: self.client.get(reverse('ingredient-detail', args=[ing.pk]))
+        ShoppingLink.objects.create(ingredient=ing, key='delhaize|P1', store='delhaize', code='P1')
+        with mock.patch.object(shopping, 'refresh', return_value=True):
+            self.assertNotContains(page(), 'Compare in Shopping')
+            ShoppingLink.objects.create(ingredient=ing, key='colruyt|P2', store='colruyt', code='P2')
+            self.assertContains(page(), 'compare/?kind=products&amp;k=colruyt%7CP2&amp;k=delhaize%7CP1')
+        edit = self.client.get(reverse('ingredient-update', args=[ing.pk]))
+        self.assertContains(edit, 'data-compare-url="https://shopping.nephty.top/compare/"')

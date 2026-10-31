@@ -46,8 +46,9 @@
     <div class="ribbon-months" aria-hidden="true">{% for number, label, field in form.season_cells %}<span>{{ label|slice:":3" }}</span>{% endfor %}</div>
   </div></section>
 
-  <section class="panel form-card"><div class="panel-body picker" data-picker data-store-hint="">
-    <div class="section-h"><h2>Products in Shopping</h2></div>
+  <section class="panel form-card"><div class="panel-body picker" data-picker data-store-hint="" data-compare-url="{% if 'shopping.view' in lab.perms %}{{ lab.shopping_url }}compare/{% endif %}">
+    <div class="section-h"><h2>Products in Shopping</h2>
+      <a class="btn btn-sm hidden" style="margin-left:auto" data-compare target="_blank" rel="noopener" title="Open the picked products side by side in Shopping's comparator">{% icon "compare_arrows" %}Compare in Shopping</a></div>
     {% if shopping_on %}
       <div class="linkcards" data-chosen></div>
       <div class="search" style="margin-top:.9rem">{% icon "search" %}<input class="input" type="search" placeholder="Search Shopping: “penne”, “tomates pelées”…" data-search autocomplete="off" aria-label="Search Shopping products"></div>

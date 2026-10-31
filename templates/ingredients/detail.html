@@ -51,7 +51,9 @@
 
   <div>
     <section class="panel">
-      <div class="panel-head"><h2>In the shops</h2><span class="muted sm">via Shopping</span></div>
+      <div class="panel-head"><h2>In the shops</h2><span class="muted sm">via Shopping</span>
+        {% if links|length > 1 and "shopping.view" in lab.perms %}<a class="btn btn-sm more" href="{{ lab.shopping_url }}compare/?kind=products{% for item in links|slice:":8" %}&amp;k={{ item.link.key|urlencode:'' }}{% endfor %}" target="_blank" rel="noopener" title="Open these products side by side in Shopping's comparator">{% icon "compare_arrows" %}Compare in Shopping</a>{% endif %}
+      </div>
       <div class="panel-body linkcards">
         {% for item in links %}
           {% include "ingredients/_linkcard.html" with item=item %}
