@@ -15,17 +15,24 @@
   </div>
   <div class="actions no-print">
     {% if can_edit %}
-    <form method="post" action="{% url 'list-action' saved.pk 'rename' %}" data-rename="{{ saved.name }}" data-rename-title="Rename list" class="inline-form">{% csrf_token %}<input type="hidden" name="name" value="{{ saved.name }}">
-      <button type="button" class="btn" data-rename-btn>{% icon "edit" %}Rename</button></form>
     {% if saved.archived %}
     <form method="post" action="{% url 'list-action' saved.pk 'unarchive' %}" class="inline-form">{% csrf_token %}<button class="btn">{% icon "unarchive" %}Restore</button></form>
     {% else %}
-    <form method="post" action="{% url 'list-action' saved.pk 'archive' %}" class="inline-form">{% csrf_token %}<button class="btn">{% icon "archive" %}Archive</button></form>
+    <form method="post" action="{% url 'list-action' saved.pk 'archive' %}" class="inline-form">{% csrf_token %}<button class="btn" title="Done with it: it moves to Archived">{% icon "archive" %}Archive</button></form>
     {% endif %}
     {% endif %}
-    {% if mine %}
-    <form method="post" action="{% url 'list-action' saved.pk 'delete' %}" class="inline-form" data-confirm="Delete “{{ saved.name }}”?">{% csrf_token %}
-      <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete list">{% icon "delete" %}</button></form>{% endif %}
+    {% if can_edit or mine %}
+    <details class="dd">
+      <summary class="btn btn-icon" title="More" aria-label="More actions">{% icon "more_vert" %}</summary>
+      <div class="dd-menu">
+        {% if can_edit %}<form method="post" action="{% url 'list-action' saved.pk 'rename' %}" data-rename="{{ saved.name }}" data-rename-title="Rename list">{% csrf_token %}<input type="hidden" name="name" value="{{ saved.name }}">
+          <button type="button" data-rename-btn>{% icon "edit" %}Rename</button></form>{% endif %}
+        {% if mine %}<hr>
+        <form method="post" action="{% url 'list-action' saved.pk 'delete' %}" data-confirm="Delete “{{ saved.name }}”?">{% csrf_token %}
+          <button class="danger">{% icon "delete" %}Delete the list</button></form>{% endif %}
+      </div>
+    </details>
+    {% endif %}
   </div>
 </div>
 

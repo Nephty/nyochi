@@ -31,17 +31,28 @@
         </span>{% endif %}
         <b class="cat-name">{{ c.name }}</b>
         <a class="chip" href="{% url 'ingredient-list' %}" title="Ingredients in this category">{{ c.uses }} ingredient{{ c.uses|pluralize }}</a>
-        {% if can_edit %}<form method="post" action="{% url 'category-rename' c.pk %}" class="inline-form" data-rename="{{ c.name }}" data-rename-title="Rename category">{% csrf_token %}<input type="hidden" name="name" value="{{ c.name }}">
-          <button type="button" class="btn btn-ghost btn-sm" data-rename-btn>{% icon "edit" %}Rename</button></form>
+        {% if can_edit %}
+        <details class="dd cat-more">
+          <summary class="btn btn-ghost btn-sm btn-icon" title="More" aria-label="More for {{ c.name }}">{% icon "more_vert" %}</summary>
+          <div class="dd-menu">
+            <form method="post" action="{% url 'category-rename' c.pk %}" data-rename="{{ c.name }}" data-rename-title="Rename category">{% csrf_token %}<input type="hidden" name="name" value="{{ c.name }}">
+              <button type="button" data-rename-btn>{% icon "edit" %}Rename</button></form>
+            {% if categories|length > 1 %}<hr><button type="button" class="danger" data-open="cat-del-{{ c.pk }}">{% icon "delete" %}<span class="txt">Delete…{% if c.uses %}<small>Its ingredients move to another category</small>{% endif %}</span></button>{% endif %}
+          </div>
+        </details>
         {% if categories|length > 1 %}
-        <details class="cat-del">
-          <summary class="btn btn-ghost btn-sm btn-danger">{% icon "delete" %}Delete</summary>
+        <details class="dd cat-del" id="cat-del-{{ c.pk }}">
+          <summary aria-hidden="true" tabindex="-1"></summary>
           <form method="post" action="{% url 'category-delete' c.pk %}" class="cat-del-form">{% csrf_token %}
+            <b>Delete “{{ c.name }}”</b>
             {% if c.uses %}<label class="label" for="mv{{ c.pk }}">Move its {{ c.uses }} ingredient{{ c.uses|pluralize }} to</label>
             <select class="select" id="mv{{ c.pk }}" name="move_to" required>
               {% for o in categories %}{% if o.pk != c.pk %}<option value="{{ o.key }}"{% if o.key == "other" %} selected{% endif %}>{{ o.name }}</option>{% endif %}{% endfor %}
             </select>{% else %}<span class="muted sm">No ingredient uses it.</span>{% endif %}
-            <button class="btn btn-danger solid btn-sm" type="submit">Delete “{{ c.name }}”</button>
+            <div class="row" style="justify-content:flex-end;gap:.4rem">
+              <button class="btn btn-sm" type="button" onclick="this.closest('details').removeAttribute('open')">Cancel</button>
+              <button class="btn btn-danger solid btn-sm" type="submit">{% icon "delete" %}Delete</button>
+            </div>
           </form>
         </details>
         {% endif %}{% endif %}

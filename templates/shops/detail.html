@@ -13,9 +13,14 @@
   </div>
   <div class="actions">
     {% if mine %}
-    <form method="post" action="{% url 'shop-delete' shop.pk %}" class="inline-form" data-confirm="Delete “{{ shop.name }}” with all its locations and aisles?">{% csrf_token %}
-      <button class="btn btn-danger btn-icon" title="Delete shop" aria-label="Delete shop">{% icon "delete" %}</button>
-    </form>{% endif %}
+    <details class="dd">
+      <summary class="btn btn-icon" title="More" aria-label="More actions">{% icon "more_vert" %}</summary>
+      <div class="dd-menu">
+        <form method="post" action="{% url 'shop-delete' shop.pk %}" data-confirm="Delete “{{ shop.name }}” with all its locations and aisles?">{% csrf_token %}
+          <button class="danger">{% icon "delete" %}<span class="txt">Delete the shop<small>With its locations, aisles and layouts</small></span></button>
+        </form>
+      </div>
+    </details>{% endif %}
   </div>
 </div>
 

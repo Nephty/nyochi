@@ -20,13 +20,28 @@
   </div>
   <div class="actions">
     {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}
-    {% if "nyochi.meals.edit" in lab.perms %}<button class="btn" type="button" data-add-meal>{% icon "event_available" %}Add to the calendar</button>{% endif %}
-    <a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}Add to plan</a>
-    {% if can_edit %}<a class="btn" href="{% url 'recipe-update' recipe.pk %}">{% icon "edit" %}Edit</a>{% endif %}
+    {# planning: the calendar when the community lets you change it, else Plan; the other one in the split menu #}
+    <div class="split">
+      {% if "nyochi.meals.edit" in lab.perms %}<button class="btn" type="button" data-add-meal>{% icon "event_available" %}<span class="lbl-long">Add to the calendar</span><span class="lbl-short">Calendar</span></button>
+      {% else %}<a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}<span class="lbl-long">Add to plan</span><span class="lbl-short">Plan</span></a>{% endif %}
+      <details class="dd">
+        <summary class="btn" aria-label="More ways to plan it">{% icon "keyboard_arrow_down" %}</summary>
+        <div class="dd-menu">
+          {% if "nyochi.meals.edit" in lab.perms %}<a href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}<span class="txt">Add to plan<small>Tick it on the Plan screen to build a shopping list</small></span></a>{% endif %}
+          <a href="{% url 'meals' %}{% if calendar.next %}?week={{ calendar.next.day|date:'Y-m-d' }}{% endif %}">{% icon "calendar_month" %}<span class="txt">Open the meal calendar{% if calendar.next %}<small>Planned {{ calendar.next.day|date:"D j M" }}</small>{% endif %}</span></a>
+        </div>
+      </details>
+    </div>
+    {% if can_edit %}<a class="btn edit-btn" href="{% url 'recipe-update' recipe.pk %}" title="Edit the recipe" aria-label="Edit the recipe">{% icon "edit" %}<span class="lbl-long">Edit</span></a>{% endif %}
     {% if mine %}
-    <form method="post" action="{% url 'recipe-delete' recipe.pk %}" data-confirm="Delete “{{ recipe.name }}”? It also disappears from the lists you made with it." class="inline-form">{% csrf_token %}
-      <button class="btn btn-danger btn-icon" title="Delete" aria-label="Delete recipe">{% icon "delete" %}</button>
-    </form>
+    <details class="dd">
+      <summary class="btn btn-icon" title="More" aria-label="More actions">{% icon "more_vert" %}</summary>
+      <div class="dd-menu">
+        <form method="post" action="{% url 'recipe-delete' recipe.pk %}" data-confirm="Delete “{{ recipe.name }}”? It also disappears from the lists you made with it.">{% csrf_token %}
+          <button class="danger">{% icon "delete" %}<span class="txt">Delete the recipe<small>Also from the lists made with it</small></span></button>
+        </form>
+      </div>
+    </details>
     {% endif %}
   </div>
 </div>

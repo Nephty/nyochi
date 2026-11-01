@@ -723,11 +723,11 @@ body.plan-page .main { min-height: 0; }
 .cat-order { display: inline-flex; }
 .cat-name { min-width: 8rem; font-size: 1.02rem; }
 .cat-row .chip { text-decoration: none; }
-.cat-del { margin-left: auto; position: relative; }
-.cat-del summary { list-style: none; cursor: pointer; }
-.cat-del summary::-webkit-details-marker { display: none; }
-.cat-del-form { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: min(18rem, 80vw); display: grid; gap: .6rem; padding: .9rem; background: var(--paper); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow-lg); }
-.cat-row:not(:has(.cat-del)) .cat-order + .cat-name { margin-right: auto; }
+.cat-more { margin-left: auto; }
+details.cat-del { position: absolute; right: 0; top: 100%; width: 0; height: 0; }
+.cat-del > summary { display: none; }
+.cat-row { position: relative; }
+.cat-del-form { position: absolute; right: 0; top: 4px; z-index: 30; width: min(19rem, 85vw); display: grid; gap: .6rem; padding: .9rem; background: var(--paper); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: var(--shadow-lg); }
 
 /* recipe card: how many of its ingredients are in season this month */
 .rcard .foot { align-items: flex-end; }
@@ -1093,4 +1093,65 @@ ul.shared .muted { font-size: .84rem; }
   .as-side .panel-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .9rem .7rem; }
   .as-side .panel-body > :nth-child(n+3) { grid-column: 1 / -1; }
   .today-meals .tm-more { margin-left: 0; }
+}
+
+/* ------------------------------------------------------------------ family components (same block in Shopping, Nyochi,
+   Admin and Home: keep them in step). Menus are <details class="dd"> (no JS needed to open; shell.js closes them on a
+   click elsewhere, Escape or an item):
+     <details class="dd"><summary class="btn btn-icon" aria-label="More">…</summary>
+       <div class="dd-menu"><a href>…</a><form><button class="danger">…</button></form><hr></div></details>
+   Split button: <div class="split"><a class="btn">Main action</a><details class="dd">…</details></div> */
+.dd { position: relative; display: inline-flex; }
+.dd > summary { list-style: none; }
+.dd > summary::-webkit-details-marker { display: none; }
+.dd[open] > summary { background: var(--paper-2); border-color: var(--ink-2); }
+.dd-menu { position: absolute; right: 0; top: calc(100% + .35rem); z-index: 40; min-width: 15rem; max-width: min(22rem, calc(100vw - 2rem)); padding: .35rem; display: grid; gap: 1px; background: var(--paper); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: var(--shadow-lg); animation: dd-in .14s ease-out; text-align: left; white-space: normal; }
+.dd.left > .dd-menu { right: auto; left: 0; }
+.dd.up > .dd-menu { top: auto; bottom: calc(100% + .35rem); }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-4px); } }
+.dd-menu form { display: contents; }
+.dd-menu a, .dd-menu button { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: .65rem; width: 100%; padding: .55rem .7rem; border-radius: 9px; font-weight: 620; font-size: .9rem; line-height: 1.25; color: var(--ink); cursor: pointer; }
+.dd-menu a:hover, .dd-menu button:hover, .dd-menu a:focus-visible, .dd-menu button:focus-visible { background: var(--paper-2); }
+.dd-menu button:disabled { opacity: .45; cursor: not-allowed; background: none; }
+.dd-menu .ic { width: 1.15rem; height: 1.15rem; flex: none; color: var(--muted); }
+.dd-menu .txt { display: grid; gap: .05rem; }
+.dd-menu small { color: var(--muted); font-weight: 500; font-size: .78rem; }
+.dd-menu .danger, .dd-menu .danger .ic { color: var(--loss); }
+.dd-menu hr { border: 0; border-top: 1px solid var(--line); margin: .3rem .25rem; }
+.dd-menu .dd-k { padding: .4rem .7rem .15rem; font: 800 .68rem var(--font); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.split { display: inline-flex; align-items: stretch; }
+.split > .btn { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.split > .dd > summary.btn { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; padding: 0 .55rem; }
+.split > .btn-primary + .dd > summary.btn { background: var(--accent); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 70%, var(--ink)); box-shadow: var(--glow); border-left-color: color-mix(in srgb, var(--accent-ink) 25%, transparent); }
+
+/* timeline: <ol class="tl"><li class="tl-day">Today</li><li class="tl-item"><span class="tl-dot">…</span><div>…</div></li></ol> */
+.tl { list-style: none; margin: 0; padding: .4rem 0; display: grid; }
+.tl-day { padding: .9rem 1.15rem .35rem; font: 800 .72rem var(--font); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+.tl-item { position: relative; display: grid; grid-template-columns: 2.1rem minmax(0, 1fr) auto; gap: .2rem .7rem; align-items: start; padding: .45rem 1.15rem; }
+.tl-item::before { content: ""; position: absolute; left: calc(1.15rem + 1.05rem - 1px); top: 0; bottom: 0; width: 2px; background: var(--line); }
+.tl-day + .tl-item::before { top: .9rem; }
+.tl-item:has(+ .tl-day)::before, .tl-item:last-child::before { bottom: calc(100% - .9rem); }
+.tl-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 50%; background: var(--paper-2); border: 1px solid var(--line-2); color: var(--ink-2); font: 800 .8rem var(--font); }
+.tl-dot .ic { width: 1.05rem; height: 1.05rem; }
+.tl-dot.good { background: var(--save-wash); color: var(--save); border-color: color-mix(in srgb, var(--save) 40%, transparent); }
+.tl-dot.bad { background: var(--loss-wash); color: var(--loss); border-color: color-mix(in srgb, var(--loss) 40%, transparent); }
+.tl-dot.key { background: var(--tag); color: var(--tag-ink); border-color: transparent; }
+.tl-body { padding-top: .35rem; min-width: 0; overflow-wrap: anywhere; }
+.tl-time { padding-top: .4rem; font: 600 .78rem var(--mono); color: var(--muted); white-space: nowrap; }
+
+/* stat cards: <div class="stats"><div class="stat-card"><span class="k">Label</span><b class="v">12,30 €</b><span class="d">detail</span></div></div> */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: .8rem; }
+.stat-card { display: grid; gap: .2rem; align-content: start; padding: .9rem 1rem; border-radius: var(--radius); background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; }
+.stat-card .k { font: 800 .7rem var(--font); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.stat-card .v { font: 800 1.45rem/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stat-card .v.good { color: var(--save); }
+.stat-card .d { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.stat-card .d b { color: var(--ink-2); font-weight: 650; }
+
+/* buttons with a shorter label on phones: <span class="lbl-long">Add to the calendar</span><span class="lbl-short">Calendar</span> */
+.lbl-short { display: none; }
+@media (max-width: 760px) {
+  .page-head .lbl-long { display: none; }
+  .page-head .lbl-short { display: inline; }
+  .page-head .edit-btn { width: 2.4rem; padding: 0; }
 }

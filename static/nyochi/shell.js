@@ -39,3 +39,19 @@ document.addEventListener("click", (e) => {
   input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); go(); } });
   input.select();
 });
+
+// Menus (<details class="dd">, CSS "family components"): one open at a time; a click elsewhere, an item or Escape
+// closes them. [data-open="<id>"] in a menu opens another <details> (e.g. a row's delete form).
+document.addEventListener("click", (e) => {
+  const opener = e.target.closest("[data-open]");
+  const opened = opener ? document.getElementById(opener.dataset.open) : null;
+  opened?.setAttribute("open", "");
+  for (const d of document.querySelectorAll("details.dd[open]")) {
+    if (d === opened) continue;
+    if (!d.contains(e.target) || e.target.closest(".dd-menu a, .dd-menu button")) d.removeAttribute("open");
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  for (const d of document.querySelectorAll("details.dd[open]")) { d.removeAttribute("open"); d.querySelector("summary")?.focus(); }
+});
