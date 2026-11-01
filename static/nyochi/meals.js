@@ -1,4 +1,4 @@
-// The meal calendar's week: days × slots on a desktop (drag a meal to move it), a day list on a phone.
+// The meal calendar's week: days × slots on a desktop (drag a meal to move it); on a phone, a day strip and one day.
 // Meals change through the meal dialog (meal-dialog.js); the summary under the grid follows every change.
 import { api, dialog, h, icon, money, readJson, toast } from "./ui.js";
 import { dayText, mealDialog, mealUrl, mult, parseDay } from "./meal-dialog.js";
@@ -65,14 +65,10 @@ if (B && root) {
       const dayMeals = meals.filter((m) => m.day === d.iso);
       cells.push(h(`div.wk-day${d.today ? ".today" : ""}${dayMeals.length ? "" : ".none"}`, { style: { gridColumn: c + 2 } },
         h("span.wd", {}, WEEKDAY.format(parseDay(d.iso))), h("b.dn", {}, String(parseDay(d.iso).getDate())),
-        h("span.long", {}, LONG.format(parseDay(d.iso))),
-        list ? h("a.bought", { href: list.url, title: `Shopped for in “${list.name}”` }, icon("shopping_basket")) : null,
-        B.canEdit ? h("button.btn.btn-ghost.btn-sm.btn-icon.phone-add", { type: "button", "aria-label": `Add a meal on ${dayText(d.iso)}`, onclick: () => open(null, { day: d.iso, slot: "dinner" }) }, icon("add")) : null));
-      if (!dayMeals.length) cells.push(h("div.wk-none", {}, "Nothing planned"));
+        list ? h("a.bought", { href: list.url, title: `Shopped for in “${list.name}”` }, icon("shopping_basket")) : null));
       B.slots.forEach((s, i) => {
         const here = meals.filter((m) => m.day === d.iso && m.slot === s.value);
         const cell = h(`div.wk-cell${here.length ? "" : ".empty"}${d.today ? ".today" : ""}`, { style: { gridColumn: c + 2, gridRow: i + 2 } },
-          h("span.cell-k", {}, icon(s.icon), s.label),
           here.map(card),
           B.canEdit ? h("button.add", { type: "button", title: `Add ${s.label.toLowerCase()}`, "aria-label": `Add ${s.label.toLowerCase()} on ${dayText(d.iso)}`, onclick: () => open(null, { day: d.iso, slot: s.value }) }, icon("add")) : null);
         dropZone(cell, d.iso, s.value);
@@ -80,8 +76,45 @@ if (B && root) {
       });
     });
     root.replaceChildren(...cells);
+    drawPhone();
     drawSummary();
   }
+
+  // ---- phone: a strip of the 7 days (a dot per meal), then the chosen day's meals slot by slot
+  const phone = document.querySelector("[data-phone]");
+  let focus = B.days.some((d) => d.iso === B.focus) ? B.focus : (B.days.find((d) => d.today) || B.days[0]).iso;
+  const pick = (iso) => { focus = iso; drawPhone(); };
+  function drawPhone() {
+    if (!phone) return;
+    const strip = h("div.pw-strip", { role: "tablist" }, B.days.map((d) => {
+      const n = meals.filter((m) => m.day === d.iso).length;
+      return h(`button.pw-d${d.iso === focus ? ".on" : ""}${d.today ? ".today" : ""}`, { type: "button", role: "tab", "aria-selected": String(d.iso === focus), onclick: () => pick(d.iso) },
+        h("span.wd", {}, WEEKDAY.format(parseDay(d.iso))), h("b", {}, String(parseDay(d.iso).getDate())),
+        h("span.dots", {}, Array.from({ length: Math.min(n, 4) }, () => h("i"))));
+    }));
+    const list = listFor(focus);
+    const slots = B.slots.map((s) => {
+      const here = meals.filter((m) => m.day === focus && m.slot === s.value);
+      return h(`section.pw-slot${here.length ? "" : ".free"}`, {},
+        h("div.pw-k", {}, icon(s.icon), h("span", {}, s.label),
+          B.canEdit ? h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", "aria-label": `Add ${s.label.toLowerCase()}`, onclick: () => open(null, { day: focus, slot: s.value }) }, icon("add")) : null),
+        here.length ? h("div.pw-meals", {}, here.map(card)) : null);
+    });
+    phone.replaceChildren(strip,
+      h("div.pw-day", {}, h("h2", {}, LONG.format(parseDay(focus))),
+        list ? h("a.bought", { href: list.url, title: `Shopped for in “${list.name}”` }, icon("shopping_basket")) : null),
+      h("div.pw-slots", {}, slots));
+  }
+  // swipe the day sideways for the next or previous one
+  let touchX = null;
+  phone?.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+  phone?.addEventListener("touchend", (e) => {
+    if (touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    touchX = null;
+    const i = B.days.findIndex((d) => d.iso === focus) + (dx < -60 ? 1 : dx > 60 ? -1 : 0);
+    if (Math.abs(dx) > 60 && B.days[i]) pick(B.days[i].iso);
+  });
 
   // under the grid: how much is planned, what it costs, what two recipes share
   const summary = document.querySelector("[data-summary]");
@@ -111,7 +144,7 @@ if (B && root) {
   }
 
   // Shopping list for a range of days -> the list planner, preset
-  document.querySelector("[data-shop]")?.addEventListener("click", () => {
+  document.querySelectorAll("[data-shop]").forEach((b) => b.addEventListener("click", () => {
     const first = B.days.find((d) => d.iso >= B.today)?.iso || B.days[0].iso;
     const from = h("input.input", { type: "date", value: first });
     const to = h("input.input", { type: "date", value: B.days.at(-1).iso });
@@ -131,7 +164,7 @@ if (B && root) {
           location.href = `${B.urls.shop}?start=${from.value}&end=${to.value}`;
         } }, icon("add_shopping_cart"), "Make the list")],
     });
-  });
+  }));
 
   draw();
 }

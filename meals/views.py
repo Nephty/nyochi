@@ -66,6 +66,8 @@ class WeekView(LoginRequiredMixin, View):
                 'recipes': recipes, 'ingredients': planning.ingredient_names(recipes),
                 'lists': planning.lists_covering(request.user, start, end),
                 'canEdit': can_edit(request.user, Meal), 'today': today.isoformat(), 'urls': _urls(),
+                # the day a phone shows first: the one asked for (from the month), else today
+                'focus': parse_day(request.GET.get('week'), today).isoformat(),
             },
         })
 

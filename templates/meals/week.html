@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Meals · Nyochi{% endblock %}
 {% block phone_title %}Meals{% endblock %}
-{% block body_class %}meals-page{% endblock %}
+{% block phone_actions %}
+<button class="btn btn-ghost btn-icon" type="button" data-shop aria-label="Shopping list">{% icon "add_shopping_cart" %}</button>
+<details class="dd">
+  <summary class="btn btn-ghost btn-icon" aria-label="More">{% icon "more_vert" %}</summary>
+  <div class="dd-menu">
+    <a href="{% url 'meals-month' %}?m={{ month }}">{% icon "calendar_month" %}Month</a>
+    {% if "nyochi.meals.edit" in lab.perms %}<a href="{% url 'meals-assistant' %}?{{ assistant_query }}">{% icon "auto_awesome" %}Plan with the assistant</a>{% endif %}
+  </div>
+</details>
+{% endblock %}
+{% block body_class %}meals-page week-page{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -20,6 +30,12 @@
   </div>
 </div>
 
+<nav class="pw-nav" aria-label="Week">
+  <a class="btn btn-ghost btn-icon" href="?week={{ prev }}" aria-label="Previous week">{% icon "chevron_left" %}</a>
+  <a class="pw-ttl" href="{% url 'meals' %}"><b>{% if is_this_week %}This week{% else %}Week of {{ start|date:"j M" }}{% endif %}</b><span>{{ start|date:"j M" }} – {{ end|date:"j M" }}</span></a>
+  <a class="btn btn-ghost btn-icon" href="?week={{ next }}" aria-label="Next week">{% icon "chevron_right" %}</a>
+</nav>
+<div class="pw" data-phone></div>
 <div class="wk" data-week></div>
 <div class="wk-foot" data-summary></div>
 {{ boot|json_script:"meals-data" }}

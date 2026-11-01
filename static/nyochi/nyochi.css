@@ -938,7 +938,6 @@ body.cooking { height: var(--app-h); overflow: hidden; }
 .wk-day { grid-row: 1; display: flex; align-items: baseline; gap: .4rem; padding: .7rem .7rem .55rem; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; }
 .wk-day .wd { font: 800 .72rem var(--font); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .wk-day .dn { font: 800 1.35rem/1 var(--display); }
-.wk-day .long, .wk-day .phone-add, .wk-cell .cell-k, .wk-none { display: none; }
 .wk-day.today { background: color-mix(in srgb, var(--tag) 20%, var(--paper)); }
 .wk-day.today .dn { color: var(--tag-ink); background: var(--tag); border-radius: 8px; padding: .1rem .35rem; }
 .wk-day .bought { margin-left: auto; color: var(--save); display: inline-flex; }
@@ -1078,23 +1077,36 @@ ul.shared .muted { font-size: .84rem; }
   .as-side[open] .as-sum { border-bottom: 1px solid var(--line); }
   .as-side[open] .as-sum .chev { transform: rotate(180deg); }
 }
+.pw, .pw-nav { display: none; }
 @media (max-width: 760px) {
-  .wk { display: block; background: transparent; border: 0; box-shadow: none; overflow: visible; }
-  .wk-corner, .wk-slot { display: none; }
-  .wk-day { border: 0; padding: 1rem .2rem .4rem; align-items: center; background: transparent !important; }
-  .wk-day .wd, .wk-day .dn { display: none; }
-  .wk-day .long { display: inline; font: 800 1.05rem var(--display); }
-  .wk-day.today .long::after { content: "today"; margin-left: .5rem; font: 800 .68rem var(--font); text-transform: uppercase; letter-spacing: .1em; background: var(--tag); color: var(--tag-ink); border-radius: 999px; padding: .15rem .45rem; vertical-align: 2px; }
-  .wk-day .phone-add { display: inline-flex; margin-left: auto; }
-  .wk-day .bought { margin-left: .4rem; }
-  .wk-cell { min-height: 0; border: 0; padding: .15rem 0; background: transparent !important; flex-direction: row; align-items: stretch; gap: .5rem; }
-  .wk-cell.empty { display: none; }
-  .wk-none { display: block; color: var(--faint); font-size: .86rem; padding: 0 .2rem .2rem; }
-  .wk-cell .cell-k { display: inline-flex; align-items: center; gap: .3rem; width: 5.6rem; flex: none; font-size: .78rem; font-weight: 700; color: var(--muted); }
-  .wk-cell .cell-k .ic { width: 1rem; height: 1rem; }
-  .wk-cell { flex-wrap: wrap; }
-  .wk-cell .mc { flex: 1 1 12rem; }
-  .wk-cell .add { display: none; }
+  /* the week on phones: week arrows, a strip of days, the chosen day slot by slot */
+  .week-page .page-head, .week-page .wk, .week-page .wk-foot { display: none; }
+  .pw-nav { display: flex; align-items: center; gap: .3rem; margin: -.3rem 0 .6rem; }
+  .pw-ttl { flex: 1; display: grid; justify-items: center; text-decoration: none; color: inherit; line-height: 1.2; }
+  .pw-ttl b { font: 800 1.05rem var(--display); }
+  .pw-ttl span { font-size: .8rem; color: var(--muted); }
+  .pw { display: grid; gap: .9rem; }
+  .pw-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; }
+  .pw-d { all: unset; box-sizing: border-box; display: grid; justify-items: center; gap: .15rem; padding: .45rem 0 .4rem; border-radius: 12px; cursor: pointer; border: 1px solid transparent; }
+  .pw-d .wd { font: 800 .64rem var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .pw-d b { font: 800 1.1rem/1.1 var(--display); }
+  .pw-d .dots { display: flex; gap: 3px; height: 5px; }
+  .pw-d .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-text); }
+  .pw-d.today { border-color: var(--tag); background: color-mix(in srgb, var(--tag) 18%, transparent); }
+  .pw-d.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .pw-d.on .wd { color: color-mix(in srgb, var(--paper) 70%, transparent); }
+  .pw-d.on .dots i { background: var(--tag); }
+  .pw-day { display: flex; align-items: center; gap: .5rem; }
+  .pw-day h2 { font-size: 1.15rem; }
+  .pw-day .bought { color: var(--save); display: inline-flex; }
+  .pw-slots { display: grid; gap: .6rem; }
+  .pw-slot { display: grid; gap: .5rem; padding: .6rem .7rem; border-radius: 14px; border: 1px solid var(--line); background: var(--paper); }
+  .pw-slot.free { background: transparent; border-style: dashed; }
+  .pw-k { display: flex; align-items: center; gap: .45rem; font-weight: 700; font-size: .88rem; color: var(--ink-2); }
+  .pw-k .ic { width: 1.1rem; height: 1.1rem; color: var(--muted); }
+  .pw-k span { flex: 1; }
+  .pw-slot.free .pw-k { color: var(--muted); }
+  .pw-meals { display: grid; gap: .4rem; }
   /* the month on phones: a compact calendar (a dot per meal, a tap opens the week), then the planned days listed */
   .mo-head span { padding: .45rem 0; text-align: center; font-size: .66rem; letter-spacing: .04em; }
   .mo-day { min-height: 3.1rem; padding: .35rem 0; align-items: center; gap: .25rem; }
