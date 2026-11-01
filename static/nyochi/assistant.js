@@ -1,4 +1,4 @@
-// The meal assistant: fills the chosen days and meals with recipes, scored in the browser from the same data as Plan
+// The meal assistant: fills the chosen days and meals with recipes, scored in the browser from the same data as the list planner
 // (season, Shopping promotions, cost, times, tags) plus the calendar's history. Swap, lock or skip each proposal,
 // then add them all to the calendar (and go on to the shopping list).
 import { api, dialog, h, icon, prefs, readJson, sw, toast } from "./ui.js";

@@ -110,7 +110,7 @@ if (B && root) {
         h("div.panel-body", {}, h("ul.shared", {}, shared.slice(0, 12).map(([i, rs]) => h("li", {}, h("b", {}, B.ingredients[i] || "?"), h("span.muted", {}, [...rs].join(" · "))))))) : null].filter(Boolean));
   }
 
-  // Shopping list for a range of days -> the Plan screen, preset
+  // Shopping list for a range of days -> the list planner, preset
   document.querySelector("[data-shop]")?.addEventListener("click", () => {
     const first = B.days.find((d) => d.iso >= B.today)?.iso || B.days[0].iso;
     const from = h("input.input", { type: "date", value: first });
@@ -129,7 +129,7 @@ if (B && root) {
         h("button.btn.btn-primary", { type: "button", onclick: () => {
           if (!from.value || !to.value) return;
           location.href = `${B.urls.shop}?start=${from.value}&end=${to.value}`;
-        } }, icon("checklist"), "Open in Plan")],
+        } }, icon("add_shopping_cart"), "Make the list")],
     });
   });
 

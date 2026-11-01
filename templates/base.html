@@ -28,18 +28,18 @@
 <div class="shell">
   {% include "labauth/appbar.html" %}
   <header class="phone-head">
-    <a class="brand" href="{% url 'recipe-list' %}" aria-label="Recipes">{% include "partials/mark.html" %}</a>
+    <a class="brand" href="{% url 'home' %}" aria-label="Meals">{% include "partials/mark.html" %}</a>
     <span class="ttl">{% block phone_title %}Nyochi{% endblock %}</span>
     <div class="acts">{% block phone_actions %}{% endblock %}{% include "partials/theme_btn.html" %}</div>
   </header>
   <aside class="rail">
-    <a class="brand" href="{% url 'recipe-list' %}">{% include "partials/mark.html" %}<span class="brand-name">Nyo<em>chi</em></span></a>
+    <a class="brand" href="{% url 'home' %}">{% include "partials/mark.html" %}<span class="brand-name">Nyo<em>chi</em></span></a>
     {% include "labauth/switcher.html" %}
     <nav class="nav" aria-label="Main">
-      <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %} title="Recipes">{% icon "menu_book" %}<span>Recipes</span></a>
       <a href="{% url 'meals' %}" {% if page == "meals" %}aria-current="page"{% endif %} title="Meals">{% icon "calendar_month" %}<span>Meals</span></a>
+      <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %} title="Recipes">{% icon "menu_book" %}<span>Recipes</span></a>
       <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %} title="Ingredients">{% icon "eco" %}<span>Ingredients</span></a>
-      <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %} title="Plan">{% icon "checklist" %}<span>Plan</span></a>
+      <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %} title="Shopping list planner">{% icon "add_shopping_cart" %}<span>List planner</span></a>
       <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %} title="Lists">{% icon "receipt_long" %}<span>Lists</span></a>
       <div class="nav-sep"></div>
       <a href="{% url 'shop-list' %}" {% if page == "shops" %}aria-current="page"{% endif %} title="Shops">{% icon "storefront" %}<span>Shops</span></a>
@@ -50,9 +50,9 @@
   </aside>
   <main class="main">{% block main %}<div class="page">{% block content %}{% endblock %}</div>{% endblock %}</main>
   <nav class="tabbar" aria-label="Main">
-    <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %}>{% icon "menu_book" %}Recipes</a>
     <a href="{% url 'meals' %}" {% if page == "meals" %}aria-current="page"{% endif %}>{% icon "calendar_month" %}Meals</a>
-    <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %}>{% icon "checklist" %}Plan</a>
+    <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %}>{% icon "menu_book" %}Recipes</a>
+    <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %}>{% icon "add_shopping_cart" %}Planner</a>
     <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %}>{% icon "receipt_long" %}Lists</a>
     <button type="button" data-more {% if page == "ingredients" or page == "shops" or page == "tags" or page == "categories" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
   </nav>

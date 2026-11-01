@@ -28,6 +28,6 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="panel"><div class="empty">{% icon "receipt_long" %}<b>{% if archived %}Nothing archived{% else %}No list yet{% endif %}</b><span>{% if archived %}Finished lists you archive end up here.{% else %}Pick a few recipes in the planner and save the result as a list.{% endif %}</span>{% if not archived %}<a class="btn btn-primary" href="{% url 'plan' %}">{% icon "checklist" %}Plan a shop</a>{% endif %}</div></div>
+<div class="panel"><div class="empty">{% icon "receipt_long" %}<b>{% if archived %}Nothing archived{% else %}No list yet{% endif %}</b>{% if not archived %}<a class="btn btn-primary" href="{% url 'plan' %}">{% icon "add_shopping_cart" %}New list</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}

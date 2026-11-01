@@ -1,5 +1,5 @@
 // The shopping list as a till receipt: sections in walking order (numbered stops when a shop layout is chosen),
-// each line with what to buy in Shopping. Used by the Plan screen and by saved lists.
+// each line with what to buy in Shopping. Used by the list planner and by saved lists.
 import { h, icon, money, num, realChip, storeChip, untilText } from "./ui.js";
 
 const SEASON_TEXT = { in: "in season", early: "early season", late: "late season", out: "out of season" };
@@ -58,9 +58,9 @@ export function renderReceipt(box, data, opts = {}) {
         h("div.ln", {}, h("span", {}, `Priced (${t.priced} of ${t.lines} items)`), h("span", {}, money(t.cost))),
         t.saving > 0 ? h("div.ln.save", {}, h("span", {}, "Promotions on the way"), h("span", {}, `− ${money(t.saving)}`)) : null,
         h("div.ln.total", {}, h("span", {}, t.saving > 0 ? "After promotions" : "Estimated total"), h("span", {}, money(t.after_deals))),
-        t.unpriced ? h("div.note", {}, `${t.unpriced} item${t.unpriced === 1 ? " has" : "s have"} no linked product, so it isn’t counted.`) : null,
-      ] : h("div.note", {}, "Link ingredients to Shopping products to see prices and promotions here."),
-      data.shopping?.configured && !data.shopping.reachable ? h("div.note", {}, "Shopping can’t be reached right now: these are the last prices we have.") : null,
+        t.unpriced ? h("div.note", {}, `${t.unpriced} not priced`) : null,
+      ] : null,
+      data.shopping?.configured && !data.shopping.reachable ? h("div.note", {}, "Shopping is unreachable: last known prices.") : null,
       data.stores?.length > 1 ? h("div.rstores", {}, data.stores.map((s) => h(`span.chip.store-${s.store}`, { title: `${s.label} has a product for ${s.lines} of these items` }, `${s.label} · ${s.lines} items · ${money(s.cost)}`))) : null,
     ) : null,
     data.sections.length ? h("div.rcpt-foot", { dataset: { barcode: "" } }) : null,

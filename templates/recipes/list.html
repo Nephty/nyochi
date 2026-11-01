@@ -8,7 +8,7 @@
     <h1>Recipes</h1>
   </div>
   <div class="actions on-wide">
-    <a class="btn" href="{% url 'plan' %}">{% icon "checklist" %}Plan a shop</a>
+    <a class="btn" href="{% url 'plan' %}">{% icon "add_shopping_cart" %}New list</a>
     {% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}
   </div>
 </div>

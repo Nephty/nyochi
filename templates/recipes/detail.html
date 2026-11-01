@@ -20,14 +20,14 @@
   </div>
   <div class="actions">
     {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}
-    {# planning: the calendar when the community lets you change it, else Plan; the other one in the split menu #}
+    {# planning: the calendar when the community lets you change it, else the list planner; the other one in the split menu #}
     <div class="split">
       {% if "nyochi.meals.edit" in lab.perms %}<button class="btn" type="button" data-add-meal>{% icon "event_available" %}<span class="lbl-long">Add to the calendar</span><span class="lbl-short">Calendar</span></button>
-      {% else %}<a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}<span class="lbl-long">Add to plan</span><span class="lbl-short">Plan</span></a>{% endif %}
+      {% else %}<a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "add_shopping_cart" %}<span class="lbl-long">Add to a shopping list</span><span class="lbl-short">List</span></a>{% endif %}
       <details class="dd">
         <summary class="btn" aria-label="More ways to plan it">{% icon "keyboard_arrow_down" %}</summary>
         <div class="dd-menu">
-          {% if "nyochi.meals.edit" in lab.perms %}<a href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}<span class="txt">Add to plan</span></a>{% endif %}
+          {% if "nyochi.meals.edit" in lab.perms %}<a href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "add_shopping_cart" %}<span class="txt">Add to a shopping list</span></a>{% endif %}
           <a href="{% url 'meals' %}{% if calendar.next %}?week={{ calendar.next.day|date:'Y-m-d' }}{% endif %}">{% icon "calendar_month" %}<span class="txt">Open the meal calendar{% if calendar.next %}<small>Planned {{ calendar.next.day|date:"D j M" }}</small>{% endif %}</span></a>
         </div>
       </details>

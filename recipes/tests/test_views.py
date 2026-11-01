@@ -210,6 +210,23 @@ class PlanAndListTests(HubTestCase):
         r = self.post_json(reverse('plan-receipt'), {'recipes': [{'id': theirs.pk, 'mult': 1}]})
         self.assertEqual(r.status_code, 404)
 
+    def test_items_added_by_hand(self):
+        # a known ingredient joins its category (once, even when a recipe has it), anything else goes to Extras
+        data = self.plan(extras=['bin bags', 'milk', 'Bin  bags', 'Flour']).json()
+        names = {s['kind']: [l['name'] for l in s['lines']] for s in data['sections']}
+        self.assertEqual(names['extras'], ['bin bags'])
+        self.assertEqual(data['totals']['lines'], 3)
+        only = self.post_json(reverse('plan-receipt'), {'extras': ['Milk']}).json()
+        self.assertEqual([l['name'] for s in only['sections'] for l in s['lines']], ['Milk'])
+        made = self.post_json(reverse('plan-save'), {'extras': ['bin bags', 'Milk']}).json()
+        items = SavedGroceryList.objects.get(pk=made['id']).items.all()
+        self.assertEqual({(i.ingredient_id, i.custom_name) for i in items}, {(None, "bin bags"), (self.milk.pk, "")})
+
+    def test_meals_is_the_first_screen(self):
+        page = self.client.get('/')
+        self.assertTemplateUsed(page, 'meals/week.html')
+        self.assertEqual(reverse('recipe-list'), '/recipes/')
+
     def test_save_then_use_the_list(self):
         made = self.post_json(reverse('plan-save'), {'recipes': [{'id': self.pancakes.pk, 'mult': 1}], 'name': 'Sunday'}).json()
         saved = SavedGroceryList.objects.get(pk=made['id'])

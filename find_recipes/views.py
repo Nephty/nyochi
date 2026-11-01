@@ -1,5 +1,5 @@
-"""Plan: choose recipes (filtering happens in the browser over the data below), see the shopping list build up."""
-from datetime import date
+"""The shopping list planner: recipes (or the meal calendar's days) and extra items become a list to save."""
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,10 +16,11 @@ from recipes.access import readable, readable_locations
 from recipes.community import can_edit
 from recipes.costing import recipe_costing
 from recipes.http import ApiError, api, body, positive_int
-from recipes.models import Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList, Tag
+from recipes.models import Ingredient, Recipe, RecipeIngredient, SavedGroceryItem, SavedGroceryList
 from recipes.seasons import current_month
 
 MAX_RECIPES = 40
+MAX_EXTRAS = 60
 MULT_MIN, MULT_MAX = Decimal('0.25'), Decimal('20')
 
 
@@ -50,10 +51,6 @@ def _plan_recipes(user):
 class PlanView(LoginRequiredMixin, View):
     def get(self, request):
         recipes = _plan_recipes(request.user)
-        used = {i for r in recipes for i in r['ing']}
-        ingredient_names = {}
-        for ri in RecipeIngredient.objects.filter(ingredient_id__in=used).select_related('ingredient').distinct():
-            ingredient_names[ri.ingredient_id] = ri.ingredient.name
         locations = readable_locations(request.user).select_related('shop').order_by('shop__name', 'name')
         # ?recipe=<id> or <id>x<portions> (the meal calendar's "Shopping list for these days" also sends from / to)
         preselect = {}
@@ -68,19 +65,32 @@ class PlanView(LoginRequiredMixin, View):
         covers = _covers(request.GET)
         return render(request, 'plan/plan.html', {
             'page': 'plan',
+            'weeks': _calendar_weeks(request.user, covers),
             'plan': {
                 'recipes': recipes,
-                'tags': [{'id': t.pk, 'name': t.name} for t in readable(Tag, request.user)],
-                'ingredients': sorted(({'id': k, 'name': v} for k, v in ingredient_names.items()),
-                                      key=lambda i: i['name'].lower()),
+                'ingredients': list(readable(Ingredient, request.user).order_by('name').values_list('name', flat=True)),
                 'locations': [{'id': l.pk, 'name': str(l), 'store': l.shop.shopping_store} for l in locations],
-                'meals': [{'value': v, 'label': l} for v, l in Recipe.MealType.choices],
                 'preselect': [{'id': k, 'mult': v} for k, v in preselect.items()],
                 'covers': covers and {'from': covers[0].isoformat(), 'to': covers[1].isoformat(),
                                       'label': _covers_label(*covers)},
                 'urls': {'receipt': reverse('plan-receipt'), 'save': reverse('plan-save')},
             },
         })
+
+
+def _calendar_weeks(user, covers):
+    """The rest of this week and next week, when the meal calendar has recipes to cook in them."""
+    from meals.planning import meals_between, monday
+
+    today = timezone.localdate()
+    end = monday(today) + timedelta(days=6)
+    out = []
+    for label, start, stop in [('This week', today, end), ('Next week', end + timedelta(days=1), end + timedelta(days=7))]:
+        n = sum(1 for m in meals_between(user, start, stop) if m.kind == 'recipe')
+        if n:
+            out.append({'label': label, 'meals': n, 'start': start.isoformat(), 'end': stop.isoformat(),
+                        'on': covers == (start, stop)})
+    return out
 
 
 def _covers(data):
@@ -99,12 +109,18 @@ def _covers_label(start, end):
 
 
 def _selection(request):
+    """(data, [(Recipe, multiplier)], extra Lines, location) from a planner request."""
     data = body(request)
-    picks = data.get('recipes')
-    if not isinstance(picks, list) or not picks:
-        raise ApiError('Pick at least one recipe.')
+    picks = data.get('recipes') or []
+    extras = data.get('extras') or []
+    if not isinstance(picks, list) or not isinstance(extras, list):
+        raise ApiError('Invalid selection.')
+    if not picks and not extras:
+        raise ApiError('Pick a recipe or add an item.')
     if len(picks) > MAX_RECIPES:
         raise ApiError(f'At most {MAX_RECIPES} recipes at once.')
+    if len(extras) > MAX_EXTRAS:
+        raise ApiError(f'At most {MAX_EXTRAS} extra items.')
     mults = {}
     for p in picks:
         if not isinstance(p, dict):
@@ -117,8 +133,8 @@ def _selection(request):
         if not MULT_MIN <= mult <= MULT_MAX:
             raise ApiError('Portions can be scaled from ×0.25 to ×20.')
         mults[rid] = mult
-    recipes = list(readable(Recipe, request.user).filter(pk__in=mults))
-    if not recipes:
+    recipes = list(readable(Recipe, request.user).filter(pk__in=mults)) if mults else []
+    if mults and not recipes:
         raise ApiError('None of these recipes exist (any more).', 404)
     location = None
     if data.get('location'):
@@ -126,15 +142,35 @@ def _selection(request):
             pk=positive_int(data['location'], 'location')).first()
         if location is None:
             raise ApiError('Unknown shop location.', 404)
-    return data, [(r, mults[r.pk]) for r in recipes], location
+    return data, [(r, mults[r.pk]) for r in recipes], _extra_lines(request.user, extras), location
+
+
+def _extra_lines(user, names):
+    """Items added by hand: a known ingredient's name becomes that ingredient (its aisle, its price), else free text."""
+    clean = []
+    for raw in names:
+        name = ' '.join(str(raw).split())[:120]
+        if name and name.lower() not in {n.lower() for n in clean}:
+            clean.append(name)
+    wanted = {n.lower() for n in clean}
+    known = {i.name.lower(): i for i in readable(Ingredient, user).prefetch_related('seasonal_availability')
+             if i.name.lower() in wanted} if clean else {}
+    return [grocery.Line(ingredient=known.get(n.lower()), custom_name='' if n.lower() in known else n,
+                         amount=Decimal(1)) for n in clean]
+
+
+def _lines(picks, extras):
+    lines = grocery.merge_recipes(picks) if picks else []
+    have = {l.ingredient.pk for l in lines}
+    return lines + [l for l in extras if not l.ingredient or l.ingredient.pk not in have]
 
 
 @api
 def receipt(request):
     if request.method != 'POST':
         raise ApiError('POST only.', 405)
-    _, picks, location = _selection(request)
-    return JsonResponse(grocery.receipt(grocery.merge_recipes(picks), location, request.user))
+    _, picks, extras, location = _selection(request)
+    return JsonResponse(grocery.receipt(_lines(picks, extras), location, request.user))
 
 
 @api
@@ -143,8 +179,8 @@ def save(request):
         raise ApiError('POST only.', 405)
     if not can_edit(request.user, SavedGroceryList):
         raise ApiError('Your community does not let you save lists.', 403)
-    data, picks, location = _selection(request)
-    lines = grocery.merge_recipes(picks)
+    data, picks, extras, location = _selection(request)
+    lines = _lines(picks, extras)
     if not lines:
         raise ApiError('These recipes have no ingredients.')
     covers = _covers(data.get('covers') or {})
@@ -155,8 +191,8 @@ def save(request):
                                                 covers_from=covers and covers[0], covers_to=covers and covers[1])
         saved.recipes.set([r for r, _ in picks])
         SavedGroceryItem.objects.bulk_create([
-            SavedGroceryItem(grocery_list=saved, ingredient=l.ingredient, quantity=max(l.amount, Decimal('0.01')),
-                             unit=l.unit, owner=request.user)
+            SavedGroceryItem(grocery_list=saved, ingredient=l.ingredient, custom_name=l.custom_name,
+                             quantity=max(l.amount, Decimal('0.01')), unit=l.unit, owner=request.user)
             for l in lines
         ])
     return JsonResponse({'id': saved.pk, 'url': reverse('saved-grocery-detail', args=[saved.pk])}, status=201)
