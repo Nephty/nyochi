@@ -123,7 +123,7 @@ if (B && root) {
   const strip = h("div.pw-strip", { role: "tablist" });
   const dayBox = h("div.pw-days");
   phone?.append(strip, dayBox);
-  const days = phone ? slider(dayBox, { span: 7, render: (o) => dayPanel(addDays(focus, o)), onMove: (d) => { focus = addDays(focus, d); moved(); } }) : null;
+  const days = phone ? slider(dayBox, { span: 7, fill: true, render: (o) => dayPanel(addDays(focus, o)), onMove: (d) => { focus = addDays(focus, d); moved(); } }) : null;
   const nav = document.querySelector(".pw-nav");
 
   function drawStrip() {

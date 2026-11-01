@@ -1,5 +1,5 @@
 // Swipes on touch screens (a family component: the same file in Shopping, Nyochi, Home and Admin, no imports).
-//   snap(el, {onChange, onSettle, fit}): el is a row of full-width panels the browser scrolls sideways (CSS scroll snap), so
+//   snap(el, {onChange, onSettle, fit, fill}): el is a row of full-width panels the browser scrolls sideways (CSS scroll snap), so
 //     the next panel is already there under the finger. onChange(i) fires as soon as panel i is the one mostly shown,
 //     onSettle(i) once the scroll has stopped (and the finger is up). Returns {index(), go(i, smooth)}.
 //   slider(el, {render, has, onMove, span}): an endless snap: render(offset) for the `span` items before and after the
@@ -53,8 +53,18 @@ function track(el, { move, end }) {
   el.addEventListener("pointercancel", (e) => finish(e, true));
 }
 
-export function snap(el, { onChange, onSettle, fit = true } = {}) {
+export function snap(el, { onChange, onSettle, fit = true, fill = false } = {}) {
   el.classList.add("sw-snap");
+  // fill: the panels reach down to the tab bar, so a swipe anywhere on the empty screen below them counts too
+  if (fill) {
+    const reach = () => {
+      const top = el.getBoundingClientRect().top + scrollY;
+      const bar = document.querySelector(".tabbar")?.offsetHeight || 0;
+      el.style.setProperty("--sw-fill", `${Math.max(0, innerHeight - top - bar)}px`);
+    };
+    reach();
+    addEventListener("resize", reach);
+  }
   const at = () => Math.round(el.scrollLeft / (el.clientWidth || 1));
   let cur = at(), dirty = false, touching = false, timer = 0;
   // as tall as the panel in view (fit: false when the panels scroll inside a fixed height)
@@ -92,7 +102,7 @@ export function snap(el, { onChange, onSettle, fit = true } = {}) {
   };
 }
 
-export function slider(el, { render, has = () => true, onMove, fit = true, span = 6 }) {
+export function slider(el, { render, has = () => true, onMove, fit = true, fill = false, span = 6 }) {
   let mid = 0, at = 0, pending = false;
   const build = () => {
     pending = false;
@@ -110,7 +120,7 @@ export function slider(el, { render, has = () => true, onMove, fit = true, span 
   };
   el.classList.add("sw-slide");
   const s = snap(el, {
-    fit,
+    fit, fill,
     // live: the item in view changed by d (a fast flick can pass several); the page follows at once
     onChange(i) { const d = i - at; at = i; if (d) onMove(d); },
     // once still: re-centre the window of panels on the new item (never under a finger or a running scroll)

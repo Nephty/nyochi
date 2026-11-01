@@ -1246,3 +1246,4 @@ ul.shared .muted { font-size: .84rem; }
 /* the cooking guide: its steps side by side (swipe.js slider), each scrolling on its own */
 .cook-main.sw-snap { align-items: stretch; padding: 0; }
 .cook-main > .sw-panel { overflow-y: auto; padding: .4rem 0 1rem; }
+.sw-snap > * { min-height: var(--sw-fill, 0px); box-sizing: border-box; }

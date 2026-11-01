@@ -43,7 +43,7 @@ if (box && matchMedia("(max-width: 760px)").matches) {
     [-2, -1, 1, 2].forEach((d) => load(shift(cur, d)));
   }
 
-  const months = slider(box, { span: 3, render: (o) => parse(shift(cur, o)), onMove: (d) => { cur = shift(cur, d); moved(); } });
+  const months = slider(box, { span: 3, fill: true, render: (o) => parse(shift(cur, o)), onMove: (d) => { cur = shift(cur, d); moved(); } });
   for (const [sel, d] of [["[data-prev]", -1], ["[data-next]", 1]]) {
     document.querySelector(sel).addEventListener("click", (e) => { e.preventDefault(); cur = shift(cur, d); moved(); months.refresh(); });
   }
