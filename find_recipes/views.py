@@ -185,7 +185,7 @@ def save(request):
         raise ApiError('These recipes have no ingredients.')
     covers = _covers(data.get('covers') or {})
     name = ' '.join(str(data.get('name') or '').split())[:200] or (
-        f'Meals {_covers_label(*covers)}' if covers else f'Shopping list — {timezone.localdate().strftime("%B %-d")}')
+        f'Meals {_covers_label(*covers)}' if covers else f'Shopping list — {timezone.localdate().strftime("%-d %B")}')
     with transaction.atomic():
         saved = SavedGroceryList.objects.create(name=name, owner=request.user, location=location,
                                                 covers_from=covers and covers[0], covers_to=covers and covers[1])

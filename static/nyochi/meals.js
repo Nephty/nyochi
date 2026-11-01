@@ -1,6 +1,6 @@
 // The meal calendar's week: days × slots on a desktop (drag a meal to move it); on a phone, a day strip and one day.
 // Meals change through the meal dialog (meal-dialog.js); the summary under the grid follows every change.
-import { api, dialog, h, icon, money, readJson, toast } from "./ui.js";
+import { api, dialog, euroDate, h, icon, money, readJson, toast } from "./ui.js";
 import { dayText, mealDialog, mealUrl, mult, parseDay } from "./meal-dialog.js";
 
 const B = readJson("meals-data");
@@ -157,7 +157,7 @@ if (B && root) {
     from.addEventListener("input", recount); to.addEventListener("input", recount); recount();
     const dlg = dialog({
       title: "Shopping list for these days",
-      body: [h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "From"), from), h("div.field", {}, h("label.label", {}, "To"), to)), count],
+      body: [h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "From"), euroDate(from)), h("div.field", {}, h("label.label", {}, "To"), euroDate(to))), count],
       foot: [h("button.btn", { type: "button", onclick: () => dlg.close() }, "Cancel"),
         h("button.btn.btn-primary", { type: "button", onclick: () => {
           if (!from.value || !to.value) return;

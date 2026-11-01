@@ -1,6 +1,6 @@
 // The meal dialog: add or change one meal of the calendar (a recipe with portions, free text, or a leftovers meal),
 // with its leftovers for a later day. Used by the week page (meals.js) and the recipe page's "Add to the calendar".
-import { api, confirmDialog, dialog, h, icon, money, toast } from "./ui.js";
+import { api, confirmDialog, dialog, euroDate, h, icon, money, toast } from "./ui.js";
 
 export const STEPS = [0.25, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10];
 export const mult = (m) => String(Math.round(m * 100) / 100);
@@ -104,8 +104,8 @@ export function mealDialog({ meal = null, at = {}, recipe = null, ctx, onDone })
     let content;
     if (isLeft) {
       const src = ctx.meals.find((m) => m.id === meal.leftover_of);
-      content = h("p.md-src", {}, icon("restaurant"), "Leftovers of ", h("b", {}, meal.title || "a meal"),
-        src ? ` (${dayText(src.day)}, ${slotOf(src.slot).label.toLowerCase()})` : "", ". Bought with that meal.");
+      content = h("p.md-src", {}, icon("restaurant"), h("span", {}, "Leftovers of ", h("b", {}, meal.title || "a meal"),
+        src ? ` (${dayText(src.day)}, ${slotOf(src.slot).label.toLowerCase()})` : ""));
     } else if (st.mode === "text") {
       content = h("div.field", {}, h("label.label", {}, "What you eat"),
         h("input.input", { type: "text", maxLength: 200, value: st.text, disabled: ro, placeholder: "Restaurant, takeaway…", oninput: (e) => { st.text = e.target.value; } }),
@@ -131,10 +131,10 @@ export function mealDialog({ meal = null, at = {}, recipe = null, ctx, onDone })
       type: "button", "aria-pressed": String(st.mode === v), disabled: ro,
       onclick: (e) => { st.mode = v; e.currentTarget.parentNode.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b === e.currentTarget))); draw(); } }, icon(ic), label)));
 
-  body.append(
-    h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "Day"), dayIn), h("div.field", {}, h("label.label", {}, "Meal"), slotIn)),
+  body.append(...[
+    h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "Day"), euroDate(dayIn)), h("div.field", {}, h("label.label", {}, "Meal"), slotIn)),
     modeSeg, pane,
-    h("div.field", {}, h("label.label", {}, "Note"), h("input.input", { type: "text", maxLength: 200, value: st.note, disabled: ro, placeholder: "Optional: who cooks, a side dish…", oninput: (e) => { st.note = e.target.value; } })));
+    h("div.field", {}, h("label.label", {}, "Note"), h("input.input", { type: "text", maxLength: 200, value: st.note, disabled: ro, placeholder: "Optional: who cooks, a side dish…", oninput: (e) => { st.note = e.target.value; } }))].filter(Boolean));
   draw();
 
   async function save() {

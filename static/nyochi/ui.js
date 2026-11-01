@@ -170,3 +170,27 @@ export function sw(label, help, checked, onchange) {
 export function readJson(id) {
   try { return JSON.parse(document.getElementById(id)?.textContent || "null"); } catch { return null; }
 }
+
+// A date input that always reads day first ("Tue 3 Nov 2026"), whatever the browser's locale: the native input
+// stays (transparent, over the text) so a tap still opens the system's calendar. Wraps `input` in place if it is in
+// the page already; returns the wrapper (put it where the input would go). input.value keeps working both ways.
+const EURO_DAY = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+export function euroDate(input) {
+  const text = document.createElement("span");
+  const wrap = h("span.input.date-in", {}, text, icon("calendar_month"));
+  const show = () => {
+    const [y, m, d] = (input.value || "").split("-").map(Number);
+    text.textContent = y ? EURO_DAY.format(new Date(y, m - 1, d)) : "—";
+    wrap.classList.toggle("off", input.disabled);
+  };
+  const native = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  Object.defineProperty(input, "value", { get() { return native.get.call(this); }, set(v) { native.set.call(this, v); show(); } });
+  input.parentNode?.insertBefore(wrap, input);
+  input.classList.remove("input");
+  wrap.append(input);
+  input.addEventListener("input", show);
+  input.addEventListener("change", show);
+  input.addEventListener("click", (e) => { try { e.preventDefault(); input.showPicker(); } catch { /* older browsers: native behaviour */ } });
+  show();
+  return wrap;
+}

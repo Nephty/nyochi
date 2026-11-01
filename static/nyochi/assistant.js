@@ -1,7 +1,7 @@
 // The meal assistant: fills the chosen days and meals with recipes, scored in the browser from the same data as the list planner
 // (season, Shopping promotions, cost, times, tags) plus the calendar's history. Swap, lock or skip each proposal,
 // then add them all to the calendar (and go on to the shopping list).
-import { api, dialog, h, icon, prefs, readJson, sw, toast } from "./ui.js";
+import { api, dialog, euroDate, h, icon, prefs, readJson, sw, toast } from "./ui.js";
 import { STEPS, addDays, dayText, mult, parseDay } from "./meal-dialog.js";
 
 const B = readJson("assistant-data");
@@ -45,6 +45,7 @@ if (B && root) {
     $("[data-setup-sum]").textContent = `${B.n} day${B.n === 1 ? "" : "s"} from ${sayDays(B.start)} · ${n ? `${n} meal${n === 1 ? "" : "s"} a day` : "no meal picked"}`;
   };
   $("[data-start]").value = B.start;
+  euroDate($("[data-start]"));
   const daysSel = $("[data-days]");
   if (![...daysSel.options].some((o) => Number(o.value) === B.n)) daysSel.append(h("option", { value: B.n }, `${B.n} days`));
   daysSel.value = String(B.n);
