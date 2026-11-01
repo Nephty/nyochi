@@ -119,14 +119,12 @@ if (B && root) {
     const recount = () => {
       const n = meals.filter((m) => m.kind === "recipe" && m.day >= from.value && m.day <= to.value).length;
       const inWeek = from.value >= B.days[0].iso && to.value <= B.days.at(-1).iso;
-      count.textContent = !from.value || !to.value ? "" : inWeek ? `${n} meal${n === 1 ? "" : "s"} to cook on these days.`
-        : `${n} meal${n === 1 ? "" : "s"} to cook this week in that range, plus what is planned on the other days.`;
+      count.textContent = !from.value || !to.value || !inWeek ? "" : `${n} meal${n === 1 ? "" : "s"} to cook.`;
     };
     from.addEventListener("input", recount); to.addEventListener("input", recount); recount();
     const dlg = dialog({
       title: "Shopping list for these days",
-      body: [h("p", { style: { margin: 0 } }, "The recipes planned on these days go to Plan with their portions; leftovers and free-text meals buy nothing. Saving the list there remembers the days."),
-        h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "From"), from), h("div.field", {}, h("label.label", {}, "To"), to)), count],
+      body: [h("div.md-when", {}, h("div.field", {}, h("label.label", {}, "From"), from), h("div.field", {}, h("label.label", {}, "To"), to)), count],
       foot: [h("button.btn", { type: "button", onclick: () => dlg.close() }, "Cancel"),
         h("button.btn.btn-primary", { type: "button", onclick: () => {
           if (!from.value || !to.value) return;

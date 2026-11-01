@@ -146,7 +146,7 @@ if (P && root) {
     if (!sel.size) {
       lastReceipt = null;
       actions.hidden = true;
-      renderReceipt(box, { sections: [], totals: { lines: 0 }, location: null }, { title: "Your list", emptyTitle: "Pick a recipe", emptyText: "Its ingredients are added up here, in the order you walk the shop." });
+      renderReceipt(box, { sections: [], totals: { lines: 0 }, location: null }, { title: "Your list", emptyTitle: "Pick a recipe", emptyText: "" });
       return;
     }
     const mine = ++seq;

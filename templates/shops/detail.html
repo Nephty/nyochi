@@ -37,7 +37,7 @@
   {% endif %}
 
   <section class="panel form-card"><div class="panel-body">
-    <div class="section-h"><h2>Aisles</h2><span class="hint">the shelves and sections you name on the shop floor, shared by all its locations</span></div>
+    <div class="section-h"><h2>Aisles</h2></div>
     <div class="taglist">
       {% for a in aisles %}
       <span class="tagitem">
@@ -61,7 +61,7 @@
   </div></section>
 
   <section>
-    <div class="section-h"><h2>Locations &amp; layout</h2><span class="hint">each branch has its own walking route</span></div>
+    <div class="section-h"><h2>Locations &amp; layout</h2></div>
     <div class="loc-tabs" data-loc-tabs>
       {% for l in locations %}<button type="button" class="pill" data-loc="{{ l.pk }}">{% icon "location_on" %}{{ l.name }}</button>{% endfor %}
       {% if can_edit %}
@@ -75,7 +75,7 @@
       <div data-layout></div>
       <noscript><div class="notice">{% icon "info" %}<span>The layout editor needs JavaScript.</span></div></noscript>
     {% else %}
-      <div class="panel"><div class="empty">{% icon "location_on" %}<b>Add a location</b><span>A location is one branch of the shop. Its aisles are walked in an order you choose.</span></div></div>
+      <div class="panel"><div class="empty">{% icon "location_on" %}<b>Add a location</b><span>One location per branch.</span></div></div>
     {% endif %}
   </section>
 </div>

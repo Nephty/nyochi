@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">Meal calendar</div>
     <h1>{% if is_this_week %}This week{% else %}Week of {{ start|date:"j M" }}{% endif %}</h1>
     <div class="sub">{{ start|date:"D j M" }} – {{ end|date:"D j M Y" }}</div>
   </div>

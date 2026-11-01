@@ -6,15 +6,13 @@
 <div class="page-head">
   <div>
     <a class="back" href="{% url 'meals' %}">{% icon "chevron_left" %}Meal calendar</a>
-    <div class="eyebrow">Meal assistant</div>
     <h1>What do we eat?</h1>
-    <div class="sub">Pick the days and meals to fill; the assistant proposes recipes, you swap or lock what you like, then add them.</div>
   </div>
 </div>
 
 <div class="as" data-assistant>
   <details class="as-side panel" data-setup>
-    <summary class="as-sum">{% icon "tune" %}<span class="txt"><b data-setup-sum>Days and meals</b><small>Change the days, meals and preferences</small></span>{% icon "keyboard_arrow_down" "chev" %}</summary>
+    <summary class="as-sum">{% icon "tune" %}<span class="txt"><b data-setup-sum>Days and meals</b></span>{% icon "keyboard_arrow_down" "chev" %}</summary>
     <div class="panel-body">
     <div class="field"><label class="label" for="as-start">From</label><input class="input" id="as-start" type="date" data-start></div>
     <div class="field"><label class="label" for="as-days">Days</label>
@@ -33,14 +31,14 @@
       <button class="btn" type="button" data-roll title="New proposals for every meal that isn't locked">{% icon "shuffle" %}Suggest again</button>
       <span class="muted sm" data-count></span>
       <span class="grow"></span>
-      {% if "nyochi.meals.edit" not in lab.perms %}<span class="notice">{% icon "lock" %}<span>Your community doesn't let you change the meal calendar: these are only ideas.</span></span>{% endif %}
+      {% if "nyochi.meals.edit" not in lab.perms %}<span class="notice">{% icon "lock" %}<span>Read-only: ideas only</span></span>{% endif %}
       {% if "nyochi.meals.edit" in lab.perms %}
       <div class="split">
         <button class="btn btn-primary" type="button" data-add-shop>{% icon "add_shopping_cart" %}<span class="lbl-long">Add and make the list</span><span class="lbl-short">Add + list</span></button>
         <details class="dd">
           <summary class="btn btn-primary" aria-label="Other ways to add them">{% icon "keyboard_arrow_down" %}</summary>
           <div class="dd-menu">
-            <button type="button" data-add>{% icon "event_available" %}<span class="txt">Only add them to the calendar<small>Make the shopping list later</small></span></button>
+            <button type="button" data-add>{% icon "event_available" %}<span class="txt">Only add them to the calendar</span></button>
           </div>
         </details>
       </div>

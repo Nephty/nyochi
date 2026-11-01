@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">Meal calendar</div>
     <h1>{{ first|date:"F Y" }}</h1>
     <div class="sub">{{ planned }} meal{{ planned|pluralize }} planned · {{ empty_days }} day{{ empty_days|pluralize }} with nothing yet</div>
   </div>

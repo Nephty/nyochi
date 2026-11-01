@@ -10,9 +10,7 @@
   </div>
 
   <div class="plan-left">
-    <div class="eyebrow">Plan a shop</div>
     <h1>What are we eating?</h1>
-    <p class="muted" style="margin:.2rem 0 0">Tick recipes; the shopping list builds itself on the right.</p>
 
     <div class="plan-filter">
       <div class="line">
@@ -32,7 +30,7 @@
       <datalist id="plan-ings"></datalist>
     </div>
     <div data-list></div>
-    <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Loosen a filter, or write a new recipe.</span>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div>
+    <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div>
   </div>
 
   <div class="plan-right">

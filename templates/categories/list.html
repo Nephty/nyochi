@@ -4,9 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">How ingredients are grouped</div>
     <h1>Categories</h1>
-    <div class="sub">They sort your shopping list when a shop has no exact place for an ingredient, and decide where each ingredient goes in a shop’s layout.</div>
   </div>
 </div>
 
@@ -21,7 +19,7 @@
   </div></section>{% endif %}
 
   <section class="panel form-card"><div class="panel-body">
-    <div class="section-h"><h2>{{ lab.community.name }}’s categories</h2><span class="hint">in this order on lists and in the layout editor</span></div>
+    <div class="section-h"><h2>{{ lab.community.name }}’s categories</h2></div>
     <div class="cat-list">
       {% for c in categories %}
       <div class="cat-row">

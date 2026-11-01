@@ -65,8 +65,8 @@
         {% empty %}
           <p class="muted" style="margin:0">No product linked yet.{% if can_edit %} <a href="{% url 'ingredient-update' ingredient.pk %}">Link one</a> to see its price and promotions here and in your recipes.{% endif %}</p>
         {% endfor %}
-        {% if shopping_on and not reachable %}<div class="notice bad">{% icon "cloud_off" %}<span>Shopping can’t be reached right now: these are the last prices we have.</span></div>{% endif %}
-        {% if not shopping_on %}<div class="notice">{% icon "info" %}<span>The link to Shopping is not set up on this server yet.</span></div>{% endif %}
+        {% if shopping_on and not reachable %}<div class="notice bad">{% icon "cloud_off" %}<span>Shopping is unreachable: last known prices.</span></div>{% endif %}
+        {% if not shopping_on %}<div class="notice">{% icon "info" %}<span>Shopping isn’t connected.</span></div>{% endif %}
       </div>
     </section>
   </div>

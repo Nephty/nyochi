@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">Your pantry</div>
     <h1>Ingredients</h1>
     <div class="sub">{{ ingredients|length }} ingredient{{ ingredients|length|pluralize }} · {{ in_season_count }} in season right now</div>
   </div>
@@ -36,20 +35,19 @@
           {% if i.link and i.link.price %}<span class="tag{% if not i.promo %} soft{% endif %}" title="{{ i.link.name }}">{{ i.link.price|euro }}</span>{% endif %}
         </div>
         <div class="mini-ribbon">{% ribbon i.seasons %}</div>
-        <div class="row" style="gap:.35rem">
-          <span class="chip season-{{ i.status_now }}">{% if i.status_now == "in" %}in season{% elif i.status_now == "early" %}early season{% elif i.status_now == "late" %}late season{% elif i.status_now == "out" %}out of season{% else %}season unknown{% endif %}</span>
+        {% if i.promo or not i.mine %}<div class="row" style="gap:.35rem">
           {% if i.promo %}<span class="chip good">on sale</span>{% endif %}
           {% if not i.mine %}<span class="chip mine-no">read-only</span>{% endif %}
-        </div>
+        </div>{% endif %}
       </a>
       {% endfor %}
     </div>
   </section>
   {% endfor %}
-  <div class="empty hidden" data-empty>{% icon "search" %}<b>No ingredient matches</b><span>Try fewer words, or clear the filters.</span></div>
+  <div class="empty hidden" data-empty>{% icon "search" %}<b>No ingredient matches</b></div>
 </div>
 {% else %}
-<div class="panel"><div class="empty">{% icon "eco" %}<b>No ingredients yet</b><span>They are created as you write recipes, or here.</span>{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div></div>
+<div class="panel"><div class="empty">{% icon "eco" %}<b>No ingredients yet</b>{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/filter.js' %}"></script>{% endblock %}

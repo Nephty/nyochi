@@ -69,7 +69,7 @@ if (root && chosen && search && results) {
         h("b", {}, r.price != null ? money(r.price) : "–"),
         h("span.sub", {}, storeChip(r.store, r.store_label), r.package_size ? h("span", {}, r.package_size) : null,
           r.on_promotion ? h("span.tag", {}, (r.promo_titles || "Promotion").slice(0, 36)) : null, added ? h("span", {}, "linked") : null));
-    }) : [h("div.picker-empty", {}, "Nothing found. Shopping searches the names of products it has fetched.")]));
+    }) : [h("div.picker-empty", {}, "Nothing found.")]));
     if (focusKey) results.querySelector(`button[data-key="${CSS.escape(focusKey)}"]`)?.focus({ preventScroll: true });
   }
 

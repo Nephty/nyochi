@@ -94,7 +94,7 @@ export function mealDialog({ meal = null, at = {}, recipe = null, ctx, onDone })
         if (st.mult < 2) st.mult = st.mult * 2; // cook for both meals
       } else st.leftovers = null;
       draw();
-    } }), h("span.track"), h("span.txt", {}, "Leftovers for later", h("small", {}, on ? "Cooked once, bought once: the portions cover both." : "Cook more and eat it again another day.")));
+    } }), h("span.track"), h("span.txt", {}, "Leftovers for later", h("small", {}, on ? "Bought once with the original." : "Cook more and eat it again another day.")));
     return h("div.md-left", {}, toggle, on ? select : null);
   }
 

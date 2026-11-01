@@ -5,7 +5,6 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <div class="eyebrow">Your cookbook</div>
     <h1>Recipes</h1>
   </div>
   <div class="actions on-wide">
@@ -33,7 +32,7 @@
 
 {% if deals %}
 <section class="deals" aria-label="On sale for your recipes">
-  <div class="section-h"><h2>On sale for your recipes</h2><span class="hint">from the products linked to your ingredients</span></div>
+  <div class="section-h"><h2>On sale for your recipes</h2></div>
   <div class="shelf">
     {% for d in deals %}
     <a class="shelf-item" href="{% url 'ingredient-detail' d.ingredient.pk %}" style="text-decoration:none">
@@ -91,10 +90,10 @@
     </a>
     {% endfor %}
   </div>
-  <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b><span>Try fewer words, or clear the filters.</span></div>
+  <div class="empty hidden" data-empty>{% icon "search" %}<b>No recipe matches</b></div>
 </div>
 {% else %}
-<div class="panel"><div class="empty">{% icon "menu_book" %}<b>No recipes yet</b><span>Write the community’s first recipe.</span>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div></div>
+<div class="panel"><div class="empty">{% icon "menu_book" %}<b>No recipes yet</b>{% if "nyochi.recipes.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'recipe-create' %}">{% icon "add" %}New recipe</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/filter.js' %}"></script>{% endblock %}

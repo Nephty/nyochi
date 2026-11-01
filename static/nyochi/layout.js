@@ -125,9 +125,9 @@ if (E && mount) {
     const right = h("div.stack", {},
       h("section.panel", {}, h("div.panel-head", {}, h("h2", {}, "Where things are")),
         h("div.panel-body", {}, h("div.catmap", {}, catRows),
-          h("p.help", { style: { margin: ".8rem 0 0" } }, "Anything not placed goes to the end of the list, under “Elsewhere”."))),
+          h("p.help", { style: { margin: ".8rem 0 0" } }, "Unplaced items go last, under “Elsewhere”."))),
       h("section.panel", {}, h("div.panel-head", {}, h("h2", {}, "Exceptions")),
-        h("div.panel-body", {}, h("p.help", { style: { marginTop: 0 } }, "For the odd one out: the olives that live with the tins, not the vegetables."), exceptions, addBox)));
+        h("div.panel-body", {}, exceptions, addBox)));
 
     mount.replaceChildren(h("div.lay", {}, left, right), savebar);
   }

@@ -8,11 +8,11 @@ const B = readJson("assistant-data");
 const root = document.querySelector("[data-assistant]");
 
 const FACTORS = [
-  ["season", "In season", "Recipes whose main ingredients are in season now."],
-  ["promos", "On sale", "Recipes with ingredients on promotion in Shopping."],
-  ["fresh", "Not had recently", "Keep away from what was cooked or planned in the last two weeks."],
-  ["variety", "Variety", "Not the same recipe twice, nor the same main ingredient two days running."],
-  ["effort", "Quick on weekdays", "Short recipes Monday to Friday, longer ones at the weekend."],
+  ["season", "In season", ""],
+  ["promos", "On sale", ""],
+  ["fresh", "Not had recently", "Last two weeks"],
+  ["variety", "Variety", ""],
+  ["effort", "Quick on weekdays", ""],
 ];
 
 if (B && root) {
@@ -142,16 +142,36 @@ if (B && root) {
     draw();
   }
 
+  // Pick it yourself: every recipe, the ones for this meal first (best first), with a search
   function chooseDialog(day, slot) {
-    const rows = ranked(day, slot).sort((a, b) => b.s - a.s);
-    const dlg = dialog({
-      title: `${dayText(day)} · ${slotOf(slot).label}`, wide: true,
-      body: h("div.md-list", { style: { maxHeight: "60vh" } }, rows.map(({ r, why }) => h("button.md-opt", { type: "button", onclick: () => {
-        const c = cells.get(key(day, slot));
-        Object.assign(c, { recipe: r.id, locked: true, skipped: false });
+    const ctx = context(key(day, slot));
+    const fits = new Set(candidates(slot).map((r) => r.id));
+    const rows = B.recipes.map((r) => ({ r, fit: fits.has(r.id), ...score(r, day, slot, ctx) }))
+      .sort((a, b) => b.fit - a.fit || b.s - a.s || a.r.name.localeCompare(b.r.name));
+    const q = h("input.input", { type: "search", placeholder: "Search", "aria-label": "Search recipes" });
+    const list = h("div.md-list", { style: { maxHeight: "55vh" } });
+    const show = () => {
+      const t = q.value.trim().toLowerCase();
+      list.replaceChildren(...rows.filter(({ r }) => !t || r.name.toLowerCase().includes(t)).map(({ r, why }) => h("button.md-opt", { type: "button", onclick: () => {
+        Object.assign(cells.get(key(day, slot)), { recipe: r.id, locked: true, skipped: false });
         dlg.close(); draw();
-      } }, h("span.nm", {}, r.name), h("span.meta", {}, why.map((w) => h("span.chip", {}, w)), h("span", {}, icon("schedule"), `${r.prep + r.cook} min`))))),
-    });
+      } }, h("span.nm", {}, r.name), h("span.meta", {}, why.slice(0, 2).map((w) => h("span.chip", {}, w)), h("span", {}, icon("schedule"), `${r.prep + r.cook} min`)))));
+    };
+    q.addEventListener("input", show);
+    show();
+    const dlg = dialog({ title: `${dayText(day)} · ${slotOf(slot).label}`, wide: true, body: [q, list] });
+    if (matchMedia("(hover: hover)").matches) q.focus();
+  }
+
+  // Swap: the next best; once every other recipe has been shown, start the round again
+  function swap(day, slot) {
+    const c = cells.get(key(day, slot));
+    const was = c.recipe;
+    c.excluded.add(was);
+    pick(day, slot);
+    if (!c.recipe) { c.excluded = new Set([was]); pick(day, slot); }
+    if (!c.recipe) { c.recipe = was; toast("No other recipe for this meal.", true); }
+    draw();
   }
 
   // ---- the grid: a row per day, a column per chosen meal
@@ -167,19 +187,21 @@ if (B && root) {
         const there = planned(day, slot);
         if (there.length) return cell(".planned", there.map((m) => h("div.as-card.planned", {}, h("span.nm", {}, m.name), h("span.muted.sm", {}, "already planned"))));
         const c = cells.get(key(day, slot));
-        if (!candidates(slot).length) return cell(".none", h("span.muted.sm", {}, `No ${slotOf(slot).label.toLowerCase()} recipe yet`));
         if (!c || c.skipped || !c.recipe) {
-          return cell(".skipped", h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: () => { if (c) { c.skipped = false; c.excluded.clear(); pick(day, slot); draw(); } } }, icon("add"), "Suggest one"));
+          return cell(".skipped", h("div.as-empty", {},
+            candidates(slot).length ? h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: () => { if (c) { c.skipped = false; c.excluded.clear(); pick(day, slot); draw(); } } }, icon("auto_awesome"), "Suggest") : null,
+            c ? h("button.btn.btn-ghost.btn-sm", { type: "button", onclick: () => chooseDialog(day, slot) }, icon("search"), "Pick") : null));
         }
         const r = byId.get(c.recipe);
         const { why } = score(r, day, slot, context(key(day, slot)));
         return cell("", h(`div.as-card${c.locked ? ".locked" : ""}`, {},
           h("div.as-what", {},
-            h("button.nm", { type: "button", title: "Choose another recipe", onclick: () => chooseDialog(day, slot) }, r.name),
+            h("button.nm", { type: "button", title: "Pick another recipe", onclick: () => chooseDialog(day, slot) }, r.name),
             why.length ? h("div.why", {}, why.slice(0, 3).map((w) => h("span.chip", {}, w))) : null),
           h("div.acts", {},
             h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", title: c.locked ? "Unlock" : "Lock: keep it when suggesting again", "aria-label": c.locked ? "Unlock" : "Lock", "aria-pressed": String(c.locked), onclick: () => { c.locked = !c.locked; draw(); } }, icon(c.locked ? "lock" : "lock_open")),
-            h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", title: "Swap for the next best", "aria-label": "Swap", disabled: c.locked, onclick: () => { c.excluded.add(c.recipe); pick(day, slot); draw(); } }, icon("shuffle")),
+            h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", title: "Pick it yourself", "aria-label": "Pick", onclick: () => chooseDialog(day, slot) }, icon("search")),
+            h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", title: "Next suggestion", "aria-label": "Next suggestion", disabled: c.locked, onclick: () => swap(day, slot) }, icon("shuffle")),
             h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", title: "Leave this meal empty", "aria-label": "Leave empty", onclick: () => { c.skipped = true; c.locked = false; draw(); } }, icon("close")))));
       }),
     ]);
@@ -199,7 +221,7 @@ if (B && root) {
     fill(true);
     const changed = [...cells].filter(([k, c]) => c.recipe && c.recipe !== before.get(k)).length;
     const open = [...cells.values()].filter((c) => !c.locked && !c.skipped).length;
-    toast(!open ? "Everything is locked or left empty: nothing to suggest again." : changed ? `${changed} new suggestion${changed === 1 ? "" : "s"}.` : "No other recipe fits better: add recipes or loosen a preference.", !open || !changed);
+    toast(!open ? "Nothing left to suggest." : changed ? `${changed} new suggestion${changed === 1 ? "" : "s"}.` : "No better recipe.", !open || !changed);
   });
   async function add(thenShop) {
     const list = proposals();
