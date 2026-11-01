@@ -241,6 +241,7 @@ body.app { height: var(--app-h); overflow: hidden; }
 
 /* ------------------------------------------------------------------ dialogs */
 dialog { border: 0; padding: 0; background: transparent; color: var(--ink); max-width: min(560px, calc(100vw - 2rem)); width: 100%; max-height: calc(var(--app-h) - 2rem); overflow: visible; }
+dialog.wide { max-width: min(720px, calc(100vw - 2rem)); }
 dialog::backdrop { background: rgba(12,14,10,.45); backdrop-filter: blur(2px); }
 dialog[open] .dlg { animation: rise .22s cubic-bezier(.2,.8,.2,1); }
 @keyframes rise { from { transform: translateY(14px) scale(.98); opacity: 0; } }
@@ -645,8 +646,10 @@ body.plan-page .main { min-height: 0; }
   .page { padding: 1.1rem 1rem 1.6rem; }
   .page-head { margin-bottom: 1rem; }
   .page-head h1 { font-size: 1.75rem; }
-  dialog { max-width: 100vw; margin: auto 0 0; }
+  dialog, dialog.wide { max-width: 100vw; margin: auto 0 0; }
   .dlg { border-radius: 22px 22px 0 0; max-height: calc(var(--app-h) - 1rem); }
+  .dlg-foot .left { flex: 1 1 100%; margin-right: 0; gap: .4rem; }
+  .dlg-foot > .btn { flex: 1 1 0; justify-content: center; padding-left: .5rem; padding-right: .5rem; }
   .toasts { bottom: 5.5rem; }
   .cards { grid-template-columns: 1fr; }
   .ing-grid, .lists, .shops { grid-template-columns: 1fr; }
@@ -1001,7 +1004,11 @@ ul.shared .muted { font-size: .84rem; }
 .as-side { position: sticky; top: 0; }
 .as-side .panel-body { display: grid; gap: 1.1rem; padding-top: 1.1rem; }
 .as-factors { display: grid; gap: .65rem; }
-.as-bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.as-bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; position: sticky; top: -1.6rem; z-index: 3; padding: .6rem 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); }
+.as-prefs { display: grid; gap: 1.1rem; }
+.as-prefs > summary { display: none; }
+.as-prefs[open] { display: grid; }
+.as-k { display: none; }
 .as-bar .grow { flex: 1; }
 .as-grid { display: grid; grid-template-columns: 8.5rem repeat(var(--cols, 2), minmax(0, 1fr)); gap: .45rem; }
 .as-h { display: flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .85rem; color: var(--muted); padding: 0 .2rem; }
@@ -1009,12 +1016,14 @@ ul.shared .muted { font-size: .84rem; }
 .as-day { display: grid; align-content: center; padding: .3rem .2rem; }
 .as-day.today b { background: var(--tag); color: var(--tag-ink); border-radius: 7px; padding: 0 .35rem; justify-self: start; }
 .as-cell { display: grid; min-width: 0; }
-.as-cell.skipped, .as-cell.none { place-items: center; border: 1px dashed var(--line-2); border-radius: 12px; min-height: 4.6rem; }
+.as-body { display: grid; min-width: 0; gap: .35rem; }
+.as-cell.skipped .as-body, .as-cell.none .as-body { place-items: center; border: 1px dashed var(--line-2); border-radius: 12px; min-height: 4.6rem; }
 .as-card { display: grid; gap: .35rem; padding: .55rem .65rem; border-radius: 12px; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; }
 .as-card.locked { border-color: var(--accent-text); background: color-mix(in srgb, var(--accent) 9%, var(--paper)); }
 .as-card.planned { box-shadow: none; background: var(--paper-2); border-style: dashed; }
 .as-card .nm { all: unset; cursor: pointer; font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
 .as-card button.nm:hover { text-decoration: underline; }
+.as-what { display: grid; gap: .35rem; justify-items: start; min-width: 0; }
 .as-card .why { display: flex; flex-wrap: wrap; gap: .25rem; }
 .as-card .why .chip { height: 1.35rem; font-size: .7rem; }
 .as-card .acts { display: flex; gap: .1rem; margin: -.2rem -.3rem -.3rem auto; }
@@ -1066,8 +1075,22 @@ ul.shared .muted { font-size: .84rem; }
   .mo-day.none:not(.today), .mo-day.other { display: none; }
   .mo-day .wd, .mo-day .mn { display: inline; }
   .mo-meal { font-size: .88rem; }
-  .as-grid { grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); }
-  .as-grid > .as-h:first-child { display: none; }
-  .as-day { grid-column: 1 / -1; padding-top: .7rem; }
+  .as-grid { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+  .as-h { display: none; }
+  .as-day { padding-top: .8rem; }
+  .as-cell { grid-template-columns: 5.4rem minmax(0, 1fr); align-items: center; gap: .5rem; }
+  .as-k { display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 700; color: var(--muted); }
+  .as-k .ic { width: 1rem; height: 1rem; }
+  .as-cell.skipped .as-body, .as-cell.none .as-body { min-height: 2.8rem; }
+  .as-card { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .as-card .acts { margin: 0 -.3rem 0 0; }
+  .as-prefs > summary { display: flex; align-items: center; gap: .4rem; cursor: pointer; font-weight: 700; list-style: none; }
+  .as-prefs > summary::-webkit-details-marker { display: none; }
+  .as-prefs > summary::after { content: "▾"; margin-left: auto; color: var(--muted); }
+  .as-prefs[open] > summary::after { content: "▴"; }
+  .as-bar { top: -1.1rem; }
+  .meals-page .page-head .actions { margin-left: 0; }
+  .as-side .panel-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .9rem .7rem; }
+  .as-side .panel-body > :nth-child(n+3) { grid-column: 1 / -1; }
   .today-meals .tm-more { margin-left: 0; }
 }

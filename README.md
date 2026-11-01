@@ -28,7 +28,7 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
   twice" (ingredients two recipes share). **Month** (`/meals/month/`, server-rendered). **Assistant**
   (`/meals/assistant/?start=&days=`, `assistant.js`): proposes recipes for the chosen days and slots, scored in the
   browser (in season, on sale, not had in two weeks, variety: repeats and the same main ingredient two days running,
-  quick on weekdays / longer at the weekend, favoured tags) with lock / swap / skip / "Fill the rest", then adds them
+  quick on weekdays / longer at the weekend, favoured tags) with lock / swap / skip / "Suggest again" (re-proposes every unlocked meal, away from its current pick), then adds them
   (and goes on to the list). **Shopping list for these days** (`/meals/shop/`) opens Plan with those recipes and summed
   portions (`?recipe=<id>x<mult>&from=&to=`); a list saved from there keeps `covers_from/to` and shows as a basket on
   those days. The recipes page shows **Today**; a recipe page shows last cooked / next planned and "Add to the calendar";

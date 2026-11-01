@@ -133,7 +133,7 @@ export const prefs = {
 // A <dialog> with head / body / foot, removed from the page when closed.
 export function dialog({ title, body, foot, wide = false, onClose }) {
   const close = () => dlg.close();
-  const dlg = h("dialog", { style: wide ? { maxWidth: "min(720px, calc(100vw - 2rem))" } : null },
+  const dlg = h(wide ? "dialog.wide" : "dialog", {},
     h("div.dlg", {},
       h("div.dlg-head", {}, h("h2", {}, title),
         h("button.btn.btn-ghost.btn-icon", { type: "button", "aria-label": "Close", onclick: close }, icon("close"))),

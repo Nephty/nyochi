@@ -118,7 +118,9 @@ if (B && root) {
     const count = h("p.muted.sm", { style: { margin: 0 } });
     const recount = () => {
       const n = meals.filter((m) => m.kind === "recipe" && m.day >= from.value && m.day <= to.value).length;
-      count.textContent = from.value && to.value ? `${n} meal${n === 1 ? "" : "s"} to cook from this week in that range (other weeks' meals are counted too).` : "";
+      const inWeek = from.value >= B.days[0].iso && to.value <= B.days.at(-1).iso;
+      count.textContent = !from.value || !to.value ? "" : inWeek ? `${n} meal${n === 1 ? "" : "s"} to cook on these days.`
+        : `${n} meal${n === 1 ? "" : "s"} to cook this week in that range, plus what is planned on the other days.`;
     };
     from.addEventListener("input", recount); to.addEventListener("input", recount); recount();
     const dlg = dialog({

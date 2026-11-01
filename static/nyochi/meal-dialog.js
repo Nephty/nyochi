@@ -180,6 +180,7 @@ export function mealDialog({ meal = null, at = {}, recipe = null, ctx, onDone })
       ro ? null : h("button.btn.btn-primary", { type: "button", onclick: save }, icon("check"), meal ? "Save" : "Add"),
     ],
   });
-  if (!meal && !recipe && !ro) setTimeout(() => search.focus(), 50);
+  // focus the search with a mouse; on a phone that would open the keyboard over the sheet
+  if (!meal && !recipe && !ro && matchMedia("(hover: hover)").matches) setTimeout(() => search.focus(), 50);
   return dlg;
 }

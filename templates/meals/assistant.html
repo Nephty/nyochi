@@ -18,15 +18,19 @@
     <div class="field"><label class="label" for="as-days">Days</label>
       <select class="select" id="as-days" data-days>{% for n in "1234567"|make_list %}<option value="{{ n }}">{{ n }} day{{ n|pluralize }}</option>{% endfor %}<option value="10">10 days</option><option value="14">2 weeks</option><option value="21">3 weeks</option><option value="28">4 weeks</option><option value="31">31 days</option></select></div>
     <div class="field"><span class="label">Meals to fill</span><div class="pills" data-slots></div></div>
-    <div class="field"><span class="label">Favour</span><div class="as-factors" data-factors></div></div>
-    <div class="field"><span class="label">Tags to favour</span><div class="pills" data-tags></div></div>
+    <details class="as-prefs" data-prefs>
+      <summary>{% icon "tune" %}Preferences</summary>
+      <div class="field"><span class="label">Favour</span><div class="as-factors" data-factors></div></div>
+      <div class="field"><span class="label">Tags to favour</span><div class="pills" data-tags></div></div>
+    </details>
   </div></aside>
 
   <section class="as-main">
     <div class="as-bar">
-      <button class="btn" type="button" data-roll>{% icon "shuffle" %}Fill the rest</button>
+      <button class="btn" type="button" data-roll title="New proposals for every meal that isn't locked">{% icon "shuffle" %}Suggest again</button>
       <span class="muted sm" data-count></span>
       <span class="grow"></span>
+      {% if "nyochi.meals.edit" not in lab.perms %}<span class="notice">{% icon "lock" %}<span>Your community doesn't let you change the meal calendar: these are only ideas.</span></span>{% endif %}
       {% if "nyochi.meals.edit" in lab.perms %}
       <button class="btn" type="button" data-add>{% icon "event_available" %}Add to the calendar</button>
       <button class="btn btn-primary" type="button" data-add-shop>{% icon "add_shopping_cart" %}Add and make the list</button>
