@@ -575,6 +575,12 @@ body.plan-page .main { min-height: 0; }
 .scard .top { display: flex; align-items: center; gap: .7rem; }
 .scard .glyph { width: 2.6rem; height: 2.6rem; border-radius: 12px; display: grid; place-items: center; background: var(--paper-2); border: 1px solid var(--line); }
 .scard h3 { font-size: 1.15rem; }
+.scard-add { border-style: dashed; box-shadow: none; align-content: start; }
+.scard-add:hover { transform: none; }
+.scard-add > summary { list-style: none; cursor: pointer; }
+.scard-add > summary::-webkit-details-marker { display: none; }
+.scard-add:not([open]) > summary h3 { color: var(--ink-2); }
+.scard-form { display: grid; gap: .6rem; margin-top: .3rem; }
 .loc-tabs { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
 .lay { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
 .route { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
@@ -659,6 +665,12 @@ body.plan-page .main { min-height: 0; }
   .override-row .btn { justify-self: end; }
   .toolbar .search { max-width: none; }
   .count-note { margin-left: 0; width: 100%; }
+  /* the header's + and the tab bar already offer these */
+  .page-head .actions.on-wide { display: none; }
+  /* filter chips: one line that scrolls sideways, not three wrapped lines */
+  .toolbar .pills[role="group"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -1rem; padding: .1rem 1rem; width: calc(100% + 2rem); scroll-padding: 0 1rem; }
+  .toolbar .pills[role="group"]::-webkit-scrollbar { display: none; }
+  .toolbar .pills[role="group"] .pill { flex: none; }
   /* plan: two panes switched by tabs, with a dock that shows the receipt's total */
   .plan { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
   .plan-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: .5rem 1rem; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 70%, transparent); }
@@ -1002,6 +1014,9 @@ ul.shared .muted { font-size: .84rem; }
 /* the assistant */
 .as { display: grid; grid-template-columns: 17.5rem minmax(0, 1fr); gap: 1.2rem; align-items: start; }
 .as-side { position: sticky; top: 0; }
+.as-sum { display: none; }
+.as-side > summary { list-style: none; }
+.as-side > summary::-webkit-details-marker { display: none; }
 .as-side .panel-body { display: grid; gap: 1.1rem; padding-top: 1.1rem; }
 .as-factors { display: grid; gap: .65rem; }
 .as-bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .8rem; position: sticky; top: -1.6rem; z-index: 3; padding: .6rem 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); }
@@ -1050,6 +1065,13 @@ ul.shared .muted { font-size: .84rem; }
   .wk-foot { grid-template-columns: minmax(0, 1fr); }
   .as { grid-template-columns: minmax(0, 1fr); }
   .as-side { position: static; }
+  .as-sum { display: flex; align-items: center; gap: .7rem; padding: .8rem 1rem; cursor: pointer; }
+  .as-sum > .ic { width: 1.25rem; height: 1.25rem; color: var(--muted); flex: none; }
+  .as-sum .txt { flex: 1; display: grid; gap: .1rem; min-width: 0; }
+  .as-sum small { color: var(--muted); font-size: .8rem; }
+  .as-sum .chev { transition: transform .15s; }
+  .as-side[open] .as-sum { border-bottom: 1px solid var(--line); }
+  .as-side[open] .as-sum .chev { transform: rotate(180deg); }
 }
 @media (max-width: 760px) {
   .wk { display: block; background: transparent; border: 0; box-shadow: none; overflow: visible; }

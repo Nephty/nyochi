@@ -9,7 +9,7 @@
     <h1>Ingredients</h1>
     <div class="sub">{{ ingredients|length }} ingredient{{ ingredients|length|pluralize }} · {{ in_season_count }} in season right now</div>
   </div>
-  <div class="actions">{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div>
+  <div class="actions on-wide">{% if "nyochi.ingredients.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'ingredient-create' %}">{% icon "add" %}New ingredient</a>{% endif %}</div>
 </div>
 
 {% if ingredients %}

@@ -34,8 +34,16 @@ if (B && root) {
   const planned = (day, slot) => B.meals.filter((m) => m.day === day && m.slot === slot);
 
   // ---- side panel (the preferences fold away on phones)
+  // On narrow screens the whole setup folds into one line that says what is being planned.
   const prefsBox = root.querySelector("[data-prefs]");
   if (prefsBox && matchMedia("(min-width: 761px)").matches) prefsBox.open = true;
+  const setup = root.querySelector("[data-setup]");
+  if (matchMedia("(min-width: 1101px)").matches) setup.open = true;
+  const sayDays = (d) => new Date(`${d}T12:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const setupSum = () => {
+    const n = st.slots.length;
+    $("[data-setup-sum]").textContent = `${B.n} day${B.n === 1 ? "" : "s"} from ${sayDays(B.start)} · ${n ? `${n} meal${n === 1 ? "" : "s"} a day` : "no meal picked"}`;
+  };
   $("[data-start]").value = B.start;
   const daysSel = $("[data-days]");
   if (![...daysSel.options].some((o) => Number(o.value) === B.n)) daysSel.append(h("option", { value: B.n }, `${B.n} days`));
@@ -46,7 +54,8 @@ if (B && root) {
   $("[data-slots]").append(...B.slots.map((s) => h("button.pill", { type: "button", "aria-pressed": String(st.slots.includes(s.value)), onclick: (e) => {
     st.slots = st.slots.includes(s.value) ? st.slots.filter((x) => x !== s.value) : B.slots.map((x) => x.value).filter((v) => v === s.value || st.slots.includes(v));
     e.currentTarget.setAttribute("aria-pressed", String(st.slots.includes(s.value)));
-    keep(); fill(); } }, icon(s.icon), s.label)));
+    keep(); setupSum(); fill(); } }, icon(s.icon), s.label)));
+  setupSum();
   $("[data-factors]").append(...FACTORS.map(([k, label, help]) => sw(label, help, st.factors[k], (on) => { st.factors[k] = on; keep(); fill(true); })),
     h("div.field", { style: { marginTop: ".4rem" } }, h("label.label", { for: "as-mult" }, "Portions"),
       h("select.select.sm", { id: "as-mult", onchange: (e) => { st.mult = Number(e.target.value); keep(); draw(); } },
