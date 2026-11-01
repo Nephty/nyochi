@@ -91,9 +91,12 @@ class MonthView(LoginRequiredMixin, View):
         return render(request, 'meals/month.html', {
             'page': 'meals', 'first': first, 'weeks': weeks, 'slot_icons': SLOT_ICONS,
             'prev': prev.strftime('%Y-%m'), 'next': nxt.strftime('%Y-%m'), 'is_this_month': first == today.replace(day=1),
+            'is_future': first > today,
             'planned': sum(1 for m in month_meals if m.kind != 'text'),
             'empty_days': sum(1 for i in range((last - first).days + 1) if first + timedelta(days=i) not in by_day),
             'weekdays': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            # phones: under the compact calendar, only the days that have something
+            'planned_days': [d for w in weeks for d in w['days'] if d['meals'] and not d['other']],
         })
 
 

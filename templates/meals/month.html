@@ -25,11 +25,25 @@
   <div class="mo-week">
     {% for d in week.days %}
     <a class="mo-day{% if d.other %} other{% endif %}{% if d.today %} today{% endif %}{% if not d.meals %} none{% endif %}" href="{% url 'meals' %}?week={{ d.date|date:'Y-m-d' }}" title="Open the week of {{ d.date|date:'j F' }}">
-      <span class="dn"><span class="wd">{{ d.date|date:"D" }}</span> {{ d.date|date:"j" }}<span class="mn"> {{ d.date|date:"M" }}</span></span>
+      <span class="dn">{{ d.date|date:"j" }}</span>
+      {% if d.meals %}<span class="mo-dots" aria-label="{{ d.meals|length }} meal{{ d.meals|length|pluralize }}">{% for m in d.meals|slice:":4" %}<i></i>{% endfor %}</span>{% endif %}
       {% for m in d.meals %}<span class="mo-meal k-{{ m.kind }}{% if m.cooked_at %} cooked{% endif %}">{% for slot, ic in slot_icons.items %}{% if slot == m.slot %}{% icon ic %}{% endif %}{% endfor %}<span>{{ m.name }}</span></span>{% endfor %}
     </a>
     {% endfor %}
   </div>
+  {% endfor %}
+</div>
+
+<div class="mo-list">
+  {% for d in planned_days %}
+  <a class="mo-lday{% if d.today %} today{% endif %}" href="{% url 'meals' %}?week={{ d.date|date:'Y-m-d' }}">
+    <span class="dn">{{ d.date|date:"D j M" }}</span>
+    {% for m in d.meals %}<span class="mo-meal k-{{ m.kind }}{% if m.cooked_at %} cooked{% endif %}">{% for slot, ic in slot_icons.items %}{% if slot == m.slot %}{% icon ic %}{% endif %}{% endfor %}<span>{{ m.name }}</span></span>{% endfor %}
+  </a>
+  {% empty %}
+  <div class="panel"><div class="empty">{% icon "calendar_month" %}<b>Nothing planned in {{ first|date:"F" }}</b>
+    <span>Tap a day to open its week{% if "nyochi.meals.edit" in lab.perms %}, or let the assistant fill a few days{% endif %}.</span>
+    {% if "nyochi.meals.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'meals-assistant' %}{% if is_future %}?start={{ first|date:'Y-m-d' }}{% endif %}">{% icon "auto_awesome" %}Plan with the assistant</a>{% endif %}</div></div>
   {% endfor %}
 </div>
 {% endblock %}

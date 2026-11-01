@@ -1001,7 +1001,8 @@ ul.shared .muted { font-size: .84rem; }
 .mo-week:first-of-type .mo-day { border-top: 0; }
 .mo-day:hover { background: var(--paper-2); }
 .mo-day .dn { font: 800 .95rem var(--display); }
-.mo-day .wd, .mo-day .mn { display: none; }
+.mo-dots { display: none; }
+.mo-list { display: none; }
 .mo-day.other { background: color-mix(in srgb, var(--paper-2) 60%, var(--paper)); }
 .mo-day.other .dn { color: var(--faint); }
 .mo-day.today .dn { align-self: flex-start; background: var(--tag); color: var(--tag-ink); border-radius: 7px; padding: 0 .35rem; }
@@ -1090,12 +1091,18 @@ ul.shared .muted { font-size: .84rem; }
   .wk-cell { flex-wrap: wrap; }
   .wk-cell .mc { flex: 1 1 12rem; }
   .wk-cell .add { display: none; }
-  .mo { background: transparent; border: 0; box-shadow: none; }
-  .mo-head { display: none; }
-  .mo-week { display: block; }
-  .mo-day { min-height: 0; border: 0 !important; border-bottom: 1px solid var(--line) !important; padding: .6rem .2rem; }
-  .mo-day.none:not(.today), .mo-day.other { display: none; }
-  .mo-day .wd, .mo-day .mn { display: inline; }
+  /* the month on phones: a compact calendar (a dot per meal, a tap opens the week), then the planned days listed */
+  .mo-head span { padding: .45rem 0; text-align: center; font-size: .66rem; letter-spacing: .04em; }
+  .mo-day { min-height: 3.1rem; padding: .35rem 0; align-items: center; gap: .25rem; }
+  .mo-day .dn { font-size: .9rem; }
+  .mo-day .mo-meal { display: none; }
+  .mo-dots { display: flex; gap: 3px; }
+  .mo-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-text); }
+  .mo-day.today .dn { align-self: center; }
+  .mo-list { display: grid; gap: .1rem; margin-top: 1rem; }
+  .mo-lday { display: grid; gap: .25rem; padding: .65rem .2rem; border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; }
+  .mo-lday .dn { font: 800 1rem var(--display); }
+  .mo-lday.today .dn { color: var(--accent-text); }
   .mo-meal { font-size: .88rem; }
   .as-grid { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
   .as-h { display: none; }
