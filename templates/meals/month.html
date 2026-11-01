@@ -29,36 +29,9 @@
 
 <nav class="pw-nav" aria-label="Month">
   <a class="btn btn-ghost btn-icon" href="?m={{ prev }}" aria-label="Previous month" data-prev>{% icon "chevron_left" %}</a>
-  <a class="pw-ttl" href="{% url 'meals-month' %}"><b>{{ first|date:"F Y" }}</b><span>{{ planned }} meal{{ planned|pluralize }}</span></a>
+  <a class="pw-ttl" href="{% url 'meals-month' %}"><b data-mo-title>{{ first|date:"F Y" }}</b><span data-mo-planned>{{ planned }} meal{{ planned|pluralize }}</span></a>
   <a class="btn btn-ghost btn-icon" href="?m={{ next }}" aria-label="Next month" data-next>{% icon "chevron_right" %}</a>
 </nav>
-<div data-month-page>
-<div class="mo">
-  <div class="mo-head">{% for w in weekdays %}<span>{{ w }}</span>{% endfor %}</div>
-  {% for week in weeks %}
-  <div class="mo-week">
-    {% for d in week.days %}
-    <a class="mo-day{% if d.other %} other{% endif %}{% if d.today %} today{% endif %}{% if not d.meals %} none{% endif %}" href="{% url 'meals' %}?week={{ d.date|date:'Y-m-d' }}" title="Open the week of {{ d.date|date:'j F' }}">
-      <span class="dn">{{ d.date|date:"j" }}</span>
-      {% if d.meals %}<span class="mo-dots" aria-label="{{ d.meals|length }} meal{{ d.meals|length|pluralize }}">{% for m in d.meals|slice:":4" %}<i></i>{% endfor %}</span>{% endif %}
-      {% for m in d.meals %}<span class="mo-meal k-{{ m.kind }}{% if m.cooked_at %} cooked{% endif %}">{% for slot, ic in slot_icons.items %}{% if slot == m.slot %}{% icon ic %}{% endif %}{% endfor %}<span>{{ m.name }}</span></span>{% endfor %}
-    </a>
-    {% endfor %}
-  </div>
-  {% endfor %}
-</div>
-
-<div class="mo-list">
-  {% for d in planned_days %}
-  <a class="mo-lday{% if d.today %} today{% endif %}" href="{% url 'meals' %}?week={{ d.date|date:'Y-m-d' }}">
-    <span class="dn">{{ d.date|date:"D j M" }}</span>
-    {% for m in d.meals %}<span class="mo-meal k-{{ m.kind }}{% if m.cooked_at %} cooked{% endif %}">{% for slot, ic in slot_icons.items %}{% if slot == m.slot %}{% icon ic %}{% endif %}{% endfor %}<span>{{ m.name }}</span></span>{% endfor %}
-  </a>
-  {% empty %}
-  <div class="panel"><div class="empty">{% icon "calendar_month" %}<b>Nothing planned in {{ first|date:"F" }}</b>
-    {% if "nyochi.meals.edit" in lab.perms %}<a class="btn btn-primary" href="{% url 'meals-assistant' %}{% if is_future %}?start={{ first|date:'Y-m-d' }}{% endif %}">{% icon "auto_awesome" %}Plan with the assistant</a>{% endif %}</div></div>
-  {% endfor %}
-</div>
-</div>
+<div class="mo-pages" data-month-pages>{% include "meals/_month_body.html" %}</div>
 {% endblock %}
 {% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/month.js' %}"></script>{% endblock %}

@@ -31,9 +31,9 @@
 </div>
 
 <nav class="pw-nav" aria-label="Week">
-  <a class="btn btn-ghost btn-icon" href="?week={{ prev }}" aria-label="Previous week">{% icon "chevron_left" %}</a>
-  <a class="pw-ttl" href="{% url 'meals' %}"><b>{% if is_this_week %}This week{% else %}Week of {{ start|date:"j M" }}{% endif %}</b><span>{{ start|date:"j M" }} – {{ end|date:"j M" }}</span></a>
-  <a class="btn btn-ghost btn-icon" href="?week={{ next }}" aria-label="Next week">{% icon "chevron_right" %}</a>
+  <a class="btn btn-ghost btn-icon" href="?week={{ prev }}" aria-label="Previous week" data-wk-prev>{% icon "chevron_left" %}</a>
+  <a class="pw-ttl" href="{% url 'meals' %}"><b data-wk-title>{% if is_this_week %}This week{% else %}Week of {{ start|date:"j M" }}{% endif %}</b><span data-wk-range>{{ start|date:"j M" }} – {{ end|date:"j M" }}</span></a>
+  <a class="btn btn-ghost btn-icon" href="?week={{ next }}" aria-label="Next week" data-wk-next>{% icon "chevron_right" %}</a>
 </nav>
 <div class="pw" data-phone></div>
 <div class="wk" data-week></div>

@@ -9,6 +9,7 @@
     <button type="button" data-pane-btn="list" aria-pressed="false">{% icon "receipt_long" %}List <span class="badge" data-badge>0</span></button>
   </div>
 
+  <div class="plan-panes">
   <div class="plan-left">
     <h1>New shopping list</h1>
 
@@ -56,6 +57,7 @@
         <button class="btn btn-icon" type="button" data-print title="Print" aria-label="Print">{% icon "print" %}</button>
       </div>
     </div>
+  </div>
   </div>
 </div>
 {{ plan|json_script:"plan-data" }}

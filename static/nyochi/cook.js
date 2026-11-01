@@ -2,7 +2,7 @@
 // Position: -1 = get ready, 0..n-1 = the steps, n = done. It is remembered per recipe in this browser.
 // The progress bar has one segment per step and a flag over each step that uses an appliance (oven, stove, fridge...).
 import { api, h, icon, num, readJson, toast } from "./ui.js";
-import { pager } from "./swipe.js";
+import { slider } from "./swipe.js";
 
 const R = readJson("cook");
 const root = document.querySelector("[data-cook]");
@@ -78,7 +78,7 @@ if (R && root) {
     }, icon("timer"), h("span", {}, `${i + 1}`), h("b", {}, t.done ? "done" : clock(left(t))))));
   }
   function drawTimerCard() {
-    const box = stage.querySelector("[data-timer]");
+    const box = pages.current()?.querySelector("[data-timer]");
     if (!box) return;
     const t = timers.get(pos);
     box.querySelector("[data-clock]").textContent = clock(t ? left(t) : steps[pos].minutes * 60);
@@ -141,24 +141,24 @@ if (R && root) {
       h("span.t", {}, s.text));
   }
 
-  function stepPage() {
-    const s = steps[pos];
-    const t = timers.get(pos);
+  function stepPage(i) {
+    const s = steps[i];
+    const t = timers.get(i);
     return h("div.cook-step", {},
       h(`div.cook-card.step.phase-${s.phase}`, {},
         h("div.step-head", {},
           h("span.eyebrow", {}, s.phase_label),
-          h("span.bign", {}, String(pos + 1))),
+          h("span.bign", {}, String(i + 1))),
         s.appliance ? h(`div.ware-banner.ware-${s.appliance.key}`, {}, h("span.ware-ic", {}, icon(s.appliance.icon)),
           h("div", {}, h("b", {}, s.appliance.label), s.appliance.setting ? h("span", {}, s.appliance.setting) : null)) : null,
         h("p.step-text", {}, s.text),
         s.minutes ? h("div.timer-card", { dataset: { timer: "" } },
           h("div.ring", { dataset: { ring: "" } }, h("span", { dataset: { clock: "" } }, clock(t ? left(t) : s.minutes * 60))),
           h("div.timer-acts", {},
-            t?.running ? h("button.btn", { type: "button", onclick: () => pauseTimer(pos) }, icon("pause"), "Pause")
-              : h("button.btn.btn-tag", { type: "button", onclick: () => startTimer(pos) }, icon("play_arrow"), t && !t.done ? "Resume" : `Start ${s.minutes} min`),
-            t ? h("button.btn.btn-ghost", { type: "button", onclick: () => resetTimer(pos) }, icon("restart_alt"), "Reset") : null)) : null),
-      h("div.peeks", {}, summary(pos - 1, "Previous"), summary(pos + 1, "Next")));
+            t?.running ? h("button.btn", { type: "button", onclick: () => pauseTimer(i) }, icon("pause"), "Pause")
+              : h("button.btn.btn-tag", { type: "button", onclick: () => startTimer(i) }, icon("play_arrow"), t && !t.done ? "Resume" : `Start ${s.minutes} min`),
+            t ? h("button.btn.btn-ghost", { type: "button", onclick: () => resetTimer(i) }, icon("restart_alt"), "Reset") : null)) : null),
+      h("div.peeks", {}, summary(i - 1, "Previous"), summary(i + 1, "Next")));
   }
 
   function donePage() {
@@ -172,7 +172,7 @@ if (R && root) {
   }
 
   function draw() {
-    stage.replaceChildren(pos < 0 ? readyPage() : pos >= n ? donePage() : stepPage());
+    pages.refresh();
     drawProgress();
     drawTimers();
     drawTimerCard();
@@ -180,7 +180,6 @@ if (R && root) {
     prevBtn.disabled = pos < 0;
     nextBtn.disabled = pos >= n;
     nextBtn.querySelector("span").textContent = pos < 0 ? "Start" : pos === n - 1 ? "Finish" : "Next";
-    stage.scrollTop = 0;
   }
 
   function go(i) {
@@ -201,6 +200,9 @@ if (R && root) {
     } catch (err) { toast(err.message, true); }
   }
 
+  const pageAt = (i) => (i < 0 ? readyPage() : i >= n ? donePage() : stepPage(i));
+  const pages = slider(stage, { fit: false, render: (o) => pageAt(pos + o), has: (o) => pos + o >= -1 && pos + o <= n, onMove: (d) => go(pos + d) });
+
   prevBtn.addEventListener("click", () => go(pos - 1));
   nextBtn.addEventListener("click", () => go(pos + 1));
   document.addEventListener("keydown", (e) => {
@@ -208,8 +210,7 @@ if (R && root) {
     if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); go(pos + 1); }
     else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(pos - 1); }
   });
-  // swipe on phones: the page follows the finger
-  pager(stage, { go: (dir) => go(pos + dir), canPrev: () => pos > -1, canNext: () => pos < n });
+  // swipe: the steps before and after are drawn beside the one shown
 
   // keep the screen on while cooking
   let lock = null;

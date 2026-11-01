@@ -2,7 +2,7 @@
 // Meals change through the meal dialog (meal-dialog.js); the summary under the grid follows every change.
 import { api, dialog, euroDate, h, icon, money, readJson, toast } from "./ui.js";
 import { addDays, dayText, mealDialog, mealUrl, mult, parseDay } from "./meal-dialog.js";
-import { pager } from "./swipe.js";
+import { slider } from "./swipe.js";
 
 const B = readJson("meals-data");
 const root = document.querySelector("[data-week]");
@@ -56,7 +56,8 @@ if (B && root) {
     });
   }
 
-  function listFor(day) { return B.lists.find((l) => l.from <= day && day <= l.to); }
+  let lists = [...B.lists];
+  function listFor(day) { return lists.find((l) => l.from <= day && day <= l.to); }
 
   function draw() {
     const cells = [h("div.wk-corner")];
@@ -81,45 +82,92 @@ if (B && root) {
     drawSummary();
   }
 
-  // ---- phone: a strip of the 7 days (a dot per meal), then the chosen day's meals slot by slot; swipe the day
-  // sideways for the next or previous one (past Sunday or Monday: the next or previous week)
+  // ---- phone: the seven days of the week shown (a dot per meal), then one day slot by slot. The days are a slider:
+  // the day before and the day after are already drawn beside it, and a neighbouring week is loaded in the background
+  // (once) as soon as the day shown is two days or less from it, so a swipe never waits.
   const phone = document.querySelector("[data-phone]");
-  const strip = h("div.pw-strip", { role: "tablist" });
-  const dayPage = h("div.pw-page");
-  phone?.append(strip, dayPage);
+  const loaded = new Set([B.days[0].iso]);   // the Mondays whose meals are here
+  const loading = new Map();
   let focus = B.days.some((d) => d.iso === B.focus) ? B.focus : (B.days.find((d) => d.today) || B.days[0]).iso;
-  const pick = (iso) => { focus = iso; drawPhone(); };
-  function drawPhone() {
-    if (!phone) return;
-    strip.replaceChildren(...B.days.map((d) => {
-      const n = meals.filter((m) => m.day === d.iso).length;
-      return h(`button.pw-d${d.iso === focus ? ".on" : ""}${d.today ? ".today" : ""}`, { type: "button", role: "tab", "aria-selected": String(d.iso === focus), onclick: () => pick(d.iso) },
-        h("span.wd", {}, WEEKDAY.format(parseDay(d.iso))), h("b", {}, String(parseDay(d.iso).getDate())),
+  const mondayOf = (iso) => addDays(iso, -((parseDay(iso).getDay() + 6) % 7));
+  const SHORT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+
+  function loadWeek(mon) {
+    if (loaded.has(mon) || loading.has(mon)) return;
+    loading.set(mon, api(B.urls.weekData, { query: { start: mon } }).then((w) => {
+      loaded.add(mon);
+      const have = new Set(meals.map((m) => m.id));
+      meals = meals.concat(w.meals.filter((m) => !have.has(m.id)));
+      const known = new Set(lists.map((l) => l.id));
+      lists = lists.concat(w.lists.filter((l) => !known.has(l.id)));
+      drawPhone();
+    }).catch(() => { /* tried again on the next swipe */ }).finally(() => loading.delete(mon)));
+  }
+  const around = () => [-2, 0, 2].forEach((o) => loadWeek(mondayOf(addDays(focus, o))));
+
+  function dayPanel(iso) {
+    const ready = loaded.has(mondayOf(iso));
+    const list = listFor(iso);
+    return h(`div.pw-page${ready ? "" : ".loading"}`, {},
+      h("div.pw-day", {}, h("h2", {}, LONG.format(parseDay(iso))),
+        list ? h("a.bought", { href: list.url, title: `Shopped for in “${list.name}”` }, icon("shopping_basket")) : null),
+      h("div.pw-slots", {}, B.slots.map((s) => {
+        const here = ready ? meals.filter((m) => m.day === iso && m.slot === s.value) : [];
+        return h(`section.pw-slot${here.length ? "" : ".free"}`, {},
+          h("div.pw-k", {}, icon(s.icon), h("span", {}, s.label),
+            B.canEdit && ready ? h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", "aria-label": `Add ${s.label.toLowerCase()}`, onclick: () => open(null, { day: iso, slot: s.value }) }, icon("add")) : null),
+          here.length ? h("div.pw-meals", {}, here.map(card)) : null);
+      })));
+  }
+
+  const strip = h("div.pw-strip", { role: "tablist" });
+  const dayBox = h("div.pw-days");
+  phone?.append(strip, dayBox);
+  const days = phone ? slider(dayBox, { render: (o) => dayPanel(addDays(focus, o)), onMove: (d) => { focus = addDays(focus, d); moved(); } }) : null;
+  const nav = document.querySelector(".pw-nav");
+
+  function drawStrip() {
+    const mon = mondayOf(focus);
+    strip.replaceChildren(...Array.from({ length: 7 }, (_, i) => {
+      const iso = addDays(mon, i);
+      const n = meals.filter((m) => m.day === iso).length;
+      return h(`button.pw-d${iso === focus ? ".on" : ""}${iso === B.today ? ".today" : ""}`, { type: "button", role: "tab", "aria-selected": String(iso === focus), onclick: () => jump(iso) },
+        h("span.wd", {}, WEEKDAY.format(parseDay(iso))), h("b", {}, String(parseDay(iso).getDate())),
         h("span.dots", {}, Array.from({ length: Math.min(n, 4) }, () => h("i"))));
     }));
-    const list = listFor(focus);
-    const slots = B.slots.map((s) => {
-      const here = meals.filter((m) => m.day === focus && m.slot === s.value);
-      return h(`section.pw-slot${here.length ? "" : ".free"}`, {},
-        h("div.pw-k", {}, icon(s.icon), h("span", {}, s.label),
-          B.canEdit ? h("button.btn.btn-ghost.btn-sm.btn-icon", { type: "button", "aria-label": `Add ${s.label.toLowerCase()}`, onclick: () => open(null, { day: focus, slot: s.value }) }, icon("add")) : null),
-        here.length ? h("div.pw-meals", {}, here.map(card)) : null);
-    });
-    dayPage.replaceChildren(
-      h("div.pw-day", {}, h("h2", {}, LONG.format(parseDay(focus))),
-        list ? h("a.bought", { href: list.url, title: `Shopped for in “${list.name}”` }, icon("shopping_basket")) : null),
-      h("div.pw-slots", {}, slots));
+    if (!nav) return;
+    const thisWeek = mon === mondayOf(B.today);
+    nav.querySelector("[data-wk-title]").textContent = thisWeek ? "This week" : `Week of ${SHORT.format(parseDay(mon))}`;
+    nav.querySelector("[data-wk-range]").textContent = `${SHORT.format(parseDay(mon))} – ${SHORT.format(parseDay(addDays(mon, 6)))}`;
   }
-  if (phone) pager(dayPage, { go: (dir) => {
-    const i = B.days.findIndex((d) => d.iso === focus) + dir;
-    if (B.days[i]) { pick(B.days[i].iso); return; }
-    location.href = `?week=${addDays(focus, dir)}`;
-    return "away";
-  } });
+  function moved() {
+    drawStrip();
+    around();
+    history.replaceState(null, "", `?week=${focus}`);
+  }
+  function jump(iso) {
+    if (iso === focus) return;
+    focus = iso;
+    moved();
+    days.refresh();
+  }
+  function drawPhone() {
+    if (!phone) return;
+    drawStrip();
+    days.refresh();
+  }
+  if (phone && nav) {
+    nav.querySelector("[data-wk-prev]").addEventListener("click", (e) => { e.preventDefault(); jump(addDays(focus, -7)); });
+    nav.querySelector("[data-wk-next]").addEventListener("click", (e) => { e.preventDefault(); jump(addDays(focus, 7)); });
+    nav.querySelector(".pw-ttl").addEventListener("click", (e) => { e.preventDefault(); jump(B.today); });
+  }
+  if (phone) around();
 
   // under the grid: how much is planned, what it costs, what two recipes share
   const summary = document.querySelector("[data-summary]");
+  const weekMeals = () => meals.filter((m) => m.day >= B.days[0].iso && m.day <= B.days[6].iso);
   function drawSummary() {
+    const meals = weekMeals();
     const cooking = meals.filter((m) => m.kind === "recipe");
     const cost = cooking.reduce((sum, m) => sum + (byId.get(m.recipe)?.cost ?? 0) * m.mult, 0);
     const priced = cooking.filter((m) => byId.get(m.recipe)?.cost != null).length;

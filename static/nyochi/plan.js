@@ -1,7 +1,7 @@
 // The shopping list planner: recipes (or the meal plan's days) and items added by hand; the server builds the receipt.
 import { api, debounce, h, icon, money, prefs, readJson, toast } from "./ui.js";
 import { receiptText, renderReceipt } from "./receipt.js";
-import { pager } from "./swipe.js";
+import { snap } from "./swipe.js";
 
 const P = readJson("plan-data");
 const root = document.querySelector("[data-plan]");
@@ -138,16 +138,16 @@ if (P && root) {
     if (t) t.textContent = e.target.value.trim() || "Shopping list";
   });
 
-  const pane = (name) => {
+  // phones: the two panes side by side, swiped (the other one is always there); the tabs follow and jump
+  const PANES = ["add", "list"];
+  const mark = (name) => {
     root.dataset.pane = name;
     root.querySelectorAll("[data-pane-btn]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.paneBtn === name)));
   };
+  const panes = matchMedia("(max-width: 760px)").matches ? snap($(".plan-panes"), { fit: false, onChange: (i) => mark(PANES[i]) }) : null;
+  const pane = (name, smooth = true) => { mark(name); panes?.go(PANES.indexOf(name), smooth); };
   root.querySelectorAll("[data-pane-btn]").forEach((b) => b.addEventListener("click", () => pane(b.dataset.paneBtn)));
-  if (covers) pane("list");   // from the meal plan: the list is what you came for
-  // phones: swipe between the two panes
-  const phone = matchMedia("(max-width: 760px)");
-  pager($(".plan-left"), { go: () => pane("list"), canPrev: () => false, canNext: () => phone.matches });
-  pager($(".plan-right"), { go: () => pane("add"), canNext: () => false, canPrev: () => phone.matches });
+  if (covers) pane("list", false);   // from the meal plan: the list is what you came for
 
   draw();
   loadSoon();

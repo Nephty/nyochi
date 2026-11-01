@@ -76,6 +76,18 @@ class MealCalendarTests(HubTestCase):
         self.assertEqual(self.client.get(reverse('meals'), {'week': '2026-11-30'}).context['month'], '2026-12')
         self.assertEqual(self.client.get(reverse('meals'), {'week': '2026-11-23'}).context['month'], '2026-11')
 
+    def test_phone_sliders_load_weeks_and_months(self):
+        # the day slider loads a neighbouring week as JSON (from any day of it), the month slider just the calendar
+        self.save(day='2026-12-09', slot='dinner', recipe=self.pasta.pk)
+        week = self.client.get(reverse('meal-week'), {'start': '2026-12-10'}).json()
+        self.assertEqual((week['start'], len(week['days']), [m['day'] for m in week['meals']]),
+                         ('2026-12-07', 7, ['2026-12-09']))
+        self.assertEqual(self.client.get(reverse('meal-week'), {'start': 'soon'}).status_code, 400)
+        part = self.client.get(reverse('meals-month'), {'m': '2026-12', 'part': 1})
+        self.assertTemplateUsed(part, 'meals/_month_body.html')
+        self.assertTemplateNotUsed(part, 'base.html')
+        self.assertContains(part, 'data-m="2026-12"')
+
     def test_bulk(self):
         day = self.today.isoformat()
         r = self.post_json(reverse('meal-bulk'), {'meals': [

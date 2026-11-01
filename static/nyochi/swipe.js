@@ -1,11 +1,15 @@
 // Swipes on touch screens (a family component: the same file in Shopping, Nyochi, Home and Admin, no imports).
-//   pager(el, {go, canPrev, canNext}): el follows the finger sideways; let go past a quarter of its width (or flick)
-//     and it slides out, go(-1 | 1) runs, the new content slides in. go() returns "away" when it leaves the page.
+//   snap(el, {onChange, onSettle, fit}): el is a row of full-width panels the browser scrolls sideways (CSS scroll snap), so
+//     the next panel is already there under the finger. onChange(i) fires as soon as panel i is the one mostly shown,
+//     onSettle(i) once the scroll has stopped (and the finger is up). Returns {index(), go(i, smooth)}.
+//   slider(el, {render, has, onMove}): an endless snap of three panels, render(-1 | 0 | 1) around the current item
+//     (has(offset) false: no panel that way). After a swipe onMove(+1 | -1) runs and the panels are rebuilt around the
+//     new current one; refresh() rebuilds them (data arrived, something changed). Returns {refresh, current()}.
 //   row(el, {right, left}): a list row slides to uncover what letting go will do; right / left =
 //     {icon: Element, label, tone: "ok" | "danger" | "neutral", out: true to slide away (removals), run()}.
 //     Returns the wrapper to put in the row's place.
-// Only touch and pen drive them (a mouse keeps clicking), vertical scrolling stays the browser's, the screen edges
-// stay the system's back gesture, and the click that ends a drag is swallowed.
+// Rows: touch and pen only (a mouse keeps clicking), vertical scrolling stays the browser's, the screen edges stay the
+// system's back gesture, the click that ends a drag is swallowed. Snaps are plain scrolling: they work everywhere.
 const EDGE = 22;
 const SKIP = "input, textarea, select, [contenteditable], .stepper, [data-noswipe]";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -48,32 +52,66 @@ function track(el, { move, end }) {
   el.addEventListener("pointercancel", (e) => finish(e, true));
 }
 
-export function pager(el, { go, canPrev = () => true, canNext = () => true }) {
-  const width = () => el.getBoundingClientRect().width || innerWidth;
-  const set = (x, fade, ms) => {
-    el.style.transition = ms && !still() ? `transform ${ms}ms ease, opacity ${ms}ms ease` : "none";
-    el.style.transform = x ? `translateX(${x}px)` : "";
-    el.style.opacity = fade === 1 ? "" : String(fade);
+export function snap(el, { onChange, onSettle, fit = true } = {}) {
+  el.classList.add("sw-snap");
+  const at = () => Math.round(el.scrollLeft / (el.clientWidth || 1));
+  let cur = at(), dirty = false, touching = false, timer = 0;
+  // as tall as the panel in view (fit: false when the panels scroll inside a fixed height)
+  const size = () => { if (fit && el.children[cur]) el.style.height = `${el.children[cur].offsetHeight}px`; };
+  if (fit) {
+    const ro = new ResizeObserver(size);
+    const watch = () => { ro.disconnect(); [...el.children].forEach((c) => ro.observe(c)); size(); };
+    new MutationObserver(watch).observe(el, { childList: true });
+    watch();
+  }
+  const settle = () => {
+    clearTimeout(timer);
+    if (!dirty || touching) return;
+    dirty = false;
+    onSettle?.(at());
   };
-  track(el, {
-    move(dx) {
-      const blocked = dx > 0 ? !canPrev() : !canNext();
-      const x = blocked ? dx / 4 : dx;
-      set(x, 1 - Math.min(Math.abs(x) / width(), 1) * 0.4, 0);
+  el.addEventListener("scroll", () => {
+    dirty = true;
+    const i = at();
+    if (i !== cur) { cur = i; size(); onChange?.(i); }
+    clearTimeout(timer);
+    timer = setTimeout(settle, 160);   // browsers without "scrollend"
+  }, { passive: true });
+  el.addEventListener("scrollend", settle);
+  el.addEventListener("touchstart", () => { touching = true; }, { passive: true });
+  el.addEventListener("touchend", () => { touching = false; clearTimeout(timer); timer = setTimeout(settle, 160); }, { passive: true });
+  return {
+    index: at,
+    busy: () => dirty || touching,
+    go(i, smooth = true) {
+      cur = i;
+      size();
+      el.scrollTo({ left: i * el.clientWidth, behavior: smooth && !still() ? "smooth" : "instant" });
     },
-    async end(dx, v) {
-      const dir = dx < 0 ? 1 : -1;
-      const far = Math.abs(dx) > width() / 4 || (Math.abs(v) > 0.4 && Math.abs(dx) > 30);
-      if (!dx || !far || !(dir > 0 ? canNext() : canPrev())) { set(0, 1, 200); return; }
-      set(-dir * width(), 0, 170);
-      await wait(still() ? 0 : 170);
-      if ((await go(dir)) === "away") return;
-      set(dir * width() * 0.35, 0, 0);
-      el.getBoundingClientRect();   // apply before sliding in
-      set(0, 1, 220);
-    },
-  });
-  return el;
+  };
+}
+
+export function slider(el, { render, has = () => true, onMove, fit = true }) {
+  let mid = 0, pending = false;
+  const build = () => {
+    pending = false;
+    const offsets = [-1, 0, 1].filter((o) => o === 0 || has(o));
+    mid = offsets.indexOf(0);
+    el.replaceChildren(...offsets.map((o) => {
+      const panel = document.createElement("div");
+      panel.className = "sw-panel";
+      panel.append(render(o));
+      return panel;
+    }));
+    s.go(mid, false);
+  };
+  const s = snap(el, { fit, onSettle(i) {
+    if (i !== mid) onMove(i - mid);
+    if (i !== mid || pending) build();
+  } });
+  build();
+  // never rebuild under a finger or a running scroll: wait for it to settle
+  return { refresh: () => { if (s.busy()) pending = true; else build(); }, current: () => el.children[mid] };
 }
 
 export function row(el, { right = null, left = null }) {

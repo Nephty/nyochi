@@ -32,6 +32,7 @@ def _urls():
     return {
         'save': reverse('meal-save'), 'bulk': reverse('meal-bulk'), 'shop': reverse('meal-shop'),
         'week': reverse('meals'), 'month': reverse('meals-month'), 'assistant': reverse('meals-assistant'),
+        'weekData': reverse('meal-week'),
         'meal': reverse('meal-action', args=[0, 'x']).replace('/0/x/', '/{id}/{action}/'),
         'recipe': reverse('recipe-detail', args=[0]).replace('/0/', '/{id}/'),
         'cook': reverse('recipe-cook', args=[0]).replace('/0/', '/{id}/'),
@@ -92,7 +93,9 @@ class MonthView(LoginRequiredMixin, View):
         prev = (first - timedelta(days=1)).replace(day=1)
         nxt = last + timedelta(days=1)
         month_meals = [m for day, ms in by_day.items() if first <= day <= last for m in ms]
-        return render(request, 'meals/month.html', {
+        # ?part=1: just the calendar, for the phone's month slider (it loads the months around the one shown)
+        template = 'meals/_month_body.html' if request.GET.get('part') else 'meals/month.html'
+        return render(request, template, {
             'page': 'meals', 'first': first, 'weeks': weeks, 'slot_icons': SLOT_ICONS,
             'prev': prev.strftime('%Y-%m'), 'next': nxt.strftime('%Y-%m'), 'is_this_month': first == today.replace(day=1),
             'is_future': first > today,
@@ -210,6 +213,18 @@ def _respond(user, *meals, status=200, gone=()):
     fresh = sorted(readable(Meal, user).filter(pk__in=ids).select_related('recipe', 'leftover_of')
                    .prefetch_related('leftovers'), key=planning.slot_order)
     return JsonResponse({'meals': [planning.meal_json(m) for m in fresh], 'deleted': list(gone)}, status=status)
+
+
+@api
+def week(request):
+    """One week's meals and lists, for the phone's day slider (it loads the weeks around the one shown)."""
+    start = monday(_day(request.GET.get('start')))
+    end = start + timedelta(days=6)
+    return JsonResponse({
+        'start': start.isoformat(), 'days': _days(start, 7),
+        'meals': [planning.meal_json(m) for m in planning.meals_between(request.user, start, end)],
+        'lists': planning.lists_covering(request.user, start, end),
+    })
 
 
 @api
