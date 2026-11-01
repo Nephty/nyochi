@@ -22,7 +22,7 @@ if (box && matchMedia("(max-width: 760px)").matches) {
   function load(m) {
     if (html.has(m) || loading.has(m)) return;
     loading.add(m);
-    fetch(`?m=${m}&part=1`, { credentials: "same-origin" })
+    fetch(`${location.pathname}?m=${m}&part=1`, { credentials: "same-origin" })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status))))
       .then((text) => { html.set(m, text.trim()); months.refresh(); if (m === cur) head(); })
       .catch(() => { /* tried again on the next swipe */ })
@@ -40,13 +40,12 @@ if (box && matchMedia("(max-width: 760px)").matches) {
   }
   function moved() {
     head();
-    [-1, 1].forEach((d) => load(shift(cur, d)));
-    history.replaceState(null, "", `?m=${cur}`);
+    [-2, -1, 1, 2].forEach((d) => load(shift(cur, d)));
   }
 
-  const months = slider(box, { render: (o) => parse(shift(cur, o)), onMove: (d) => { cur = shift(cur, d); moved(); } });
+  const months = slider(box, { span: 3, render: (o) => parse(shift(cur, o)), onMove: (d) => { cur = shift(cur, d); moved(); } });
   for (const [sel, d] of [["[data-prev]", -1], ["[data-next]", 1]]) {
     document.querySelector(sel).addEventListener("click", (e) => { e.preventDefault(); cur = shift(cur, d); moved(); months.refresh(); });
   }
-  [-1, 1].forEach((d) => load(shift(cur, d)));
+  [-2, -1, 1, 2].forEach((d) => load(shift(cur, d)));
 }

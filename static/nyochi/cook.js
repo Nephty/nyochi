@@ -201,7 +201,7 @@ if (R && root) {
   }
 
   const pageAt = (i) => (i < 0 ? readyPage() : i >= n ? donePage() : stepPage(i));
-  const pages = slider(stage, { fit: false, render: (o) => pageAt(pos + o), has: (o) => pos + o >= -1 && pos + o <= n, onMove: (d) => go(pos + d) });
+  const pages = slider(stage, { fit: false, span: 4, render: (o) => pageAt(pos + o), has: (o) => pos + o >= -1 && pos + o <= n, onMove: (d) => go(pos + d) });
 
   prevBtn.addEventListener("click", () => go(pos - 1));
   nextBtn.addEventListener("click", () => go(pos + 1));

@@ -2,9 +2,10 @@
 //   snap(el, {onChange, onSettle, fit}): el is a row of full-width panels the browser scrolls sideways (CSS scroll snap), so
 //     the next panel is already there under the finger. onChange(i) fires as soon as panel i is the one mostly shown,
 //     onSettle(i) once the scroll has stopped (and the finger is up). Returns {index(), go(i, smooth)}.
-//   slider(el, {render, has, onMove}): an endless snap of three panels, render(-1 | 0 | 1) around the current item
-//     (has(offset) false: no panel that way). After a swipe onMove(+1 | -1) runs and the panels are rebuilt around the
-//     new current one; refresh() rebuilds them (data arrived, something changed). Returns {refresh, current()}.
+//   slider(el, {render, has, onMove, span}): an endless snap: render(offset) for the `span` items before and after the
+//     current one (has(offset) false: none that way), so a fast series of flicks never waits. onMove(d) fires live as
+//     the item in view changes (d can be more than 1); once the scroll is still the panels are re-centred on it.
+//     refresh() redraws them (data arrived, something changed). Returns {refresh, current()}.
 //   row(el, {right, left}): a list row slides to uncover what letting go will do; right / left =
 //     {icon: Element, label, tone: "ok" | "danger" | "neutral", out: true to slide away (removals), run()}.
 //     Returns the wrapper to put in the row's place.
@@ -91,12 +92,14 @@ export function snap(el, { onChange, onSettle, fit = true } = {}) {
   };
 }
 
-export function slider(el, { render, has = () => true, onMove, fit = true }) {
-  let mid = 0, pending = false;
+export function slider(el, { render, has = () => true, onMove, fit = true, span = 6 }) {
+  let mid = 0, at = 0, pending = false;
   const build = () => {
     pending = false;
-    const offsets = [-1, 0, 1].filter((o) => o === 0 || has(o));
-    mid = offsets.indexOf(0);
+    const offsets = [0];
+    for (let o = -1; o >= -span && has(o); o--) offsets.unshift(o);
+    for (let o = 1; o <= span && has(o); o++) offsets.push(o);
+    mid = at = offsets.indexOf(0);
     el.replaceChildren(...offsets.map((o) => {
       const panel = document.createElement("div");
       panel.className = "sw-panel";
@@ -105,13 +108,16 @@ export function slider(el, { render, has = () => true, onMove, fit = true }) {
     }));
     s.go(mid, false);
   };
-  const s = snap(el, { fit, onSettle(i) {
-    if (i !== mid) onMove(i - mid);
-    if (i !== mid || pending) build();
-  } });
+  el.classList.add("sw-slide");
+  const s = snap(el, {
+    fit,
+    // live: the item in view changed by d (a fast flick can pass several); the page follows at once
+    onChange(i) { const d = i - at; at = i; if (d) onMove(d); },
+    // once still: re-centre the window of panels on the new item (never under a finger or a running scroll)
+    onSettle() { if (at !== mid || pending) build(); },
+  });
   build();
-  // never rebuild under a finger or a running scroll: wait for it to settle
-  return { refresh: () => { if (s.busy()) pending = true; else build(); }, current: () => el.children[mid] };
+  return { refresh: () => { if (s.busy()) pending = true; else build(); }, current: () => el.children[at] };
 }
 
 export function row(el, { right = null, left = null }) {

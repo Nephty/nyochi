@@ -55,3 +55,9 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   for (const d of document.querySelectorAll("details.dd[open]")) { d.removeAttribute("open"); d.querySelector("summary")?.focus(); }
 });
+
+// No dates in the address: the calendar, its assistant and the list planner take where to start from the link
+// (?week=, ?m=, ?start=, ?recipe=...), then the address is cleaned so it reads /meals/ and stays bookmarkable.
+if (/^\/(meals\/|meals\/month\/|meals\/assistant\/|plan\/|)$/.test(location.pathname) && /[?&](week|m|start|days|recipe|from|to)=/.test(location.search)) {
+  history.replaceState(history.state, "", location.pathname + location.hash);
+}

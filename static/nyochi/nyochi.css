@@ -1236,6 +1236,7 @@ ul.shared .muted { font-size: .84rem; }
 .sw-snap { display: flex; align-items: flex-start; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
 .sw-snap::-webkit-scrollbar { display: none; }
 .sw-snap > * { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.sw-snap.sw-slide > * { scroll-snap-stop: normal; }
 .sw-snap > [hidden] { display: block; }
 @media (max-width: 760px) {
   .mo-pages { margin: 0 -1rem; }
