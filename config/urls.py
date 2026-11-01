@@ -12,4 +12,5 @@ urlpatterns = [
     path('', include('categories.urls')),
     path('', include('grocery.urls')),
     path('', include('find_recipes.urls')),
+    path('', include('meals.urls')),
 ]

@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'categories',
     'grocery',
     'find_recipes',
+    'meals',
     'accounts',
     'labauth',  # synced from home/labauth (scripts/sync_labauth.sh there)
 ]

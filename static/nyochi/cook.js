@@ -1,7 +1,7 @@
 // The cooking guide (templates/recipes/cook.html): a "get ready" page, then the steps one by one, then "done".
 // Position: -1 = get ready, 0..n-1 = the steps, n = done. It is remembered per recipe in this browser.
 // The progress bar has one segment per step and a flag over each step that uses an appliance (oven, stove, fridge...).
-import { h, icon, num, readJson, toast } from "./ui.js";
+import { api, h, icon, num, readJson, toast } from "./ui.js";
 
 const R = readJson("cook");
 const root = document.querySelector("[data-cook]");
@@ -183,9 +183,21 @@ if (R && root) {
   }
 
   function go(i) {
+    const was = pos;
     pos = Math.max(-1, Math.min(n, i));
     store();
     draw();
+    if (pos >= n && was < n) markCooked();
+  }
+
+  // Cooking a meal of the calendar (?meal=, or today's meal with this recipe): finishing marks it cooked there.
+  async function markCooked() {
+    if (!R.meal || R.meal.cooked) return;
+    try {
+      await api(R.meal.url, { method: "POST", body: { cooked: true } });
+      R.meal.cooked = true;
+      toast(`Marked as cooked in the meal calendar (${R.meal.label}).`);
+    } catch (err) { toast(err.message, true); }
   }
 
   prevBtn.addEventListener("click", () => go(pos - 1));

@@ -8,6 +8,7 @@
     <h1>{{ saved.name }}</h1>
     <div class="row" style="margin-top:.7rem">
       <span class="chip">{{ saved.created_at|date:"j M Y" }}</span>
+      {% if saved.covers_from %}<a class="chip" href="{% url 'meals' %}?week={{ saved.covers_from|date:'Y-m-d' }}" title="Made from the meal calendar">{% icon "calendar_month" %}Meals {{ saved.covers_from|date:"D j M" }}{% if saved.covers_to != saved.covers_from %} – {{ saved.covers_to|date:"D j M" }}{% endif %}</a>{% endif %}
       {% if saved.archived %}<span class="chip">archived</span>{% endif %}
       {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>

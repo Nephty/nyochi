@@ -20,6 +20,19 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
   tools), then one step at a time with the appliance and its setting, a timer (keeps running when you move on, beeps),
   previous / next summaries, a progress bar with a flag over every step that uses an appliance; ←/→ or swipe; the screen
   stays on; the position is remembered per recipe in the browser.
+- **Meal calendar** (`meals/`, rail entry *Meals*): what the community eats per day and slot (breakfast, lunch, snack,
+  dinner; several meals per slot). A meal is a recipe with portions (×1 = as written), free text ("Restaurant"), or
+  *leftovers* of another meal (made from that meal's dialog; bought with it, so the portions are doubled when you tick
+  it). **Week** (`/meals/`, `static/nyochi/meals.js`): days × slots, drag a meal to move it, click to change it (the
+  dialog in `meal-dialog.js`), a phone day list; under it the count, the cost at Shopping prices and "bought once, used
+  twice" (ingredients two recipes share). **Month** (`/meals/month/`, server-rendered). **Assistant**
+  (`/meals/assistant/?start=&days=`, `assistant.js`): proposes recipes for the chosen days and slots, scored in the
+  browser (in season, on sale, not had in two weeks, variety: repeats and the same main ingredient two days running,
+  quick on weekdays / longer at the weekend, favoured tags) with lock / swap / skip / "Fill the rest", then adds them
+  (and goes on to the list). **Shopping list for these days** (`/meals/shop/`) opens Plan with those recipes and summed
+  portions (`?recipe=<id>x<mult>&from=&to=`); a list saved from there keeps `covers_from/to` and shows as a basket on
+  those days. The recipes page shows **Today**; a recipe page shows last cooked / next planned and "Add to the calendar";
+  finishing the cooking guide marks the meal (`?meal=`, else today's) cooked. Permission `nyochi.meals.edit`.
 - **Ingredients**: a category (**Categories** page: each account edits its own list: add, rename, reorder, delete with a move target; the defaults are created on first use) and a **season ribbon** (12 months: out / early / in / late, painted with a brush),
   plus **products in Shopping** (see below).
 - **Plan**: tick recipes (filters: text, meal, tags, must-include / leave-out ingredients, max times, in-season first,
@@ -81,8 +94,9 @@ database Home owns (`ACCOUNTS_DB_PATH`, alias `accounts`, routed by `config/rout
 |---|---|
 | `recipes/` | **All models** (`models.py`), `access.py` (who can read / write / delete what), `grocery.py` (merge, layout, receipt), `shopping.py` (API client, snapshots, pricing), `costing.py`, `seasons.py`, `templatetags/nyo.py` (icons, money, ribbon), the recipe views and sharing |
 | `ingredients/`, `shops/`, `tags/`, `grocery/` (saved lists), `find_recipes/` (the Plan page and its receipt API) | views, forms, urls |
+| `meals/` | the meal calendar: `Meal`, `planning.py` (weeks, JSON, the link to Plan), week / month / assistant pages and the JSON API, `tests.py` |
 | `config/` | settings, `middleware.py` (login required; JSON 403 with a login link for `fetch`), `routers.py` (auth/sessions/contenttypes/admin → the shared accounts DB), `storage.py` (hashed static files), `context.py` (messages → toasts) |
-| `static/nyochi/` | `nyochi.css` (tokens + components, the Shopping family), ES modules (`ui.js` helpers, `shell.js`, `plan.js`, `receipt.js`, `layout.js`, `ribbon.js`, `picker.js`, `combo.js`, `lists.js`, `filter.js`), self-hosted fonts |
+| `static/nyochi/` | `nyochi.css` (tokens + components, the Shopping family), ES modules (`ui.js` helpers, `shell.js`, `plan.js`, `receipt.js`, `layout.js`, `ribbon.js`, `picker.js`, `combo.js`, `lists.js`, `filter.js`, `steps.js`, `cook.js`, `meals.js`, `meal-dialog.js`, `assistant.js`, `recipe-meal.js`), self-hosted fonts |
 | `templates/` | server-rendered pages; interactive parts get their data as `json_script` |
 
 ### Data notes
@@ -107,7 +121,7 @@ database Home owns (`ACCOUNTS_DB_PATH`, alias `accounts`, routed by `config/rout
 ./dev.sh
 
 # or alone, with a Python that has Django: tests (68), no server needed
-python manage.py test recipes
+python manage.py test recipes meals
 ```
 Tests use two databases (this app's and the accounts DB: `HubTestCase` in `recipes/tests/base.py`) and need no network
 (Shopping is mocked). `nix run .#manage -- <cmd>` is the packaged `manage.py`.

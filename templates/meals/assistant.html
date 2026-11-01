@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Meal assistant · Nyochi{% endblock %}
+{% block phone_title %}Assistant{% endblock %}
+{% block body_class %}meals-page{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <a class="back" href="{% url 'meals' %}">{% icon "chevron_left" %}Meal calendar</a>
+    <div class="eyebrow">Meal assistant</div>
+    <h1>What do we eat?</h1>
+    <div class="sub">Pick the days and meals to fill; the assistant proposes recipes, you swap or lock what you like, then add them.</div>
+  </div>
+</div>
+
+<div class="as" data-assistant>
+  <aside class="as-side panel"><div class="panel-body">
+    <div class="field"><label class="label" for="as-start">From</label><input class="input" id="as-start" type="date" data-start></div>
+    <div class="field"><label class="label" for="as-days">Days</label>
+      <select class="select" id="as-days" data-days>{% for n in "1234567"|make_list %}<option value="{{ n }}">{{ n }} day{{ n|pluralize }}</option>{% endfor %}<option value="10">10 days</option><option value="14">2 weeks</option><option value="21">3 weeks</option><option value="28">4 weeks</option><option value="31">31 days</option></select></div>
+    <div class="field"><span class="label">Meals to fill</span><div class="pills" data-slots></div></div>
+    <div class="field"><span class="label">Favour</span><div class="as-factors" data-factors></div></div>
+    <div class="field"><span class="label">Tags to favour</span><div class="pills" data-tags></div></div>
+  </div></aside>
+
+  <section class="as-main">
+    <div class="as-bar">
+      <button class="btn" type="button" data-roll>{% icon "shuffle" %}Fill the rest</button>
+      <span class="muted sm" data-count></span>
+      <span class="grow"></span>
+      {% if "nyochi.meals.edit" in lab.perms %}
+      <button class="btn" type="button" data-add>{% icon "event_available" %}Add to the calendar</button>
+      <button class="btn btn-primary" type="button" data-add-shop>{% icon "add_shopping_cart" %}Add and make the list</button>
+      {% endif %}
+    </div>
+    <div class="as-grid" data-grid></div>
+  </section>
+</div>
+{{ boot|json_script:"assistant-data" }}
+{% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/assistant.js' %}"></script>{% endblock %}

@@ -14,6 +14,23 @@
   </div>
 </div>
 
+{% if today_meals %}
+<section class="today-meals panel" aria-label="Today's meals">
+  <div class="tm-k">{% icon "today" %}<b>Today</b></div>
+  <div class="tm-list">
+    {% for m in today_meals %}
+    <div class="tm{% if m.cooked_at %} cooked{% endif %}">
+      {% for slot, ic in slot_icons.items %}{% if slot == m.slot %}<span class="tm-slot" title="{{ m.get_slot_display }}">{% icon ic %}{{ m.get_slot_display }}</span>{% endif %}{% endfor %}
+      {% if m.recipe_id %}<a class="nm" href="{% url 'recipe-detail' m.recipe_id %}">{{ m.name }}</a>{% else %}<span class="nm">{{ m.name }}</span>{% endif %}
+      {% if m.cooked_at %}<span class="chip good">{% icon "done_all" %}cooked</span>
+      {% elif m.kind == "recipe" and m.recipe.steps %}<a class="btn btn-sm" href="{% url 'recipe-cook' m.recipe_id %}?meal={{ m.pk }}">{% icon "cooking" %}Start cooking</a>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <a class="btn btn-ghost btn-sm tm-more" href="{% url 'meals' %}">{% icon "calendar_month" %}Meal calendar</a>
+</section>
+{% endif %}
+
 {% if deals %}
 <section class="deals" aria-label="On sale for your recipes">
   <div class="section-h"><h2>On sale for your recipes</h2><span class="hint">from the products linked to your ingredients</span></div>

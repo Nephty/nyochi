@@ -12,8 +12,10 @@ if (P && root) {
   const MEAL = { breakfast: "breakfast_dining", full_meal: "restaurant", snack: "cookie", desert: "cake" };
 
   const saved = prefs.get("plan", {});
-  const sel = new Map(Object.entries(saved.sel || {}).map(([k, v]) => [Number(k), v]).filter(([k]) => byId.has(k)));
-  for (const id of P.preselect) if (byId.has(id) && !sel.has(id)) sel.set(id, 1);
+  // From the meal calendar (P.covers): exactly its recipes and portions; otherwise what was left here, plus ?recipe=
+  const sel = new Map(P.covers ? [] : Object.entries(saved.sel || {}).map(([k, v]) => [Number(k), v]).filter(([k]) => byId.has(k)));
+  for (const { id, mult } of P.preselect) if (byId.has(id) && (P.covers || !sel.has(id))) sel.set(id, mult);
+  let covers = P.covers;
   const f = { q: "", meal: "", season: false, inc: [], exc: [], tags: [], prep: null, cook: null };
   let location = saved.location && P.locations.some((l) => l.id === saved.location) ? saved.location : null;
   let lastReceipt = null;
@@ -122,6 +124,10 @@ if (P && root) {
   }
 
   function drawPicked() {
+    const banner = $("[data-covers]");
+    banner.classList.toggle("hidden", !covers);
+    if (covers) banner.replaceChildren(icon("calendar_month"), h("span", {}, "Meals of ", h("b", {}, covers.label)),
+      h("button.btn.btn-ghost.btn-sm", { type: "button", title: "Keep the recipes, forget the days", onclick: () => { covers = null; drawPicked(); } }, icon("close")));
     $("[data-picked]").replaceChildren(...[...sel].map(([id, m]) => h("span.chip", { style: { cursor: "pointer" }, title: "Remove from the plan", onclick: () => setSel(id, false) },
       `${byId.get(id).name}${m !== 1 ? ` ×${mult(m)}` : ""}`, icon("close"))));
   }
@@ -157,7 +163,7 @@ if (P && root) {
   $("[data-save]")?.addEventListener("click", async (e) => {
     e.currentTarget.disabled = true;
     try {
-      const made = await api(P.urls.save, { method: "POST", body: { recipes: [...sel].map(([id, mult]) => ({ id, mult })), location, name: $("[data-name]").value } });
+      const made = await api(P.urls.save, { method: "POST", body: { recipes: [...sel].map(([id, mult]) => ({ id, mult })), location, name: $("[data-name]").value, covers } });
       prefs.set("plan", {});
       location_href(made.url);
     } catch (err) { toast(err.message, true); e.currentTarget.disabled = false; }

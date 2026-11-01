@@ -13,9 +13,14 @@
       {% for t in recipe.tags.all %}<span class="tagpill">{{ t.name }}</span>{% endfor %}
       {% if not mine %}<span class="chip mine-no">read-only</span>{% endif %}
     </div>
+    {% if calendar.last_cooked or calendar.next %}<div class="cal-line">{% icon "history" %}
+      {% if calendar.last_cooked %}<span>Last cooked {% if calendar.last_days == 0 %}today{% elif calendar.last_days == 1 %}yesterday{% else %}{{ calendar.last_days }} days ago{% endif %}</span>{% endif %}
+      {% if calendar.next %}<a href="{% url 'meals' %}?week={{ calendar.next.day|date:'Y-m-d' }}">Planned {{ calendar.next.day|date:"D j M" }}, {{ calendar.next.get_slot_display|lower }}</a>{% endif %}
+    </div>{% endif %}
   </div>
   <div class="actions">
     {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}
+    {% if "nyochi.meals.edit" in lab.perms %}<button class="btn" type="button" data-add-meal>{% icon "event_available" %}Add to the calendar</button>{% endif %}
     <a class="btn" href="{% url 'plan' %}?recipe={{ recipe.pk }}">{% icon "checklist" %}Add to plan</a>
     {% if can_edit %}<a class="btn" href="{% url 'recipe-update' recipe.pk %}">{% icon "edit" %}Edit</a>{% endif %}
     {% if mine %}
@@ -120,3 +125,4 @@
   </div>
 </div>
 {% endblock %}
+{% block scripts %}{% load static %}{% if "nyochi.meals.edit" in lab.perms %}{{ meal_boot|json_script:"meal-boot" }}<script type="module" src="{% static 'nyochi/recipe-meal.js' %}"></script>{% endif %}{% endblock %}

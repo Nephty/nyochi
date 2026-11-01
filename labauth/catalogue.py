@@ -18,11 +18,12 @@ APPS = [
         "app": "nyochi",
         "name": "Nyochi",
         "perms": [
-            ("nyochi.view", "Open Nyochi", "Read the community's recipes, ingredients, shops, plan and saved lists."),
+            ("nyochi.view", "Open Nyochi", "Read the community's recipes, ingredients, shops, meal calendar, plan and saved lists."),
             ("nyochi.recipes.edit", "Edit recipes", "Recipes and tags."),
             ("nyochi.ingredients.edit", "Edit ingredients", "Ingredients, seasons, categories and Shopping links."),
             ("nyochi.shops.edit", "Edit shops", "Shops, locations, aisles and layouts."),
             ("nyochi.lists.edit", "Edit lists", "The plan and the saved grocery lists."),
+            ("nyochi.meals.edit", "Edit meals", "The meal calendar: plan, move and mark meals cooked."),
         ],
     },
 ]

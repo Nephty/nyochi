@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ first|date:"F Y" }} · Meals · Nyochi{% endblock %}
+{% block phone_title %}Meals{% endblock %}
+{% block body_class %}meals-page{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Meal calendar</div>
+    <h1>{{ first|date:"F Y" }}</h1>
+    <div class="sub">{{ planned }} meal{{ planned|pluralize }} planned · {{ empty_days }} day{{ empty_days|pluralize }} with nothing yet</div>
+  </div>
+  <div class="actions">
+    <div class="seg" role="group" aria-label="View"><a href="{% url 'meals' %}?week={% if is_this_month %}{% now 'Y-m-d' %}{% else %}{{ first|date:'Y-m-d' }}{% endif %}">{% icon "calendar_view_week" %}Week</a><a class="on" href="{% url 'meals-month' %}?m={{ first|date:'Y-m' }}" aria-current="page">{% icon "calendar_month" %}Month</a></div>
+    <div class="wk-nav">
+      <a class="btn btn-icon" href="?m={{ prev }}" title="Previous month" aria-label="Previous month">{% icon "chevron_left" %}</a>
+      <a class="btn{% if is_this_month %} btn-ghost{% endif %}" href="{% url 'meals-month' %}">{% icon "today" %}Today</a>
+      <a class="btn btn-icon" href="?m={{ next }}" title="Next month" aria-label="Next month">{% icon "chevron_right" %}</a>
+    </div>
+  </div>
+</div>
+
+<div class="mo">
+  <div class="mo-head">{% for w in weekdays %}<span>{{ w }}</span>{% endfor %}</div>
+  {% for week in weeks %}
+  <div class="mo-week">
+    {% for d in week.days %}
+    <a class="mo-day{% if d.other %} other{% endif %}{% if d.today %} today{% endif %}{% if not d.meals %} none{% endif %}" href="{% url 'meals' %}?week={{ d.date|date:'Y-m-d' }}" title="Open the week of {{ d.date|date:'j F' }}">
+      <span class="dn"><span class="wd">{{ d.date|date:"D" }}</span> {{ d.date|date:"j" }}<span class="mn"> {{ d.date|date:"M" }}</span></span>
+      {% for m in d.meals %}<span class="mo-meal k-{{ m.kind }}{% if m.cooked_at %} cooked{% endif %}">{% for slot, ic in slot_icons.items %}{% if slot == m.slot %}{% icon ic %}{% endif %}{% endfor %}<span>{{ m.name }}</span></span>{% endfor %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

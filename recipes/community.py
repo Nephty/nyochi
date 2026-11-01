@@ -22,6 +22,7 @@ EDIT_PERM = {
     "ingredient": "nyochi.ingredients.edit", "category": "nyochi.ingredients.edit",
     "shop": "nyochi.shops.edit",
     "savedgrocerylist": "nyochi.lists.edit",
+    "meal": "nyochi.meals.edit",
 }
 
 

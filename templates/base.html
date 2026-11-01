@@ -37,6 +37,7 @@
     {% include "labauth/switcher.html" %}
     <nav class="nav" aria-label="Main">
       <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %} title="Recipes">{% icon "menu_book" %}<span>Recipes</span></a>
+      <a href="{% url 'meals' %}" {% if page == "meals" %}aria-current="page"{% endif %} title="Meals">{% icon "calendar_month" %}<span>Meals</span></a>
       <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %} title="Ingredients">{% icon "eco" %}<span>Ingredients</span></a>
       <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %} title="Plan">{% icon "checklist" %}<span>Plan</span></a>
       <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %} title="Lists">{% icon "receipt_long" %}<span>Lists</span></a>
@@ -50,15 +51,16 @@
   <main class="main">{% block main %}<div class="page">{% block content %}{% endblock %}</div>{% endblock %}</main>
   <nav class="tabbar" aria-label="Main">
     <a href="{% url 'recipe-list' %}" {% if page == "recipes" %}aria-current="page"{% endif %}>{% icon "menu_book" %}Recipes</a>
-    <a href="{% url 'ingredient-list' %}" {% if page == "ingredients" %}aria-current="page"{% endif %}>{% icon "eco" %}Ingredients</a>
+    <a href="{% url 'meals' %}" {% if page == "meals" %}aria-current="page"{% endif %}>{% icon "calendar_month" %}Meals</a>
     <a href="{% url 'plan' %}" {% if page == "plan" %}aria-current="page"{% endif %}>{% icon "checklist" %}Plan</a>
     <a href="{% url 'saved-grocery-list' %}" {% if page == "lists" %}aria-current="page"{% endif %}>{% icon "receipt_long" %}Lists</a>
-    <button type="button" data-more {% if page == "shops" or page == "tags" or page == "categories" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
+    <button type="button" data-more {% if page == "ingredients" or page == "shops" or page == "tags" or page == "categories" %}aria-current="page"{% endif %}>{% icon "more_vert" %}More</button>
   </nav>
 </div>
 <div class="sheet-back" data-sheet-back></div>
 <div class="more-sheet" data-more-sheet>
   {% include "labauth/switcher.html" %}
+  <a href="{% url 'ingredient-list' %}">{% icon "eco" %}Ingredients</a>
   <a href="{% url 'shop-list' %}">{% icon "storefront" %}Shops</a>
   <a href="{% url 'category-list' %}">{% icon "category" %}Categories</a>
   <a href="{% url 'tag-list' %}">{% icon "sell" %}Tags</a>

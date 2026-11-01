@@ -364,6 +364,9 @@ class SavedGroceryList(models.Model):
     location = models.ForeignKey(
         ShopLocation, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
     )
+    # the days of the meal calendar this list shops for, when it was made from it (meals/)
+    covers_from = models.DateField(null=True, blank=True)
+    covers_to = models.DateField(null=True, blank=True)
     owner = owner_field()
     community_id = community_field()
 

@@ -1,4 +1,5 @@
 """Plan: choose recipes (filtering happens in the browser over the data below), see the shopping list build up."""
+from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -54,12 +55,17 @@ class PlanView(LoginRequiredMixin, View):
         for ri in RecipeIngredient.objects.filter(ingredient_id__in=used).select_related('ingredient').distinct():
             ingredient_names[ri.ingredient_id] = ri.ingredient.name
         locations = readable_locations(request.user).select_related('shop').order_by('shop__name', 'name')
-        preselect = []
+        # ?recipe=<id> or <id>x<portions> (the meal calendar's "Shopping list for these days" also sends from / to)
+        preselect = {}
         for raw in request.GET.getlist('recipe'):
+            rid, _, mult = raw.partition('x')
             try:
-                preselect.append(int(raw))
-            except ValueError:
-                pass
+                rid, mult = int(rid), Decimal(mult or '1')
+            except (ValueError, InvalidOperation):
+                continue
+            if MULT_MIN <= mult <= MULT_MAX:
+                preselect[rid] = float(mult)
+        covers = _covers(request.GET)
         return render(request, 'plan/plan.html', {
             'page': 'plan',
             'plan': {
@@ -69,10 +75,27 @@ class PlanView(LoginRequiredMixin, View):
                                       key=lambda i: i['name'].lower()),
                 'locations': [{'id': l.pk, 'name': str(l), 'store': l.shop.shopping_store} for l in locations],
                 'meals': [{'value': v, 'label': l} for v, l in Recipe.MealType.choices],
-                'preselect': preselect,
+                'preselect': [{'id': k, 'mult': v} for k, v in preselect.items()],
+                'covers': covers and {'from': covers[0].isoformat(), 'to': covers[1].isoformat(),
+                                      'label': _covers_label(*covers)},
                 'urls': {'receipt': reverse('plan-receipt'), 'save': reverse('plan-save')},
             },
         })
+
+
+def _covers(data):
+    """(from, to) days of the meal calendar a list is made for, when given."""
+    try:
+        start, end = date.fromisoformat(str(data.get('from'))), date.fromisoformat(str(data.get('to')))
+    except (TypeError, ValueError):
+        return None
+    return (start, end) if start <= end else None
+
+
+def _covers_label(start, end):
+    if start == end:
+        return start.strftime('%a %-d %b')
+    return f"{start.strftime('%a %-d %b')} – {end.strftime('%a %-d %b')}"
 
 
 def _selection(request):
@@ -124,10 +147,12 @@ def save(request):
     lines = grocery.merge_recipes(picks)
     if not lines:
         raise ApiError('These recipes have no ingredients.')
-    name = ' '.join(str(data.get('name') or '').split())[:200] or \
-        f'Shopping list — {timezone.localdate().strftime("%B %-d")}'
+    covers = _covers(data.get('covers') or {})
+    name = ' '.join(str(data.get('name') or '').split())[:200] or (
+        f'Meals {_covers_label(*covers)}' if covers else f'Shopping list — {timezone.localdate().strftime("%B %-d")}')
     with transaction.atomic():
-        saved = SavedGroceryList.objects.create(name=name, owner=request.user, location=location)
+        saved = SavedGroceryList.objects.create(name=name, owner=request.user, location=location,
+                                                covers_from=covers and covers[0], covers_to=covers and covers[1])
         saved.recipes.set([r for r, _ in picks])
         SavedGroceryItem.objects.bulk_create([
             SavedGroceryItem(grocery_list=saved, ingredient=l.ingredient, quantity=max(l.amount, Decimal('0.01')),

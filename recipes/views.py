@@ -5,7 +5,11 @@ from django.db.models import Prefetch
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
+
+from meals import planning as meal_planning
+from meals import views as meal_views
 
 from . import kitchen, shopping
 from .access import deletable, is_owner, readable, writable
@@ -62,6 +66,7 @@ class RecipeListView(LoginRequiredMixin, View):
         return render(request, 'recipes/list.html', {
             'recipes': recipes, 'deals': deals[:8], 'tags': readable(Tag, request.user),
             'meal_types': Recipe.MealType.choices, 'page': 'recipes',
+            'today_meals': meal_planning.today_meals(request.user), 'slot_icons': meal_planning.SLOT_ICONS,
         })
 
 
@@ -86,13 +91,22 @@ class RecipeDetailView(LoginRequiredMixin, View):
                 'deal': shopping.deal_text(link) if link else '',
                 'cost': shopping.cost_for_amount(ri.quantity, ri.unit, link) if link else None,
             })
+        costing = recipe_costing(ris)
         return render(request, 'recipes/detail.html', {
-            'recipe': recipe, 'rows': rows, 'costing': recipe_costing(ris),
+            'recipe': recipe, 'rows': rows, 'costing': costing,
             'phases': kitchen.grouped_steps(recipe), 'kitchenware': kitchen.needed_kitchenware(recipe),
             'reachable': reachable, 'shopping_on': shopping.configured(),
             'mine': is_owner(recipe, request.user),
             'can_edit': writable(Recipe, request.user).filter(pk=recipe.pk).exists(),
             'page': 'recipes',
+            'calendar': meal_planning.recipe_calendar(request.user, recipe),
+            'meal_boot': {
+                'recipes': [{'id': recipe.pk, 'name': recipe.name, 'meal': recipe.meal_type, 'prep': recipe.prep_time,
+                             'cook': recipe.cook_time, 'inSeason': False, 'promos': 0, 'tags': [], 'main': [], 'ing': [],
+                             'cost': float(costing['cost']) if costing['cost'] is not None else None}],
+                'slots': meal_views._slots(), 'urls': meal_views._urls(), 'today': timezone.localdate().isoformat(),
+                'slot': meal_planning.slot_for(recipe), 'meals': [], 'canEdit': True,
+            },
         })
 
 
@@ -113,8 +127,25 @@ class RecipeCookView(LoginRequiredMixin, View):
                 'ingredients': [{'name': ri.ingredient.name, 'amount': float(ri.quantity) if ri.quantity else None,
                                  'unit': ri.unit.abbreviation if ri.unit else '', 'main': ri.is_main} for ri in ris],
                 'tools': recipe.tools or [], 'kitchenware': list(ware.values()),
+                'meal': _cooking_meal(request, recipe),
             },
         })
+
+
+def _cooking_meal(request, recipe):
+    """The calendar meal this cooking session is for: ?meal=<id>, else today's uncooked meal with this recipe."""
+    from meals.models import Meal
+
+    if not can_edit(request.user, Meal):
+        return None
+    qs = writable(Meal, request.user).filter(recipe=recipe, leftover_of__isnull=True)
+    meal = qs.filter(pk=request.GET['meal']).first() if request.GET.get('meal', '').isdigit() else None
+    if meal is None:
+        meal = qs.filter(day=timezone.localdate(), cooked_at__isnull=True).order_by('position').first()
+    if meal is None:
+        return None
+    return {'id': meal.pk, 'cooked': meal.cooked_at is not None, 'url': reverse('meal-action', args=[meal.pk, 'cooked']),
+            'label': f"{meal.day.strftime('%a %-d %b')}, {meal.get_slot_display().lower()}"}
 
 
 class RecipeFormView(LoginRequiredMixin, View):
