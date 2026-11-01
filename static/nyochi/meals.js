@@ -33,9 +33,9 @@ if (B && root) {
       h("span.nm", {}, m.cooked ? icon("done_all") : null, m.name),
       h("span.meta", {},
         m.kind === "recipe" && m.mult !== 1 ? h("b", {}, `×${mult(m.mult)}`) : null,
-        r?.inSeason ? h("span.dot.season", { title: "Main ingredients in season" }, icon("eco")) : null,
-        r?.promos ? h("span.dot.sale", { title: `${r.promos} ingredient${r.promos === 1 ? "" : "s"} on sale` }, icon("sell")) : null,
-        m.leftovers.length ? h("span.dot", { title: "Makes leftovers" }, icon("restart_alt")) : null,
+        r?.inSeason ? h("span.mk.season", { title: "Main ingredients in season" }, icon("eco")) : null,
+        r?.promos ? h("span.mk.sale", { title: `${r.promos} ingredient${r.promos === 1 ? "" : "s"} on sale` }, icon("sell")) : null,
+        m.leftovers.length ? h("span.mk", { title: "Makes leftovers" }, icon("restart_alt")) : null,
         m.note ? h("span.note", {}, m.note) : null));
     return el;
   }

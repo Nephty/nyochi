@@ -956,10 +956,10 @@ body.cooking { height: var(--app-h); overflow: hidden; }
 .mc .nm .ic { width: 1rem; height: 1rem; color: var(--save); flex: none; }
 .mc .meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; color: var(--muted); font-size: .74rem; }
 .mc .meta b { font: 750 .74rem var(--mono); color: var(--ink-2); }
-.mc .dot { display: inline-flex; }
-.mc .dot .ic { width: .95rem; height: .95rem; }
-.mc .dot.season { color: var(--save); }
-.mc .dot.sale { color: var(--tag-ink); background: var(--tag); border-radius: 999px; padding: 1px; }
+.mc .mk { display: inline-flex; }
+.mc .mk .ic { width: .95rem; height: .95rem; }
+.mc .mk.season { color: var(--save); }
+.mc .mk.sale { color: var(--tag-ink); background: var(--tag); border-radius: 999px; padding: 1px; }
 .mc .note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .mc.k-text { background: color-mix(in srgb, var(--tag) 13%, var(--paper)); border-style: solid; }
 .mc.k-text .nm { font-style: italic; font-weight: 600; }
