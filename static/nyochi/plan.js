@@ -1,6 +1,7 @@
 // The shopping list planner: recipes (or the meal plan's days) and items added by hand; the server builds the receipt.
 import { api, debounce, h, icon, money, prefs, readJson, toast } from "./ui.js";
 import { receiptText, renderReceipt } from "./receipt.js";
+import { pager } from "./swipe.js";
 
 const P = readJson("plan-data");
 const root = document.querySelector("[data-plan]");
@@ -143,6 +144,10 @@ if (P && root) {
   };
   root.querySelectorAll("[data-pane-btn]").forEach((b) => b.addEventListener("click", () => pane(b.dataset.paneBtn)));
   if (covers) pane("list");   // from the meal plan: the list is what you came for
+  // phones: swipe between the two panes
+  const phone = matchMedia("(max-width: 760px)");
+  pager($(".plan-left"), { go: () => pane("list"), canPrev: () => false, canNext: () => phone.matches });
+  pager($(".plan-right"), { go: () => pane("add"), canNext: () => false, canPrev: () => phone.matches });
 
   draw();
   loadSoon();

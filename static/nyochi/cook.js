@@ -2,6 +2,7 @@
 // Position: -1 = get ready, 0..n-1 = the steps, n = done. It is remembered per recipe in this browser.
 // The progress bar has one segment per step and a flag over each step that uses an appliance (oven, stove, fridge...).
 import { api, h, icon, num, readJson, toast } from "./ui.js";
+import { pager } from "./swipe.js";
 
 const R = readJson("cook");
 const root = document.querySelector("[data-cook]");
@@ -207,15 +208,8 @@ if (R && root) {
     if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); go(pos + 1); }
     else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(pos - 1); }
   });
-  // swipe on phones
-  let x0 = null;
-  stage.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-  stage.addEventListener("touchend", (e) => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
-    x0 = null;
-    if (Math.abs(dx) > 70) go(pos + (dx < 0 ? 1 : -1));
-  });
+  // swipe on phones: the page follows the finger
+  pager(stage, { go: (dir) => go(pos + dir), canPrev: () => pos > -1, canNext: () => pos < n });
 
   // keep the screen on while cooking
   let lock = null;

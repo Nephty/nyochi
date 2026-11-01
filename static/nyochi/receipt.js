@@ -1,6 +1,7 @@
 // The shopping list as a till receipt: sections in walking order (numbered stops when a shop layout is chosen),
 // each line with what to buy in Shopping. Used by the list planner and by saved lists.
 import { h, icon, money, num, realChip, storeChip, untilText } from "./ui.js";
+import { row } from "./swipe.js";
 
 const SEASON_TEXT = { in: "in season", early: "early season", late: "late season", out: "out of season" };
 
@@ -35,13 +36,24 @@ function line(l, opts) {
     ) : null);
 }
 
+// On a phone a line swipes: right to tick it (or put it back), left to remove it.
+function swipeable(el, l, opts) {
+  const tick = opts.checkable && opts.onCheck;
+  const del = opts.onDelete && l.id;
+  if (!tick && !del) return el;
+  return row(el, {
+    right: tick ? { icon: icon(l.checked ? "undo" : "check"), label: l.checked ? "Back to buy" : "Got it", tone: "ok", run: () => opts.onCheck(l, !l.checked) } : null,
+    left: del ? { icon: icon("delete"), label: "Remove", tone: "danger", out: true, run: () => opts.onDelete(l) } : null,
+  });
+}
+
 export function renderReceipt(box, data, opts = {}) {
   const routed = !!data.location;
   const t = data.totals;
   const sections = data.sections.map((s) => h("section.rsec", {},
     s.stop ? h("span.stop", {}, s.stop) : null,
     h("div.rsec-h", {}, h("span", {}, s.title), h("span.n", {}, `${s.lines.length}`)),
-    s.lines.map((l) => line(l, opts))));
+    s.lines.map((l) => swipeable(line(l, opts), l, opts))));
   const hasPrices = t.priced > 0;
   box.replaceChildren(h("div.receipt", {}, h("div.rcpt" + (routed ? ".routed" : ""), {},
     h("div.rcpt-head", {}, h("span", {}, "Nyochi"), h("span", {}, new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }))),

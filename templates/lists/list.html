@@ -18,7 +18,7 @@
 {% if lists %}
 <div class="lists">
   {% for l in lists %}
-  <a class="lcard{% if l.total and l.done == l.total %} done{% endif %}" href="{% url 'saved-grocery-detail' l.pk %}">
+  <a class="lcard{% if l.total and l.done == l.total %} done{% endif %}" href="{% url 'saved-grocery-detail' l.pk %}"{% if l.can_edit %} data-archive="{% url 'list-action' l.pk archived|yesno:'unarchive,archive' %}"{% endif %}>
     <h3>{{ l.name }}</h3>
     <div class="meta"><span>{{ l.created_at|date:"j M Y" }}</span>{% if l.covers_from %}<span>{% icon "calendar_month" %}{{ l.covers_from|date:"j M" }}{% if l.covers_to != l.covers_from %} – {{ l.covers_to|date:"j M" }}{% endif %}</span>{% endif %}{% if l.location %}<span>{% icon "location_on" %}{{ l.location }}</span>{% endif %}{% if not l.mine %}<span class="chip mine-no">read-only</span>{% endif %}</div>
     {% if l.recipes.all %}<div class="names">{% for r in l.recipes.all %}{{ r.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
@@ -31,3 +31,4 @@
 <div class="panel"><div class="empty">{% icon "receipt_long" %}<b>{% if archived %}Nothing archived{% else %}No list yet{% endif %}</b>{% if not archived %}<a class="btn btn-primary" href="{% url 'plan' %}">{% icon "add_shopping_cart" %}New list</a>{% endif %}</div></div>
 {% endif %}
 {% endblock %}
+{% block scripts %}{% load static %}<script type="module" src="{% static 'nyochi/lists-page.js' %}"></script>{% endblock %}

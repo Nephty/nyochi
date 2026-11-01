@@ -24,8 +24,10 @@ class SavedListsView(LoginRequiredMixin, View):
                       done=Count('items', filter=Q(items__in_cart=True), distinct=True))
             .prefetch_related('recipes').select_related('location__shop')
         )
+        editable = set(writable(SavedGroceryList, request.user).values_list('pk', flat=True))
         for l in lists:
             l.mine = is_owner(l, request.user)
+            l.can_edit = l.pk in editable
         return render(request, 'lists/list.html', {
             'lists': lists, 'archived': archived, 'page': 'lists',
             'archived_count': readable(SavedGroceryList, request.user).filter(archived=True).count(),
