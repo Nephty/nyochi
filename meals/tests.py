@@ -69,6 +69,13 @@ class MealCalendarTests(HubTestCase):
         self.assertEqual(assistant.context['boot']['n'], 3)
         self.assertEqual(len(assistant.context['boot']['meals']), 1)
 
+    def test_month_link_follows_the_week(self):
+        # the week of today opens today's month, even when it started in the month before
+        self.assertEqual(self.client.get(reverse('meals')).context['month'], self.today.strftime('%Y-%m'))
+        # another week opens the month most of it is in: Mon 30 Nov 2026 - Sun 6 Dec 2026 is December's
+        self.assertEqual(self.client.get(reverse('meals'), {'week': '2026-11-30'}).context['month'], '2026-12')
+        self.assertEqual(self.client.get(reverse('meals'), {'week': '2026-11-23'}).context['month'], '2026-11')
+
     def test_bulk(self):
         day = self.today.isoformat()
         r = self.post_json(reverse('meal-bulk'), {'meals': [

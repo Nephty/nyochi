@@ -57,6 +57,8 @@ class WeekView(LoginRequiredMixin, View):
             'page': 'meals', 'start': start, 'end': end,
             'prev': (start - timedelta(days=7)).isoformat(), 'next': (start + timedelta(days=7)).isoformat(),
             'is_this_week': start == monday(today),
+            # Month opens today's month when today is shown, else the month most of the week is in (its Thursday)
+            'month': (today if start <= today <= end else start + timedelta(days=3)).strftime('%Y-%m'),
             'assistant_query': f'start={a_start.isoformat()}&days={(end - a_start).days + 1}',
             'boot': {
                 'start': start.isoformat(), 'days': _days(start, 7), 'slots': _slots(),

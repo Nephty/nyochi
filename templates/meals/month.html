@@ -9,7 +9,7 @@
     <div class="sub">{{ planned }} meal{{ planned|pluralize }} planned · {{ empty_days }} day{{ empty_days|pluralize }} with nothing yet</div>
   </div>
   <div class="actions">
-    <div class="seg" role="group" aria-label="View"><a href="{% url 'meals' %}?week={% if is_this_month %}{% now 'Y-m-d' %}{% else %}{{ first|date:'Y-m-d' }}{% endif %}">{% icon "calendar_view_week" %}Week</a><a class="on" href="{% url 'meals-month' %}?m={{ first|date:'Y-m' }}" aria-current="page">{% icon "calendar_month" %}Month</a></div>
+    <div class="seg" role="group" aria-label="View"><a href="{% url 'meals' %}?week={% if is_this_month %}{% now 'Y-m-d' %}{% else %}{{ first|date:'Y-m' }}-04{% endif %}">{% icon "calendar_view_week" %}Week</a><a class="on" href="{% url 'meals-month' %}?m={{ first|date:'Y-m' }}" aria-current="page">{% icon "calendar_month" %}Month</a></div>
     <div class="wk-nav">
       <a class="btn btn-icon" href="?m={{ prev }}" title="Previous month" aria-label="Previous month">{% icon "chevron_left" %}</a>
       <a class="btn{% if is_this_month %} btn-ghost{% endif %}" href="{% url 'meals-month' %}">{% icon "today" %}Today</a>

@@ -9,7 +9,7 @@
     <div class="sub">{{ start|date:"D j M" }} – {{ end|date:"D j M Y" }}</div>
   </div>
   <div class="actions">
-    <div class="seg" role="group" aria-label="View"><a class="on" href="{% url 'meals' %}?week={{ start|date:'Y-m-d' }}" aria-current="page">{% icon "calendar_view_week" %}Week</a><a href="{% url 'meals-month' %}?m={{ start|date:'Y-m' }}">{% icon "calendar_month" %}Month</a></div>
+    <div class="seg" role="group" aria-label="View"><a class="on" href="{% url 'meals' %}?week={{ start|date:'Y-m-d' }}" aria-current="page">{% icon "calendar_view_week" %}Week</a><a href="{% url 'meals-month' %}?m={{ month }}">{% icon "calendar_month" %}Month</a></div>
     <div class="wk-nav">
       <a class="btn btn-icon" href="?week={{ prev }}" title="Previous week" aria-label="Previous week">{% icon "chevron_left" %}</a>
       <a class="btn{% if is_this_week %} btn-ghost{% endif %}" href="{% url 'meals' %}">{% icon "today" %}Today</a>
