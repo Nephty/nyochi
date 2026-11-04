@@ -39,6 +39,17 @@ def euro(value):
 
 
 @register.filter
+def euro4(value):
+    """A price per unit, which can be a fraction of a cent: 0.1 -> "0,10 €", 0.0025 -> "0,0025 €"."""
+    if value in (None, ''):
+        return '–'
+    text = f'{Decimal(str(value)):.4f}'.rstrip('0')
+    if len(text.split('.')[1]) < 2:
+        text = f'{Decimal(text):.2f}'
+    return text.replace('.', ',') + ' €'
+
+
+@register.filter
 def amount(value):
     """1.50 -> 1.5, 2.00 -> 2"""
     if value is None:

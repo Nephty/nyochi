@@ -4,7 +4,8 @@ from dataclasses import dataclass, field
 from decimal import ROUND_HALF_UP, Decimal
 
 from . import categories, shopping
-from .models import AisleOrder, CategoryAisleMapping, IngredientAisle, RecipeIngredient, ShoppingLink, Unit
+from .costing import manual_cost
+from .models import AisleOrder, CategoryAisleMapping, IngredientAisle, RecipeIngredient, ShoppingLink, Unit, UnitPrice
 from .seasons import current_month
 
 TWO = Decimal('0.01')
@@ -191,6 +192,9 @@ def receipt(lines, location=None, user=None):
     reachable = shopping.refresh(all_links) if all_links else True
     for link in all_links:
         links[link.ingredient_id].append(link)
+    by_hand = defaultdict(list)   # prices entered by hand: for the lines no product can price
+    for p in UnitPrice.objects.filter(ingredient_id__in=ingredient_ids).select_related('unit'):
+        by_hand[p.ingredient_id].append(p)
     store = location.shop.shopping_store if location else ''
     month = current_month()
 
@@ -219,6 +223,14 @@ def receipt(lines, location=None, user=None):
                 total += p['cost']
                 saving += p['saving']
                 priced += 1
+            elif line.ingredient and line.unit:
+                cost, price = manual_cost(line.amount, line.unit, by_hand[line.ingredient.pk])
+                if cost is not None:
+                    row['manual'] = {'cost': float(cost), 'paid': float(price.paid), 'for': _amount(price.for_amount),
+                                     'unit': price.unit.abbreviation,
+                                     'updated': price.updated_at.date().isoformat()}
+                    total += cost
+                    priced += 1
             if line.unit and options:
                 by_store = defaultdict(list)
                 for link in options:

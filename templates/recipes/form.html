@@ -76,6 +76,7 @@
 
   <div class="form-actions" style="max-width:60rem">
     <button class="btn btn-primary" type="submit">{% icon "check" %}Save recipe</button>
+    {% if not recipe %}<button class="btn" type="submit" name="then" value="new">{% icon "add" %}Save and add another</button>{% endif %}
     <a class="btn btn-ghost" href="{% if recipe %}{% url 'recipe-detail' recipe.pk %}{% else %}{% url 'recipe-list' %}{% endif %}">Cancel</a>
   </div>
 </form>

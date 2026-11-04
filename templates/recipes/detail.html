@@ -19,7 +19,7 @@
     </div>{% endif %}
   </div>
   <div class="actions">
-    {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}">{% icon "play_arrow" %}Start cooking</a>{% endif %}
+    {% if recipe.steps %}<a class="btn btn-primary" href="{% url 'recipe-cook' recipe.pk %}" data-cook>{% icon "play_arrow" %}Start cooking</a>{% endif %}
     {# planning: the calendar when the community lets you change it, else the list planner; the other one in the split menu #}
     <div class="split">
       {% if "nyochi.meals.edit" in lab.perms %}<button class="btn" type="button" data-add-meal>{% icon "event_available" %}<span class="lbl-long">Add to the calendar</span><span class="lbl-short">Calendar</span></button>
@@ -49,24 +49,33 @@
 <div class="detail">
   <div>
     <section class="panel">
-      <div class="panel-head"><h2>Ingredients</h2><span class="muted sm">{{ rows|length }}</span></div>
+      <div class="panel-head"><h2>Ingredients</h2><span class="muted sm">{{ rows|length }}</span>
+        <div class="portions more" data-portions hidden>
+          <button class="btn btn-sm btn-icon" type="button" data-step="-1" aria-label="Fewer portions">{% icon "remove" %}</button>
+          <span class="v" data-portions-v aria-live="polite">1 portion</span>
+          <button class="btn btn-sm btn-icon" type="button" data-step="1" aria-label="More portions">{% icon "add" %}</button>
+        </div></div>
       <div class="panel-body irows-d">
         {% for row in rows %}
-        <div class="drow-i">
+        <div class="drow-i" data-ing="{{ row.ri.ingredient_id }}">
           <div class="nm">
             {% if row.ri.is_main %}<span class="star-main" title="Main ingredient">{% icon "star_fill" %}</span>{% endif %}
             <a href="{% url 'ingredient-detail' row.ri.ingredient.pk %}">{{ row.ri.ingredient.name }}</a>
             <span class="chip season-{{ row.status }}" title="{{ row.status|season_label }} this month">{% if row.status == "in" %}in season{% elif row.status == "early" %}early{% elif row.status == "late" %}late{% elif row.status == "out" %}out of season{% else %}?{% endif %}</span>
           </div>
-          <div class="qty">{{ row.ri.quantity|amount }} {{ row.ri.unit.abbreviation }}</div>
+          <div class="qty" data-amount="{{ row.ri.quantity|stringformat:'s' }}" data-unit="{{ row.ri.unit.abbreviation }}">{{ row.ri.quantity|amount }} {{ row.ri.unit.abbreviation }}</div>
           <div class="buy">
             {% if row.link %}
               <span class="chip store-{{ row.link.store }}">{{ row.link.store_label|default:row.link.store }}</span>
               {% if row.promo %}<span class="tag" title="{{ row.link.promo_titles }}">{{ row.link.promo_titles|default:"Promotion"|truncatechars:26 }}</span>{% if row.verdict == "real" %}<span class="real real">real deal</span>{% elif row.verdict == "usual" %}<span class="real usual">usual price</span>{% endif %}{% endif %}
               <b>{{ row.link.price|euro }}</b>{% if row.link.package_size %}<span class="muted">/ {{ row.link.package_size }}</span>{% endif %}
-              {% if row.cost %}<span class="muted">≈ {{ row.cost|euro }} here</span>{% endif %}
-            {% else %}
+            {% elif not row.manual %}
               <span class="none">no product linked</span>
+            {% endif %}
+            {% if row.source == "shopping" %}<span class="muted" data-cost="{{ row.cost|stringformat:'s' }}">≈ {{ row.cost|euro }} here</span>
+            {% elif row.source == "manual" %}<span class="muted" data-cost="{{ row.cost|stringformat:'s' }}">≈ {{ row.cost|euro }} here</span>
+              <button class="chip manual" type="button" data-price="{{ row.ri.ingredient_id }}" title="Entered by hand on {{ row.manual.updated_at|date:'j M Y' }}: {{ row.manual.paid|euro }} for {{ row.manual.for_amount|amount }} {{ row.manual.unit.abbreviation }}. Shopping doesn’t update it.">{% icon "edit" %}manual price</button>
+            {% else %}<button class="btn btn-sm btn-ghost set-price" type="button" data-price="{{ row.ri.ingredient_id }}" hidden>{% icon "sell" %}Set a price</button>
             {% endif %}
           </div>
         </div>
@@ -124,7 +133,9 @@
       <div class="estimate">
         <div class="rcpt-head"><span>Estimate</span><span>{{ costing.priced }}/{{ costing.total }} priced</span></div>
         {% if costing.cost %}
-          <div class="big" style="margin-top:.7rem">≈ {{ costing.cost|euro }}</div>
+          <div class="big" style="margin-top:.7rem" data-total="{{ costing.cost|stringformat:'s' }}">≈ {{ costing.cost|euro }}</div>
+          <div class="sm muted" data-per-portion hidden></div>
+          {% if costing.manual %}<div class="sm muted" style="margin-top:.3rem">{{ costing.manual }} priced by hand</div>{% endif %}
           {% if costing.saving %}<div class="saving">{% icon "savings" %} up to {{ costing.saving|euro }} saved by current promotions</div>{% endif %}
           {% if costing.promos %}<div class="sm muted" style="margin-top:.3rem">{{ costing.promos }} ingredient{{ costing.promos|pluralize }} on promotion right now</div>{% endif %}
         {% else %}
@@ -140,4 +151,4 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}{% load static %}{% if "nyochi.meals.edit" in lab.perms %}{{ meal_boot|json_script:"meal-boot" }}<script type="module" src="{% static 'nyochi/recipe-meal.js' %}"></script>{% endif %}{% endblock %}
+{% block scripts %}{% load static %}{{ recipe_boot|json_script:"recipe-boot" }}<script type="module" src="{% static 'nyochi/recipe.js' %}"></script>{% if "nyochi.meals.edit" in lab.perms %}{{ meal_boot|json_script:"meal-boot" }}<script type="module" src="{% static 'nyochi/recipe-meal.js' %}"></script>{% endif %}{% endblock %}

@@ -442,6 +442,26 @@ dialog[open] .dlg { animation: rise .22s cubic-bezier(.2,.8,.2,1); }
 .drow-i .qty { font: 600 .9rem var(--mono); }
 .drow-i .buy { display: flex; align-items: center; gap: .45rem .6rem; flex-wrap: wrap; font-size: .84rem; color: var(--ink-2); justify-content: flex-end; }
 .drow-i .buy .none { color: var(--faint); }
+/* a price entered by hand: dashed, so it reads as "not from Shopping" */
+.chip.manual { border-style: dashed; color: var(--muted); background: transparent; cursor: pointer; font: inherit; font-size: .74rem; font-weight: 700; }
+.chip.manual .ic { width: .9em; height: .9em; }
+.chip.manual:disabled { cursor: default; }
+.set-price { color: var(--muted); }
+.portions { display: flex; align-items: center; gap: .3rem; }
+.portions .v { min-width: 5.6rem; text-align: center; font-weight: 700; font-size: .88rem; }
+.price-form { display: grid; gap: .9rem; }
+.price-line { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.3fr); gap: .6rem; align-items: end; }
+.price-line .for { padding-bottom: .7rem; color: var(--muted); font-weight: 600; }
+.price-result { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .92rem; color: var(--ink-2); min-height: 1.3rem; }
+.price-result .bad { color: var(--loss); }
+.price-note { display: flex; gap: .4rem; align-items: flex-start; margin: 0; font-size: .84rem; color: var(--muted); }
+.price-note .ic { flex: none; margin-top: .1rem; }
+.btn.hint { justify-content: flex-start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .price-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .price-line .for { display: none; }
+  .price-line label:last-child { grid-column: 1 / -1; }
+}
 .star-main { color: var(--tag); filter: drop-shadow(0 1px 0 color-mix(in srgb, var(--tag-ink) 40%, transparent)); }
 .estimate { padding: 1.1rem 1.2rem .4rem; }
 .estimate .big { font: 800 2.5rem/1 var(--display); letter-spacing: -0.04em; }
@@ -1247,3 +1267,10 @@ ul.shared .muted { font-size: .84rem; }
 .cook-main.sw-snap { align-items: stretch; padding: 0; }
 .cook-main > .sw-panel { overflow-y: auto; padding: .4rem 0 1rem; }
 .sw-snap > * { min-height: var(--sw-fill, 0px); box-sizing: border-box; }
+.ready-h { display: flex; align-items: center; gap: .6rem; margin-bottom: .55rem; }
+.ready-h h3 { margin: 0 !important; }
+.ready-h .portions { margin-left: auto; }
+.uprices { display: grid; gap: .5rem; }
+.uprice { display: flex; align-items: center; gap: .7rem; padding: .55rem 0; border-top: 1px solid var(--line); }
+.uprice:first-child { border-top: 0; }
+.uprice .nm { display: grid; gap: .1rem; flex: 1; min-width: 0; }

@@ -14,7 +14,7 @@ from meals import views as meal_views
 from . import kitchen, shopping
 from .access import deletable, is_owner, readable, writable
 from .community import can_edit
-from .costing import recipe_costing
+from .costing import ingredient_cost, recipe_costing
 from .forms import RecipeForm, RecipeIngredientFormSet
 from .http import ApiError, api, body
 from .models import (
@@ -27,7 +27,8 @@ def _recipes_with_everything(user):
     return readable(Recipe, user).prefetch_related(
         'tags',
         Prefetch('recipeingredient_set', queryset=RecipeIngredient.objects.select_related('ingredient', 'unit')
-                 .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links')),
+                 .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links',
+                                  'ingredient__unit_prices__unit')),
     )
 
 
@@ -75,22 +76,29 @@ class RecipeDetailView(LoginRequiredMixin, View):
         recipe = get_object_or_404(readable(Recipe, request.user).prefetch_related('tags'), pk=pk)
         ris = list(
             recipe.recipeingredient_set.select_related('ingredient', 'unit')
-            .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links')
+            .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links',
+                                  'ingredient__unit_prices__unit')
             .order_by('-is_main', 'ingredient__name')
         )
         all_links = [l for ri in ris for l in ri.ingredient.shopping_links.all()]
         reachable = shopping.refresh(all_links) if all_links else True
         month = current_month()
-        rows = []
+        priceable = set(writable(Ingredient, request.user).filter(pk__in=[ri.ingredient_id for ri in ris])
+                        .values_list('pk', flat=True))
+        rows, prices = [], []
         for ri in ris:
             link = shopping.pick_link(list(ri.ingredient.shopping_links.all()))
+            cost = ingredient_cost(ri, link)
             rows.append({
                 'ri': ri, 'status': ri.ingredient.season_map().get(month, 'unknown'),
                 'link': link, 'promo': bool(link and shopping.promo_active(link)),
                 'verdict': shopping.verdict(link) if link else '',
                 'deal': shopping.deal_text(link) if link else '',
-                'cost': shopping.cost_for_amount(ri.quantity, ri.unit, link) if link else None,
+                'cost': cost['cost'], 'source': cost['source'], 'manual': cost['manual'],
             })
+            # what the price dialog needs for the rows Shopping can't price (and the ones priced by hand)
+            if cost['source'] != 'shopping' and ri.ingredient_id in priceable:
+                prices.append(price_dialog_row(ri, link, cost['manual']))
         costing = recipe_costing(ris)
         return render(request, 'recipes/detail.html', {
             'recipe': recipe, 'rows': rows, 'costing': costing,
@@ -99,6 +107,8 @@ class RecipeDetailView(LoginRequiredMixin, View):
             'mine': is_owner(recipe, request.user),
             'can_edit': writable(Recipe, request.user).filter(pk=recipe.pk).exists(),
             'page': 'recipes',
+            'recipe_boot': {'id': recipe.pk, 'prices': prices, 'priceUrl': reverse('unit-price-save'), 'cookUrl': reverse('recipe-cook', args=[recipe.pk]),
+                            'units': units_json()},
             'calendar': meal_planning.recipe_calendar(request.user, recipe),
             'meal_boot': {
                 'recipes': [{'id': recipe.pk, 'name': recipe.name, 'meal': recipe.meal_type, 'prep': recipe.prep_time,
@@ -108,6 +118,31 @@ class RecipeDetailView(LoginRequiredMixin, View):
                 'slot': meal_planning.slot_for(recipe), 'meals': [], 'canEdit': True,
             },
         })
+
+
+def units_json():
+    return [{'id': u.pk, 'name': u.name, 'abbr': u.abbreviation, 'dimension': u.dimension,
+             'factor': float(u.factor) if u.factor else None} for u in Unit.objects.all()]
+
+
+def price_dialog_row(ri, link, manual):
+    """One recipe ingredient for the "price by hand" dialog: its amount, the price already entered, and a starting
+    point from its linked product (€5 for a pack of 5 pieces)."""
+    hint = None
+    if link and link.price is not None:
+        count = link.pack_amount if link.pack_dimension == 'count' and link.pack_amount else None
+        hint = {'paid': float(link.price), 'for': float(count) if count else None, 'name': link.name,
+                'size': link.package_size}
+    return {
+        'ingredient': ri.ingredient_id, 'name': ri.ingredient.name, 'amount': float(ri.quantity),
+        'unit': ri.unit_id, 'abbr': ri.unit.abbreviation,
+        'manual': unit_price_json(manual) if manual else None, 'hint': hint,
+    }
+
+
+def unit_price_json(p):
+    return {'id': p.pk, 'unit': p.unit_id, 'abbr': p.unit.abbreviation, 'price': float(p.price),
+            'paid': float(p.paid), 'for': float(p.for_amount), 'updated': timezone.localtime(p.updated_at).date().isoformat()}
 
 
 class RecipeCookView(LoginRequiredMixin, View):
@@ -121,15 +156,27 @@ class RecipeCookView(LoginRequiredMixin, View):
             'phase': s['phase'], 'phase_label': kitchen.PHASE_LABELS[s['phase']], 'text': s['text'],
             'minutes': s.get('minutes'), 'appliance': ware.get(s.get('appliance') or ''),
         } for s in recipe.steps or []]
+        meal = _cooking_meal(request, recipe)
         return render(request, 'recipes/cook.html', {
             'recipe': recipe, 'page': 'recipes', 'boot': {
                 'id': recipe.pk, 'name': recipe.name, 'steps': steps, 'url': reverse('recipe-detail', args=[recipe.pk]),
                 'ingredients': [{'name': ri.ingredient.name, 'amount': float(ri.quantity) if ri.quantity else None,
                                  'unit': ri.unit.abbreviation if ri.unit else '', 'main': ri.is_main} for ri in ris],
                 'tools': recipe.tools or [], 'kitchenware': list(ware.values()),
-                'meal': _cooking_meal(request, recipe),
+                'meal': meal, 'portions': _portions(request, meal),
             },
         })
+
+
+def _portions(request, meal):
+    """How many portions are cooked (a recipe is for one): ?portions= (from the recipe page), else the calendar meal's."""
+    try:
+        n = float(request.GET.get('portions', ''))
+        if 0 < n <= 20:
+            return n
+    except ValueError:
+        pass
+    return meal['mult'] if meal else 1
 
 
 def _cooking_meal(request, recipe):
@@ -144,7 +191,7 @@ def _cooking_meal(request, recipe):
         meal = qs.filter(day=timezone.localdate(), cooked_at__isnull=True).order_by('position').first()
     if meal is None:
         return None
-    return {'id': meal.pk, 'cooked': meal.cooked_at is not None, 'url': reverse('meal-action', args=[meal.pk, 'cooked']),
+    return {'id': meal.pk, 'cooked': meal.cooked_at is not None, 'mult': float(meal.mult), 'url': reverse('meal-action', args=[meal.pk, 'cooked']),
             'label': f"{meal.day.strftime('%a %-d %b')}, {meal.get_slot_display().lower()}"}
 
 
@@ -194,6 +241,8 @@ class RecipeFormView(LoginRequiredMixin, View):
                 for obj in formset.deleted_objects:
                     obj.delete()
             messages.success(request, f'Saved “{saved.name}”.')
+            if recipe is None and request.POST.get('then') == 'new':
+                return redirect('recipe-create')
             return redirect('recipe-detail', pk=saved.pk)
         messages.error(request, 'The recipe was not saved: fix the highlighted fields.')
         return self._render(request, recipe, form, formset)

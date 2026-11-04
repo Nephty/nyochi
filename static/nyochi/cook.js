@@ -26,7 +26,17 @@ if (R && root) {
   const store = () => { try { localStorage.setItem(KEY, JSON.stringify({ pos, ticked: [...ticked] })); } catch { /* private mode */ } };
 
   const applianceText = (a) => (a ? `${a.label}${a.setting ? ` · ${a.setting}` : ""}` : "");
-  const amount = (i) => (i.amount != null ? `${num(i.amount)} ${i.unit}`.trim() : "");
+  // a recipe is for one portion: the amounts follow how many are cooked (from the recipe page or the calendar meal)
+  let portions = R.portions || 1;
+  const amount = (i) => (i.amount != null ? `${num(i.amount * portions)} ${i.unit}`.trim() : "");
+  const plural = (p) => `${num(p)} portion${p === 1 ? "" : "s"}`;
+  function setPortions(p) {
+    portions = Math.min(20, Math.max(1, p));
+    document.querySelectorAll("[data-ing-qty]").forEach((el) => { el.textContent = amount(R.ingredients[el.dataset.ingQty]); });
+    document.querySelectorAll("[data-portions-v]").forEach((el) => { el.textContent = plural(portions); });
+    document.querySelectorAll('[data-pstep="-1"]').forEach((b) => { b.disabled = portions <= 1; });
+    document.querySelectorAll('[data-pstep="1"]').forEach((b) => { b.disabled = portions >= 20; });
+  }
 
   // ------------------------------------------------------------------ timers (keep running while you move on)
   const timers = new Map(); // step index -> {total, left, running, at}
@@ -113,12 +123,16 @@ if (R && root) {
         h("div.eyebrow", {}, "Before you start"),
         h("h2", {}, "Get everything ready"),
         h("div.ready-grid", {},
-          h("section", {}, h("h3", {}, "Ingredients"),
+          h("section", {}, h("div.ready-h", {}, h("h3", {}, "Ingredients"),
+            h("div.portions", {},
+              h("button.btn.btn-sm.btn-icon", { type: "button", dataset: { pstep: "-1" }, disabled: portions <= 1, "aria-label": "Fewer portions", onclick: () => setPortions(Math.ceil(portions) - 1) }, icon("remove")),
+              h("span.v", { dataset: { portionsV: "" }, "aria-live": "polite" }, plural(portions)),
+              h("button.btn.btn-sm.btn-icon", { type: "button", dataset: { pstep: "1" }, disabled: portions >= 20, "aria-label": "More portions", onclick: () => setPortions(Math.floor(portions) + 1) }, icon("add")))),
             R.ingredients.length ? h("ul.ready-ings", {}, R.ingredients.map((ing, k) => {
               const id = `ing-${k}`;
               return h(`li${ticked.has(k) ? ".ok" : ""}`, {},
                 h("input", { type: "checkbox", id, checked: ticked.has(k), onchange: (e) => { e.target.checked ? ticked.add(k) : ticked.delete(k); e.target.closest("li").classList.toggle("ok", e.target.checked); store(); } }),
-                h("label", { for: id }, h("span.nm", {}, ing.main ? icon("star_fill", "star-main") : null, ing.name), h("span.qty", {}, amount(ing))));
+                h("label", { for: id }, h("span.nm", {}, ing.main ? icon("star_fill", "star-main") : null, ing.name), h("span.qty", { dataset: { ingQty: k } }, amount(ing))));
             })) : h("p.muted", {}, "No ingredients listed.")),
           h("section", {},
             ware.length ? [h("h3", {}, "Kitchenware"), h("ul.ware-list", {}, ware.map((k) => h(`li.ware.ware-${k.key}`, {},

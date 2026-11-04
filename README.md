@@ -9,7 +9,13 @@ Live at `nyochi.nephty.top` (service `recipe-book`, port 8002, dev port 8002 und
 ## What it does
 
 - **Recipes**: index cards with prep/cook time, difficulty, meal type, tags, ingredients (quantity + unit, a star for
-  the *main* ones). Client-side search and filters; an estimated cost and "N on sale" from Shopping.
+  the *main* ones). Client-side search and filters; an estimated cost and "N on sale" from Shopping. **A recipe is for
+  one portion**: the recipe page has a portions stepper (remembered per recipe in the browser, `static/nyochi/recipe.js`)
+  that scales the amounts, the costs and the estimate, and "Start cooking" takes it along (`?portions=`; the cooking
+  guide's get-ready page has the same stepper; from a calendar meal it starts at that meal's portions).
+- **Creating many in a row**: the new-ingredient and new-recipe forms have "Save and add another" (`then=new`; the
+  ingredient keeps the category), and the Ingredients page has "Add several" (names, one per line, one category:
+  `ingredients/several/`; seasons and products are filled in later).
 - **Steps and what you need** (`recipes/kitchen.py`, JSON on `Recipe`: `steps`, `tools`, `kitchenware`): steps in two
   phases, *Ingredient set-up* (getting the ingredients ready) then *Preparation*, each with an optional appliance and
   timer; manual tools (free text with suggestions) and kitchenware from a fixed list (oven, stove, fridge, freezer,
@@ -60,6 +66,13 @@ API with a bearer token** (`shopping/core/ext_api.py`, `/api/ext/search/` and `/
   proportional (a quarter of a 1 kg pack = a quarter of its price); a list line counts **whole packs**, minus the saving
   of the current promotion on those packs. Amounts and packs that can't be compared (clove vs grams) count as one pack and
   are shown with "≈".
+- **Prices by hand** (`UnitPrice`, `recipes/costing.py`): where no linked product can price an amount (a tbsp of a
+  bottle, "1 abs" of a pack sold by weight, no product at all), the recipe page offers "Set a price": "€10 for 100 tbsp",
+  saved **per ingredient and unit** as a price per one unit, so every recipe using that ingredient in that unit is priced
+  (and a unit of the same kind is converted: tsp from a price per tbsp, tbsp from a price per litre). Shopping's price
+  wins when it can price the amount; a manual one is marked "manual price" (dashed chip) because Shopping never updates
+  it. Listed, changed and removed on the ingredient page ("Prices by hand"); used by shopping-list lines with no product
+  too. Changing one needs `nyochi.ingredients.edit`. Dialog: `static/nyochi/unit-price.js`.
 - Which product is bought: the shop's own store if it has one (`Shop.shopping_store`), else the preferred one, else the
   cheapest. The receipt also shows what each store would cost for the lines it covers.
 - The browser never calls Shopping (CSP `connect-src 'self'`): search for the product picker goes through

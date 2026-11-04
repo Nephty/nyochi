@@ -69,6 +69,22 @@
         {% if not shopping_on %}<div class="notice">{% icon "info" %}<span>Shopping isn’t connected.</span></div>{% endif %}
       </div>
     </section>
+    {% if unit_prices or can_edit %}
+    <section class="panel">
+      <div class="panel-head"><h2>Prices by hand</h2><span class="muted sm">{{ unit_prices|length }}</span>
+        {% if can_edit %}<button class="btn btn-sm more" type="button" data-price-add>{% icon "add" %}Add a price</button>{% endif %}</div>
+      <div class="panel-body uprices">
+        {% for p in unit_prices %}
+        <div class="uprice">
+          <span class="chip manual">manual</span>
+          <div class="nm"><b>{{ p.price|euro4 }} per {{ p.unit.abbreviation }}</b><span class="muted sm">{{ p.paid|euro }} for {{ p.for_amount|amount }} {{ p.unit.abbreviation }} · {{ p.updated_at|date:"j M Y" }}</span></div>
+          {% if can_edit %}<button class="btn btn-sm btn-ghost btn-icon" type="button" data-price-edit="{{ p.unit_id }}" aria-label="Change the price per {{ p.unit.abbreviation }}">{% icon "edit" %}</button>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
+{% block scripts %}{% load static %}{% if can_edit %}{{ price_boot|json_script:"price-boot" }}<script type="module" src="{% static 'nyochi/ingredient.js' %}"></script>{% endif %}{% endblock %}

@@ -25,6 +25,7 @@ class IngredientForm(UniqueNameMixin, forms.ModelForm):
         self.fields['category'].choices = list(labels.items())
         if not self.instance.pk:
             self.fields['category'].initial = default_key(labels)
+            self.fields['name'].widget.attrs['autofocus'] = True   # several in a row: type the next name at once
         current = self.instance.season_map() if self.instance.pk else {}
         for number, label in MONTHS:
             self.fields[f'season_{number}'] = forms.ChoiceField(

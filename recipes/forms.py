@@ -67,6 +67,8 @@ class RecipeForm(StyledFormMixin, forms.ModelForm):
         self.fields['meal_type'].choices = Recipe.MealType.choices
         for f in ('prep_time', 'cook_time'):
             self.fields[f].widget.attrs.update(min=0, inputmode='numeric')
+        if not self.instance.pk:
+            self.fields['name'].widget.attrs['autofocus'] = True
         # steps, tools and kitchenware come from the editor (static/nyochi/steps.js) as JSON
         for name in ('steps', 'tools', 'kitchenware'):
             self.fields[f'{name}_json'] = forms.CharField(required=False, widget=forms.HiddenInput())

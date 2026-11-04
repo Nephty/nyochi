@@ -29,7 +29,8 @@ def _plan_recipes(user):
     qs = readable(Recipe, user).prefetch_related(
         'tags',
         Prefetch('recipeingredient_set', queryset=RecipeIngredient.objects.select_related('ingredient', 'unit')
-                 .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links')),
+                 .prefetch_related('ingredient__seasonal_availability', 'ingredient__shopping_links',
+                                  'ingredient__unit_prices__unit')),
     )
     out = []
     for r in qs:

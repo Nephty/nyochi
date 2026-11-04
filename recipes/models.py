@@ -310,6 +310,26 @@ class ShoppingLink(models.Model):
         return f'{self.ingredient} → {self.key}'
 
 
+class UnitPrice(models.Model):
+    """A price entered by hand for one unit of an ingredient ("olive oil: €0.10 per tbsp"), for the amounts Shopping's
+    products can't price (a tablespoon, a piece of a pack sold by weight...). It is never updated by Shopping: costing
+    uses it only when no linked product prices the amount. Like a link, it follows its ingredient (no access of its own).
+    paid / for_amount keep what was typed ("€10 for 100 tbsp"), price is per one unit."""
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='unit_prices')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='+')
+    price = models.DecimalField(max_digits=12, decimal_places=6)
+    paid = models.DecimalField(max_digits=8, decimal_places=2)
+    for_amount = models.DecimalField(max_digits=10, decimal_places=3)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['unit__name']
+        unique_together = ('ingredient', 'unit')
+
+    def __str__(self):
+        return f'{self.ingredient}: {self.paid} € for {self.for_amount} {self.unit.abbreviation}'
+
+
 class Recipe(models.Model):
     class Difficulty(models.TextChoices):
         EASY         = 'easy',         'Easy'

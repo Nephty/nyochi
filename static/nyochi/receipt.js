@@ -33,6 +33,9 @@ function line(l, opts) {
       promo ? realChip(promo) : null,
       promo?.until ? h("span.muted", {}, untilText(promo.until)) : null,
       h("span.cost", { title: buy.exact ? "" : "The pack size can’t be compared with the amount: counted as one pack." }, `${buy.exact ? "" : "≈ "}${money(buy.cost)}`),
+    ) : l.manual ? h("div.buy", {},
+      h("span.chip.manual", { title: `Entered by hand: ${money(l.manual.paid)} for ${num(l.manual.for)} ${l.manual.unit}. Shopping doesn’t update it.` }, "manual price"),
+      h("span.cost", {}, `≈ ${money(l.manual.cost)}`),
     ) : null);
 }
 
