@@ -101,7 +101,7 @@ class RecipeDetailView(LoginRequiredMixin, View):
                 prices.append(price_dialog_row(ri, link, cost['manual']))
         costing = recipe_costing(ris)
         return render(request, 'recipes/detail.html', {
-            'recipe': recipe, 'rows': rows, 'costing': costing,
+            'recipe': recipe, 'rows': rows, 'costing': costing, 'shares': cost_shares(rows),
             'phases': kitchen.grouped_steps(recipe), 'kitchenware': kitchen.needed_kitchenware(recipe),
             'reachable': reachable, 'shopping_on': shopping.configured(),
             'mine': is_owner(recipe, request.user),
@@ -123,6 +123,29 @@ class RecipeDetailView(LoginRequiredMixin, View):
 def units_json():
     return [{'id': u.pk, 'name': u.name, 'abbr': u.abbreviation, 'dimension': u.dimension,
              'factor': float(u.factor) if u.factor else None} for u in Unit.objects.all()]
+
+
+SHARES_SHOWN = 7
+
+
+def cost_shares(rows):
+    """The priced ingredients, costliest first, each with its share of the estimate (the estimate card's bars).
+    Past SHARES_SHOWN the rest fold into one "others" line."""
+    priced = sorted((r for r in rows if r['cost']), key=lambda r: (-r['cost'], r['ri'].ingredient.name))
+    total = sum(r['cost'] for r in priced)
+    if not total:
+        return []
+    shares = [{'name': r['ri'].ingredient.name, 'pk': r['ri'].ingredient_id, 'cost': r['cost'],
+               'manual': r['source'] == 'manual'} for r in priced[:SHARES_SHOWN]]
+    rest = priced[SHARES_SHOWN:]
+    if len(rest) == 1:
+        shares.append({'name': rest[0]['ri'].ingredient.name, 'pk': rest[0]['ri'].ingredient_id,
+                       'cost': rest[0]['cost'], 'manual': rest[0]['source'] == 'manual'})
+    elif rest:
+        shares.append({'name': f'{len(rest)} others', 'pk': None, 'cost': sum(r['cost'] for r in rest), 'manual': False})
+    for s in shares:
+        s['pct'] = float(s['cost'] / total * 100)
+    return shares
 
 
 def price_dialog_row(ri, link, manual):

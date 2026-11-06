@@ -467,6 +467,17 @@ dialog[open] .dlg { animation: rise .22s cubic-bezier(.2,.8,.2,1); }
 .estimate .big { font: 800 2.5rem/1 var(--display); letter-spacing: -0.04em; }
 .estimate .cap { color: var(--muted); font-size: .86rem; margin-top: .25rem; }
 .estimate .saving { color: var(--save); font-weight: 700; font-size: .9rem; margin-top: .5rem; }
+/* the estimate's cost per ingredient, costliest first: one hue; priced by hand = hatched (keyed in the line above) */
+.shares { list-style: none; margin: 1rem 0 0; padding: .9rem 0 0; border-top: 1.5px dashed var(--line-2); display: grid; gap: .55rem; }
+.share { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .8rem; font-size: .86rem; }
+.share .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 620; }
+.share .nm a { color: var(--ink); text-decoration: none; }
+.share .nm a:hover { text-decoration: underline; }
+.share .v { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.share .bar { grid-column: 1 / -1; height: .5rem; border-radius: 999px; background: var(--paper-3); overflow: hidden; }
+.share .bar i { display: block; height: 100%; min-width: 4px; border-radius: 999px; background: var(--accent-text); }
+.share.manual .bar i, .share-key { background: repeating-linear-gradient(135deg, var(--accent-text) 0 3px, transparent 3px 5px); box-shadow: inset 0 0 0 1px var(--accent-text); }
+.share-key { display: inline-block; width: .8rem; height: .6rem; border-radius: 3px; margin-right: .4rem; vertical-align: -.02rem; }
 .linkcards { display: grid; gap: .6rem; }
 .linkcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .8rem; align-items: center; padding: .75rem .9rem; border: 1px solid var(--line); background: var(--paper-2); border-radius: 12px; }
 .linkcard.promo { background: var(--tag-wash); border-color: color-mix(in srgb, var(--tag) 55%, var(--line)); }

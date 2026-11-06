@@ -19,6 +19,7 @@ if (B) {
     box.querySelector('[data-step="1"]').disabled = portions >= 20;
     document.querySelectorAll("[data-amount]").forEach((el) => { el.textContent = `${num(Number(el.dataset.amount) * portions)} ${el.dataset.unit}`.trim(); });
     document.querySelectorAll("[data-cost]").forEach((el) => { el.textContent = `≈ ${money(Number(el.dataset.cost) * portions)} here`; });
+    document.querySelectorAll("[data-share]").forEach((el) => { el.textContent = money(Number(el.dataset.share) * portions); });
     const total = document.querySelector("[data-total]");
     if (total) {
       total.textContent = `≈ ${money(Number(total.dataset.total) * portions)}`;

@@ -63,6 +63,24 @@ class PricesByHandTests(HubTestCase):
         self.price(self.avocado, self.clove, '5', '5')
         self.assertEqual(self.costing()['cost'], Decimal('1.00'))
 
+    def test_the_estimate_shows_each_ingredients_share_costliest_first(self):
+        ShoppingLink.objects.create(ingredient=self.avocado, key='delhaize|A', store='delhaize', code='A', price=Decimal('5'),
+                                    pack_amount=Decimal('5'), pack_dimension='count', package_size='5 st')
+        self.price(self.avocado, self.clove, '6', '5')     # 1,20 € each
+        self.price(self.oil, self.tbsp, '10', '100')      # 0,20 € for 2 tbsp
+        page = self.client.get(reverse('recipe-detail', args=[self.salad.pk]))
+        shares = page.context['shares']
+        self.assertEqual([(s['name'], s['cost'], round(s['pct'])) for s in shares],
+                         [('Avocado', Decimal('1.20'), 86), ('Olive oil', Decimal('0.20'), 14)])
+        self.assertContains(page, 'class="shares"')
+        # past seven, the cheapest fold into one line
+        from recipes.views import cost_shares
+        rows = [{'ri': RecipeIngredient(ingredient=Ingredient(pk=i, name=f'I{i}'), ingredient_id=i), 'cost': Decimal(i),
+                 'source': 'shopping'} for i in range(1, 11)]
+        names = [s['name'] for s in cost_shares(rows)]
+        self.assertEqual(names, ['I10', 'I9', 'I8', 'I7', 'I6', 'I5', 'I4', '3 others'])
+        self.assertAlmostEqual(sum(s['pct'] for s in cost_shares(rows)), 100)
+
     def test_change_unit_remove_and_validation(self):
         self.price(self.oil, self.tbsp, '10', '100')
         # priced per litre instead: replaces the price per tablespoon; 2 tbsp of a 8 €/l oil

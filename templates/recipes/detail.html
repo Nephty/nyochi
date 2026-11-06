@@ -135,11 +135,22 @@
         {% if costing.cost %}
           <div class="big" style="margin-top:.7rem" data-total="{{ costing.cost|stringformat:'s' }}">≈ {{ costing.cost|euro }}</div>
           <div class="sm muted" data-per-portion hidden></div>
-          {% if costing.manual %}<div class="sm muted" style="margin-top:.3rem">{{ costing.manual }} priced by hand</div>{% endif %}
+          {% if costing.manual %}<div class="sm muted" style="margin-top:.3rem">{% if shares|length > 1 %}<i class="share-key" aria-hidden="true"></i>{% endif %}{{ costing.manual }} priced by hand</div>{% endif %}
           {% if costing.saving %}<div class="saving">{% icon "savings" %} up to {{ costing.saving|euro }} saved by current promotions</div>{% endif %}
           {% if costing.promos %}<div class="sm muted" style="margin-top:.3rem">{{ costing.promos }} ingredient{{ costing.promos|pluralize }} on promotion right now</div>{% endif %}
         {% else %}
           <div class="cap" style="margin:.8rem 0 .4rem">Link ingredients to products in Shopping and this card will tell you what the recipe costs and which ingredients are on sale.</div>
+        {% endif %}
+        {% if shares|length > 1 %}
+        <ol class="shares" aria-label="Cost per ingredient, costliest first">
+          {% for s in shares %}
+          <li class="share{% if s.manual %} manual{% endif %}">
+            <span class="nm">{% if s.pk %}<a href="{% url 'ingredient-detail' s.pk %}">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}</span>
+            <span class="v"><span data-share="{{ s.cost|stringformat:'s' }}">{{ s.cost|euro }}</span> · {% if s.pct < 1 %}&lt; 1{% else %}{{ s.pct|floatformat:0 }}{% endif %} %</span>
+            <span class="bar"><i style="width: {{ s.pct|stringformat:'.1f' }}%"></i></span>
+          </li>
+          {% endfor %}
+        </ol>
         {% endif %}
         {% if shopping_on and not reachable %}<div class="notice bad" style="margin:.8rem 0">{% icon "cloud_off" %}<span>Shopping is unreachable: last known prices.</span></div>{% endif %}
         {% include "partials/barcode.html" %}
